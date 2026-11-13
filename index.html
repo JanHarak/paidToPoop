@@ -1080,10 +1080,20 @@ body.detail-open { overflow: hidden; }
 
   var detailEl = $("detail");
   var detailOpen = false;
+  var detailClosing = false;
   var detailOpener = null;
+
+  function setBackgroundInert(on) {
+    Array.prototype.forEach.call(document.body.children, function (n) {
+      if (n === detailEl || n.tagName === "SCRIPT") return;
+      if (on) n.setAttribute("inert", "");
+      else n.removeAttribute("inert");
+    });
+  }
 
   function openDetail(a, opener) {
     if (detailOpen) return;
+    detailClosing = false;
     detailOpener = opener || null;
     $("detailSrc").textContent = a.source;
     var parts = [a.source];
@@ -1107,14 +1117,22 @@ body.detail-open { overflow: hidden; }
     detailEl.querySelector(".detail-panel").scrollTop = 0;
     document.body.classList.add("detail-open");
     detailOpen = true;
+    setBackgroundInert(true);
     history.pushState({ detail: true }, "");
     $("detailBack").focus();
   }
 
   function closeDetail(fromPopstate) {
     if (!detailOpen) return;
-    if (!fromPopstate) { history.back(); return; }
+    if (!fromPopstate) {
+      if (detailClosing) return;
+      detailClosing = true;
+      history.back();
+      return;
+    }
     detailOpen = false;
+    detailClosing = false;
+    setBackgroundInert(false);
     detailEl.hidden = true;
     document.body.classList.remove("detail-open");
     $("detailImg").removeAttribute("src");
@@ -1128,9 +1146,23 @@ body.detail-open { overflow: hidden; }
   $("detailBack").addEventListener("click", function () { closeDetail(); });
   detailEl.addEventListener("click", function (e) { if (e.target === detailEl) closeDetail(); });
   document.addEventListener("keydown", function (e) {
-    if (detailOpen && (e.key === "Escape" || e.key === "Esc")) {
+    if (!detailOpen) return;
+    if (e.key === "Escape" || e.key === "Esc") {
       e.preventDefault();
       closeDetail();
+    } else if (e.key === "Tab") {
+      var first = $("detailBack"), last = $("detailLink");
+      var cur = document.activeElement;
+      if (!detailEl.contains(cur)) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && cur === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && cur === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   });
 
