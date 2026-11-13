@@ -969,13 +969,362 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     decide(e, maze, forEnemy);
   }
 
+  // ---- Game rules: enemies, power-up, score, levels ----
+
+  var DIR_ORDER = ["up", "left", "down", "right"];
+  var ENEMIES = ["sef", "pm", "kolega", "hr"];
+  var RELEASE_S = { sef: 0, pm: 3, kolega: 6, hr: 9 };
+  var POINTS = { coin: 10, powerup: 50, enemy: [200, 400, 800, 1600] };
+  var PLAYER_SPEED = 6;               // tiles per second
+  var EATEN_SPEED = 2 * PLAYER_SPEED; // eaten enemy hurrying back to the meeting room
+  var START_LIVES = 3;
+  var READY_S = 2;                    // countdown before a round starts
+  var DYING_S = 1.5;                  // pause after a lost life
+  var LEVEL_DONE_S = 2;               // pause after a cleared level
+  var TICK = 1 / 60;                  // update() simulates in steps of at most this
+  var HIT_DIST = 0.5;                 // collision when centres are closer than this
+  var HR_RANGE = 8;                   // HR chases when this close (manhattan), else patrols
+  var PM_AHEAD = 4;
+  // start tiles relative to the "home" tile (just below the door)
+  var START_OFFSET = { sef: [0, 0], pm: [-1, 1], kolega: [1, 1], hr: [0, 1] };
+
+  function powerDuration(level) {
+    return Math.max(3, 8 - level);
+  }
+
+  function enemySpeed(level, playerSpeed) {
+    var base = 0.85 * playerSpeed;
+    return Math.min(playerSpeed, base * (1 + 0.05 * (level - 1)));
+  }
+
+  function tileOf(e) {
+    return { x: Math.round(e.x), y: Math.round(e.y) };
+  }
+
+  function wrapX(maze, x) {
+    if (x < 0) return x + maze.w;
+    if (x >= maze.w) return x - maze.w;
+    return x;
+  }
+
+  function targetFor(kind, enemy, player, maze) {
+    var p = tileOf(player);
+    if (kind === "sef") return p;
+    if (kind === "pm") {
+      var d = player.dir ? DIRS[player.dir] : { x: 0, y: 0 };
+      return { x: p.x + PM_AHEAD * d.x, y: p.y + PM_AHEAD * d.y };
+    }
+    if (kind === "hr") {
+      var t = tileOf(enemy);
+      if (Math.abs(t.x - p.x) + Math.abs(t.y - p.y) <= HR_RANGE) return p;
+      return { x: maze.patrol.x, y: maze.patrol.y };
+    }
+    return null;
+  }
+
+  // Direction for an enemy standing on a tile centre. No 180 degree turn unless it is
+  // the only way; target -> nearest (straight line), fleeFrom -> farthest, neither ->
+  // random via rng. Ties follow DIR_ORDER. useDoor lets it pass the meeting-room door.
+  function chooseDir(enemy, maze, target, rng, fleeFrom, useDoor) {
+    var c = tileOf(enemy);
+    var open = [], ahead = [];
+    for (var i = 0; i < DIR_ORDER.length; i++) {
+      var d = DIR_ORDER[i];
+      if (isWall(maze, c.x + DIRS[d].x, c.y + DIRS[d].y, useDoor === true)) continue;
+      open.push(d);
+      if (d !== OPPOSITE[enemy.dir]) ahead.push(d);
+    }
+    var opts = ahead.length ? ahead : open;
+    if (!opts.length) return null;
+    var goal = target || fleeFrom;
+    if (!goal) return opts[Math.min(opts.length - 1, Math.floor(rng() * opts.length))];
+    var best = null, bestD = 0;
+    for (var j = 0; j < opts.length; j++) {
+      var dx = c.x + DIRS[opts[j]].x - goal.x;
+      var dy = c.y + DIRS[opts[j]].y - goal.y;
+      var dd = dx * dx + dy * dy;
+      if (best === null || (target ? dd < bestD : dd > bestD)) {
+        best = opts[j];
+        bestD = dd;
+      }
+    }
+    return best;
+  }
+
+  // Breadth-first distances (in tiles) to `goal` over enemy-passable tiles incl. the door.
+  function distField(maze, goal) {
+    var w = maze.w, dist = [], q = [goal.x, goal.y], head = 0;
+    for (var i = 0; i < w * maze.h; i++) dist[i] = Infinity;
+    dist[goal.y * w + goal.x] = 0;
+    while (head < q.length) {
+      var x = q[head++], y = q[head++];
+      var nd = dist[y * w + x] + 1;
+      for (var k = 0; k < DIR_ORDER.length; k++) {
+        var nx = x + DIRS[DIR_ORDER[k]].x, ny = y + DIRS[DIR_ORDER[k]].y;
+        if (isWall(maze, nx, ny, true)) continue;
+        nx = wrapX(maze, nx);
+        if (dist[ny * w + nx] > nd) {
+          dist[ny * w + nx] = nd;
+          q.push(nx, ny);
+        }
+      }
+    }
+    return dist;
+  }
+
+  // Shortest-path step along a distance field (reversing allowed, ties by DIR_ORDER).
+  function downhill(e, maze, field) {
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < DIR_ORDER.length; i++) {
+      var d = DIR_ORDER[i];
+      var nx = e.x + DIRS[d].x, ny = e.y + DIRS[d].y;
+      if (isWall(maze, nx, ny, true)) continue;
+      var v = field[ny * maze.w + wrapX(maze, nx)];
+      if (v < bestD) { best = d; bestD = v; }
+    }
+    return best;
+  }
+
+  function addScore(s, points) {
+    s.score += points;
+    if (s.score > s.best) s.best = s.score;
+  }
+
+  function isPenTile(maze, x, y) {
+    for (var i = 0; i < maze.pen.length; i++) {
+      if (maze.pen[i].x === x && maze.pen[i].y === y) return true;
+    }
+    return false;
+  }
+
+  // Player back to start, enemies back to the meeting room, new "ready" countdown.
+  function resetRound(s) {
+    var m = s.maze;
+    s.player = { x: m.start.x, y: m.start.y, dir: null, next: null, speed: PLAYER_SPEED };
+    s.enemies = ENEMIES.map(function (kind) {
+      var x = s.home.x + START_OFFSET[kind][0], y = s.home.y + START_OFFSET[kind][1];
+      if (!isPenTile(m, x, y)) { x = s.home.x; y = s.home.y; }
+      return {
+        kind: kind,
+        e: { x: x, y: y, dir: null, next: null, speed: enemySpeed(s.level, PLAYER_SPEED) },
+        mode: "pen",
+        releaseAt: RELEASE_S[kind]
+      };
+    });
+    s.powerTime = 0;
+    s.chain = 0;
+    s.time = 0;
+    s.phase = "ready";
+    s.phaseTime = 0;
+  }
+
+  function newGame(maze, rng) {
+    var home = { x: maze.door.x, y: maze.door.y + 1 };
+    var s = {
+      maze: maze, rng: rng, level: 1, score: 0, best: 0, lives: START_LIVES,
+      player: null, enemies: [],
+      coinsLeft: new Set(maze.coins), powerLeft: new Set(maze.powerups),
+      powerTime: 0, chain: 0, time: 0, phase: "ready", phaseTime: 0,
+      home: home,
+      toHome: distField(maze, home),
+      toExit: distField(maze, maze.patrol)
+    };
+    resetRound(s);
+    return s;
+  }
+
+  function speedFor(s, en) {
+    var base = enemySpeed(s.level, PLAYER_SPEED);
+    if (en.mode === "eaten") return EATEN_SPEED;
+    if (en.mode === "flee") return base / 2;
+    return base;
+  }
+
+  // Decision on a tile centre: eaten -> back home; pen -> out through the door to the
+  // patrol tile; chase/flee -> chooseDir with the door treated as a wall.
+  function atCentre(s, en) {
+    var e = en.e, m = s.maze;
+    if (en.mode === "eaten") {
+      if (e.x !== s.home.x || e.y !== s.home.y) { e.dir = downhill(e, m, s.toHome); return; }
+      en.mode = "pen";
+      en.releaseAt = s.time;
+    }
+    if (en.mode === "pen") {
+      if (e.x !== m.patrol.x || e.y !== m.patrol.y) { e.dir = downhill(e, m, s.toExit); return; }
+      en.mode = "chase";
+    }
+    if (en.mode === "flee") {
+      e.dir = chooseDir(e, m, null, s.rng, tileOf(s.player), false);
+    } else {
+      e.dir = chooseDir(e, m, targetFor(en.kind, e, s.player, m), s.rng, null, false);
+    }
+  }
+
+  // Moves an enemy `dist` tiles, deciding afresh on every tile centre it passes.
+  function moveEnemy(s, en, dist) {
+    var e = en.e, m = s.maze;
+    while (dist > EPS) {
+      var cx = Math.round(e.x), cy = Math.round(e.y);
+      if (Math.abs(e.x - cx) < EPS && Math.abs(e.y - cy) < EPS) {
+        e.x = wrapX(m, cx);
+        e.y = cy;
+        atCentre(s, en);
+      }
+      if (!e.dir) return;
+      var d = DIRS[e.dir];
+      var pos = d.x !== 0 ? e.x : e.y;
+      var target = d.x + d.y > 0 ? Math.floor(pos + EPS) + 1 : Math.ceil(pos - EPS) - 1;
+      var gap = Math.abs(target - pos);
+      var mv = dist >= gap - EPS ? gap : dist;
+      if (mv === gap) { if (d.x !== 0) e.x = target; else e.y = target; }
+      else if (d.x !== 0) e.x += d.x * mv;
+      else e.y += d.y * mv;
+      dist -= mv;
+    }
+  }
+
+  function centreGap(m, a, b) {
+    var dx = Math.abs(a.x - b.x);
+    if (dx > m.w / 2) dx = m.w - dx;
+    var dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function eat(s, ev) {
+    var m = s.maze, p = s.player;
+    var x = Math.round(p.x), y = Math.round(p.y);
+    if (x < 0 || x >= m.w) return;
+    var k = y * m.w + x;
+    if (s.coinsLeft.delete(k)) {
+      addScore(s, POINTS.coin);
+      ev.push({ type: "coin", points: POINTS.coin });
+    } else if (s.powerLeft.delete(k)) {
+      addScore(s, POINTS.powerup);
+      ev.push({ type: "powerup", points: POINTS.powerup });
+      s.powerTime = powerDuration(s.level);
+      s.chain = 0;
+      s.enemies.forEach(function (en) {
+        if (en.mode !== "chase" && en.mode !== "flee") return;
+        en.mode = "flee";
+        if (en.e.dir) en.e.dir = OPPOSITE[en.e.dir];
+        en.e.speed = speedFor(s, en);
+      });
+    }
+    if (s.coinsLeft.size === 0 && s.powerLeft.size === 0) {
+      ev.push({ type: "levelDone" });
+      s.level++;
+      s.coinsLeft = new Set(m.coins);
+      s.powerLeft = new Set(m.powerups);
+      s.phase = "levelDone";
+      s.phaseTime = 0;
+    }
+  }
+
+  function collide(s, ev) {
+    for (var i = 0; i < s.enemies.length; i++) {
+      var en = s.enemies[i];
+      if (en.mode === "eaten") continue;
+      if (centreGap(s.maze, s.player, en.e) >= HIT_DIST) continue;
+      if (en.mode === "flee") {
+        var pts = POINTS.enemy[Math.min(s.chain, POINTS.enemy.length - 1)];
+        s.chain++;
+        addScore(s, pts);
+        ev.push({ type: "enemyEaten", points: pts });
+        en.mode = "eaten";
+        en.e.speed = EATEN_SPEED;
+        continue;
+      }
+      s.lives--;
+      ev.push({ type: "lifeLost" });
+      if (s.lives <= 0) {
+        s.lives = 0;
+        s.phase = "over";
+        ev.push({ type: "gameOver" });
+      } else {
+        s.phase = "dying";
+        s.phaseTime = 0;
+      }
+      return;
+    }
+  }
+
+  function pause(s, dt, length) {
+    s.phaseTime += dt;
+    return s.phaseTime >= length - 1e-9;
+  }
+
+  function tick(s, dt, input, ev) {
+    if (s.phase === "ready") {
+      if (pause(s, dt, READY_S)) { s.phase = "play"; s.phaseTime = 0; }
+      return;
+    }
+    if (s.phase === "dying") {
+      if (pause(s, dt, DYING_S)) resetRound(s);
+      return;
+    }
+    if (s.phase === "levelDone") {
+      if (pause(s, dt, LEVEL_DONE_S)) resetRound(s);
+      return;
+    }
+    if (s.phase !== "play") return;
+
+    s.time += dt;
+    if (s.powerTime > 0) {
+      s.powerTime = Math.max(0, s.powerTime - dt);
+      if (s.powerTime === 0) {
+        s.enemies.forEach(function (en) { if (en.mode === "flee") en.mode = "chase"; });
+      }
+    }
+
+    s.player.next = input || null;
+    s.player.speed = PLAYER_SPEED;
+    stepEntity(s.player, s.maze, dt, false);
+    eat(s, ev);
+    if (s.phase !== "play") return;
+
+    for (var i = 0; i < s.enemies.length; i++) {
+      var en = s.enemies[i];
+      if (en.mode === "pen" && s.time < en.releaseAt) continue;
+      en.e.speed = speedFor(s, en);
+      moveEnemy(s, en, en.e.speed * dt);
+    }
+    collide(s, ev);
+  }
+
+  // Advances the game by dt seconds (simulated in steps of at most TICK).
+  function update(s, dt, input) {
+    var ev = [];
+    var left = dt;
+    while (left > 1e-12 && s.phase !== "over") {
+      var h = Math.min(left, TICK);
+      left -= h;
+      tick(s, h, input, ev);
+    }
+    return ev;
+  }
+
   window.HraLogika = {
     DIRS: DIRS,
-    DIR_ORDER: ["up", "left", "down", "right"],
+    DIR_ORDER: DIR_ORDER,
     MAZE: MAZE,
     parseMaze: parseMaze,
     isWall: isWall,
-    stepEntity: stepEntity
+    stepEntity: stepEntity,
+    ENEMIES: ENEMIES,
+    RELEASE_S: RELEASE_S,
+    POINTS: POINTS,
+    PLAYER_SPEED: PLAYER_SPEED,
+    EATEN_SPEED: EATEN_SPEED,
+    START_LIVES: START_LIVES,
+    READY_S: READY_S,
+    DYING_S: DYING_S,
+    LEVEL_DONE_S: LEVEL_DONE_S,
+    powerDuration: powerDuration,
+    enemySpeed: enemySpeed,
+    targetFor: targetFor,
+    chooseDir: chooseDir,
+    newGame: newGame,
+    update: update
   };
 })();
 </script>
