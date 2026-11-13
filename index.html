@@ -69,6 +69,7 @@ body {
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
 }
+header { padding-top: 2.5rem; }
 header h1 {
   font-family: "Bricolage Grotesque", system-ui, sans-serif;
   font-weight: 800;
@@ -294,6 +295,23 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   cursor: pointer;
   padding: 0;
 }
+/* Clock */
+.clock {
+  position: fixed;
+  top: calc(.75rem + env(safe-area-inset-top, 0px));
+  right: calc(max(44px, calc((100vw - 980px) / 2)) + .5rem);
+  z-index: 6;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  border-radius: 999px;
+  padding: .3rem .85rem;
+  font-size: .85rem;
+  line-height: 1.4;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
 /* Money rain */
 .rain {
   position: fixed;
@@ -360,6 +378,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 </style>
 </head>
 <body>
+<div class="clock" id="clock" aria-live="off"></div>
 <div class="rain rain-l" aria-hidden="true"></div>
 <div class="rain rain-r" aria-hidden="true"></div>
 <div class="wrap">
@@ -710,6 +729,14 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     clearInterval(rainTimer);
     rainTimer = null;
   }
+
+  var clockEl = $("clock");
+  function tickClock() {
+    var t = ZK.formatClock(new Date());
+    if (clockEl.textContent !== t) clockEl.textContent = t;
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
 
   $("flush").addEventListener("click", function () {
     var btn = $("flush"), note = $("timerNote");
