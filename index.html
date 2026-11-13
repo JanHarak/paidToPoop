@@ -546,10 +546,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   <section class="panel feed" id="feed" aria-labelledby="feedTitle">
     <h2 id="feedTitle">Čtení na trůn</h2>
     <div class="seg tabs" role="tablist" aria-label="Téma zpráv">
-      <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" aria-controls="newsList">Svět</button>
-      <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" aria-controls="newsList">Peníze</button>
+      <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" tabindex="0" aria-controls="newsList">Svět</button>
+      <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="newsList">Peníze</button>
     </div>
-    <div class="news-list" id="newsList" role="tabpanel" aria-labelledby="tabSvet" aria-live="polite"></div>
+    <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet" aria-live="polite"></div>
     <button class="more" id="feedMore" type="button" hidden>Načíst další</button>
     <p class="news-end" id="feedEnd" hidden>To je všechno, spláchni a jdi pracovat.</p>
   </section>
@@ -889,16 +889,29 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   var feedTab = "svet";
   var feedList = $("newsList"), feedMore = $("feedMore"), feedEnd = $("feedEnd");
 
+  var FETCH_TIMEOUT = 10000;
+  function fetchText(url) {
+    return new Promise(function (resolve, reject) {
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function () {
+        if (ctl) ctl.abort();
+        reject(new Error("timeout"));
+      }, FETCH_TIMEOUT);
+      fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then(function (t) { clearTimeout(timer); resolve(t); },
+              function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
   function loadTab(tab) {
     var st = feedState[tab];
     if (st.status === "loading") return Promise.resolve();
     st.status = "loading";
     renderFeed();
     var jobs = FEEDS[tab].map(function (f) {
-      return fetch(f.url).then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.text();
-      }).then(function (xml) { return ZK.parseRss(xml, f.name); });
+      return fetchText(f.url).then(function (xml) { return ZK.parseRss(xml, f.name); });
     });
     return Promise.allSettled(jobs).then(function (res) {
       var lists = [];
@@ -931,7 +944,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     }
     feedList.setAttribute("aria-busy", "false");
     if (st.status === "error") {
-      feedList.appendChild(el("p", "news-msg", "Zprávy se nepodařilo načíst."));
+      feedList.appendChild(el("p", "news-msg", "Zprávy se nepodařilo načíst"));
       var retry = el("button", "retry", "Zkusit znovu");
       retry.type = "button";
       retry.addEventListener("click", function () { loadTab(feedTab); });
@@ -966,6 +979,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     feedTab = tab;
     $("tabSvet").setAttribute("aria-selected", String(tab === "svet"));
     $("tabPenize").setAttribute("aria-selected", String(tab === "penize"));
+    $("tabSvet").tabIndex = tab === "svet" ? 0 : -1;
+    $("tabPenize").tabIndex = tab === "penize" ? 0 : -1;
     feedList.setAttribute("aria-labelledby", tab === "svet" ? "tabSvet" : "tabPenize");
     if (feedState[tab].status === "idle") loadTab(tab);
     else renderFeed();
@@ -985,6 +1000,18 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   });
   $("tabSvet").addEventListener("click", function () { showTab("svet"); });
   $("tabPenize").addEventListener("click", function () { showTab("penize"); });
+  var TAB_ORDER = ["svet", "penize"];
+  document.querySelector(".tabs").addEventListener("keydown", function (e) {
+    var i = TAB_ORDER.indexOf(feedTab), n = TAB_ORDER.length, j;
+    if (e.key === "ArrowRight") j = (i + 1) % n;
+    else if (e.key === "ArrowLeft") j = (i + n - 1) % n;
+    else if (e.key === "Home") j = 0;
+    else if (e.key === "End") j = n - 1;
+    else return;
+    e.preventDefault();
+    showTab(TAB_ORDER[j]);
+    $(j === 0 ? "tabSvet" : "tabPenize").focus();
+  });
 
   renderFeed();
   if ("IntersectionObserver" in window) {
