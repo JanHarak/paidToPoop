@@ -312,6 +312,63 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   white-space: nowrap;
   pointer-events: none;
 }
+/* Warning (20 min) */
+.warn-tint {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 6px #d93a2b, inset 0 0 60px rgba(217, 58, 43, .45);
+}
+.warn-tint[hidden] { display: none; }
+.warn-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, .55);
+}
+.warn-modal[hidden] { display: none; }
+.warn-box {
+  max-width: 380px;
+  width: 100%;
+  background: var(--porcelain);
+  color: var(--ink);
+  border-radius: 16px;
+  border: 3px solid #d93a2b;
+  padding: 1.4rem 1.25rem 1.25rem;
+  text-align: center;
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, .6);
+  animation: warn-pop .25s ease;
+}
+.warn-box h2 { margin: 0 0 .5rem; font-size: 1.3rem; color: #d93a2b; }
+.warn-box p { margin: 0 0 1.1rem; font-size: 1.05rem; }
+.warn-close {
+  border: 0;
+  border-radius: 999px;
+  padding: .8rem 1.6rem;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: #d93a2b;
+  cursor: pointer;
+}
+@keyframes warn-pop { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+body.warn .timer-block {
+  background: rgba(217, 58, 43, .16);
+  box-shadow: 0 0 0 3px #d93a2b;
+  border-radius: 14px;
+  padding: .6rem;
+}
+body.warn .flush, body.warn .flush.timing { background: #d93a2b; color: #fff; }
+body.warn .timer-note { color: #d93a2b; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .warn-box { animation: none; }
+}
 /* Money rain */
 .rain {
   position: fixed;
@@ -585,7 +642,7 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
 
-      <div class="field">
+      <div class="field timer-block">
         <label id="cnt-l">Návštěvy záchodu za den</label>
         <div class="counter" role="group" aria-labelledby="cnt-l">
           <button class="step" id="minus" type="button" aria-label="Ubrat návštěvu">−</button>
@@ -643,6 +700,17 @@ body.detail-open { overflow: hidden; }
       <h2 class="detail-title" id="detailTitle"></h2>
       <p class="detail-perex" id="detailPerex"></p>
       <a class="detail-link" id="detailLink" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
+</div>
+
+<div id="warnLayer">
+  <div class="warn-tint" id="warnTint" aria-hidden="true" hidden></div>
+  <div class="warn-modal" id="warnModal" role="alertdialog" aria-modal="true" aria-labelledby="warnTitle" aria-describedby="warnText" hidden>
+    <div class="warn-box">
+      <h2 id="warnTitle">Pozor, čas běží</h2>
+      <p id="warnText">Sedíš tu už 20 minut. Není čas vrátit se k práci?</p>
+      <button class="warn-close" id="warnClose" type="button">Zavřít</button>
     </div>
   </div>
 </div>
@@ -906,10 +974,68 @@ body.detail-open { overflow: hidden; }
   tickClock();
   setInterval(tickClock, 1000);
 
+  // 20 minute warning. ?warnAfter=N (seconds) overrides the threshold for manual testing only.
+  var warnAfterMs = ZK.WARN_AFTER_MS;
+  (function () {
+    var m = /[?&]warnAfter=([^&#]*)/.exec(location.search);
+    var v = m ? Number(decodeURIComponent(m[1])) : NaN;
+    if (isFinite(v) && v > 0) warnAfterMs = v * 1000;
+  })();
+  var warned = false, warnOpen = false, warnPrevFocus = null;
+  var warnLayer = $("warnLayer"), warnModal = $("warnModal"), warnTint = $("warnTint"), warnCloseBtn = $("warnClose");
+
+  function showWarning() {
+    if (warnOpen) return;
+    warned = true;
+    warnOpen = true;
+    warnPrevFocus = document.activeElement;
+    document.body.classList.add("warn");
+    warnTint.hidden = false;
+    warnModal.hidden = false;
+    applyInert();
+    warnCloseBtn.focus();
+  }
+
+  function hideWarning() {
+    if (!warnOpen) return;
+    warnOpen = false;
+    document.body.classList.remove("warn");
+    warnTint.hidden = true;
+    warnModal.hidden = true;
+    applyInert();
+    var back = warnPrevFocus;
+    warnPrevFocus = null;
+    if (back && back !== document.body && document.body.contains(back) && !(back.closest && back.closest("[inert]"))) back.focus();
+    else $("flush").focus();
+  }
+
+  function checkWarning() {
+    if (timerStart !== null && !warned && Date.now() - timerStart >= warnAfterMs) showWarning();
+  }
+
+  warnCloseBtn.addEventListener("click", hideWarning);
+  // Capture phase: while the warning is open it owns Esc and Tab, so the detail never sees them.
+  window.addEventListener("keydown", function (e) {
+    if (!warnOpen) return;
+    if (e.key === "Escape" || e.key === "Esc") {
+      e.preventDefault();
+      e.stopPropagation();
+      hideWarning();
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      warnCloseBtn.focus();
+    }
+  }, true);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") checkWarning();
+  });
+
   $("flush").addEventListener("click", function () {
     var btn = $("flush"), note = $("timerNote");
     if (timerStart === null) {
       timerStart = Date.now();
+      warned = false;
       btn.textContent = "Hotovo, spláchnout";
       btn.classList.add("timing");
       startRain();
@@ -917,12 +1043,15 @@ body.detail-open { overflow: hidden; }
         var elapsed = Date.now() - timerStart;
         var earned = rateMin() * (elapsed / 60000);
         note.textContent = "Sedíš " + fmtTime(elapsed) + " a už máš " + money(earned);
+        checkWarning();
       }, 250);
     } else {
       var elapsedMin = (Date.now() - timerStart) / 60000;
       clearInterval(timerTick);
       stopRain();
       timerStart = null;
+      hideWarning();
+      warned = false;
       // Update running average of visit length with the measured visit
       var oldAvg = num(els.mins);
       var newAvg = count > 0 ? (oldAvg * count + elapsedMin) / (count + 1) : elapsedMin;
@@ -1083,13 +1212,18 @@ body.detail-open { overflow: hidden; }
   var detailClosing = false;
   var detailOpener = null;
 
-  function setBackgroundInert(on) {
+  // Single source of truth for inert. The warning layer is never inert; while the
+  // warning is open everything else (detail included) is, otherwise only the
+  // background behind an open detail.
+  function applyInert() {
     Array.prototype.forEach.call(document.body.children, function (n) {
-      if (n === detailEl || n.tagName === "SCRIPT") return;
+      if (n.tagName === "SCRIPT" || n === warnLayer) return;
+      var on = warnOpen || (detailOpen && n !== detailEl);
       if (on) n.setAttribute("inert", "");
       else n.removeAttribute("inert");
     });
   }
+  function setBackgroundInert() { applyInert(); }
 
   function openDetail(a, opener) {
     if (detailOpen) return;
@@ -1138,7 +1272,11 @@ body.detail-open { overflow: hidden; }
     $("detailImg").removeAttribute("src");
     var back = detailOpener;
     detailOpener = null;
-    if (back && document.body.contains(back)) back.focus();
+    if (warnOpen) {
+      // Warning stays on top; hand it the opener to restore focus to later.
+      if (back && document.body.contains(back)) warnPrevFocus = back;
+      warnCloseBtn.focus();
+    } else if (back && document.body.contains(back)) back.focus();
     else feedList.focus();
   }
 
