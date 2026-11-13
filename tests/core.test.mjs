@@ -13,6 +13,13 @@ test("decodeEntities decodes named and numeric entities", function () {
   assert.equal(ZK.decodeEntities("A&nbsp;&amp;&#269;&#x161;"), "A &čš");
 });
 
+test("decodeEntities decodes typographic named entities", function () {
+  assert.equal(ZK.decodeEntities("a&ndash;b&mdash;c&hellip;"), "a–b—c…");
+  assert.equal(ZK.decodeEntities("&bdquo;x&ldquo; &lsquo;y&rsquo; &sbquo; &rdquo;"), "„x“ ‘y’ ‚ ”");
+  assert.equal(ZK.decodeEntities("&laquo;a&raquo; 2&times;3 5&euro;"), "«a» 2×3 5€");
+  assert.equal(ZK.decodeEntities("pro&shy;tože"), "protože");
+});
+
 test("decodeEntities is single-pass (no double decoding)", function () {
   assert.equal(ZK.decodeEntities("&#38;lt;"), "&lt;");
   assert.equal(ZK.decodeEntities("&amp;lt;"), "&lt;");

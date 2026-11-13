@@ -167,7 +167,8 @@ header p {
   border-radius: 999px;
   cursor: pointer;
 }
-.seg-btn[aria-checked="true"] {
+.seg-btn[aria-checked="true"],
+.seg-btn[aria-selected="true"] {
   background: var(--porcelain);
   color: var(--ink);
   box-shadow: var(--shadow);
@@ -316,7 +317,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .warn-tint {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 32;
   pointer-events: none;
   box-shadow: inset 0 0 0 6px #d93a2b, inset 0 0 60px rgba(217, 58, 43, .45);
 }
@@ -437,11 +438,7 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 .feed { margin-top: 1.25rem; }
 .seg.tabs { max-width: 320px; margin-bottom: 1rem; }
 .seg-btn { min-height: 44px; }
-.seg-btn[aria-selected="true"] {
-  background: var(--porcelain);
-  color: var(--ink);
-  box-shadow: var(--shadow);
-}
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .news-list { display: flex; flex-direction: column; }
 .news-card {
   display: flex;
@@ -682,7 +679,8 @@ body.detail-open { overflow: hidden; }
       <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" tabindex="0" aria-controls="newsList">Svět</button>
       <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="newsList">Peníze</button>
     </div>
-    <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet" aria-live="polite"></div>
+    <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet"></div>
+    <div class="sr-only" id="feedStatus" role="status"></div>
     <button class="more" id="feedMore" type="button" hidden>Načíst další</button>
     <p class="news-end" id="feedEnd" hidden>To je všechno, spláchni a jdi pracovat.</p>
   </section>
@@ -720,7 +718,10 @@ body.detail-open { overflow: hidden; }
 (function (root) {
   var ZK = {};
 
-  var NAMED = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  var NAMED = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+    ndash: "–", mdash: "—", hellip: "…", bdquo: "„", ldquo: "“", rdquo: "”",
+    sbquo: "‚", lsquo: "‘", rsquo: "’", laquo: "«", raquo: "»", shy: "",
+    times: "×", euro: "€" };
 
   ZK.decodeEntities = function (s) {
     return String(s).replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, function (m, e) {
@@ -978,7 +979,7 @@ body.detail-open { overflow: hidden; }
   var warnAfterMs = ZK.WARN_AFTER_MS;
   (function () {
     var m = /[?&]warnAfter=([^&#]*)/.exec(location.search);
-    var v = m ? Number(decodeURIComponent(m[1])) : NaN;
+    var v = m && m[1] !== "" ? Number(m[1]) : NaN;
     if (isFinite(v) && v > 0) warnAfterMs = v * 1000;
   })();
   var warned = false, warnOpen = false, warnPrevFocus = null;
@@ -1108,6 +1109,7 @@ body.detail-open { overflow: hidden; }
     penize: { status: "idle", items: [], shown: PAGE }
   };
   var feedTab = "svet";
+  var feedStatus = $("feedStatus");
   var feedList = $("newsList"), feedMore = $("feedMore"), feedEnd = $("feedEnd");
 
   var FETCH_TIMEOUT = 10000;
@@ -1161,10 +1163,12 @@ body.detail-open { overflow: hidden; }
     if (st.status === "idle" || st.status === "loading") {
       for (var s = 0; s < 3; s++) feedList.appendChild(el("div", "news-skel"));
       feedList.setAttribute("aria-busy", "true");
+      feedStatus.textContent = "Načítám zprávy…";
       return;
     }
     feedList.setAttribute("aria-busy", "false");
     if (st.status === "error") {
+      feedStatus.textContent = "Zprávy se nepodařilo načíst";
       feedList.appendChild(el("p", "news-msg", "Zprávy se nepodařilo načíst"));
       var retry = el("button", "retry", "Zkusit znovu");
       retry.type = "button";
@@ -1172,6 +1176,7 @@ body.detail-open { overflow: hidden; }
       feedList.appendChild(retry);
       return;
     }
+    feedStatus.textContent = "Načteno " + st.items.length + " zpráv";
     st.items.slice(0, st.shown).forEach(function (a) {
       var card = el("button", "news-card");
       card.type = "button";
@@ -1183,6 +1188,7 @@ body.detail-open { overflow: hidden; }
         img.width = 72;
         img.height = 54;
         img.loading = "lazy";
+        img.onerror = function () { img.hidden = true; };
         card.appendChild(img);
       }
       var body = el("span", "news-body");
@@ -1223,7 +1229,6 @@ body.detail-open { overflow: hidden; }
       else n.removeAttribute("inert");
     });
   }
-  function setBackgroundInert() { applyInert(); }
 
   function openDetail(a, opener) {
     if (detailOpen) return;
@@ -1238,6 +1243,7 @@ body.detail-open { overflow: hidden; }
     $("detailPerex").textContent = a.perex || "";
     var img = $("detailImg");
     if (a.image) {
+      img.onerror = function () { img.hidden = true; };
       img.src = a.image;
       img.hidden = false;
     } else {
@@ -1251,7 +1257,7 @@ body.detail-open { overflow: hidden; }
     detailEl.querySelector(".detail-panel").scrollTop = 0;
     document.body.classList.add("detail-open");
     detailOpen = true;
-    setBackgroundInert(true);
+    applyInert();
     history.pushState({ detail: true }, "");
     $("detailBack").focus();
   }
@@ -1266,7 +1272,7 @@ body.detail-open { overflow: hidden; }
     }
     detailOpen = false;
     detailClosing = false;
-    setBackgroundInert(false);
+    applyInert();
     detailEl.hidden = true;
     document.body.classList.remove("detail-open");
     $("detailImg").removeAttribute("src");
@@ -1280,7 +1286,8 @@ body.detail-open { overflow: hidden; }
     else feedList.focus();
   }
 
-  window.addEventListener("popstate", function () { closeDetail(true); });
+  try { if (history.state && history.state.detail) history.replaceState(null, ""); } catch (e) {}
+  window.addEventListener("popstate", function () { if (detailOpen) closeDetail(true); });
   $("detailBack").addEventListener("click", function () { closeDetail(); });
   detailEl.addEventListener("click", function (e) { if (e.target === detailEl) closeDetail(); });
   document.addEventListener("keydown", function (e) {
