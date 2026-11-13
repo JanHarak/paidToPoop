@@ -93,6 +93,16 @@ test("relTime: relative and absolute formats", function () {
   assert.equal(ZK.relTime(null, now), "");
 });
 
+test("relTime: unit boundaries", function () {
+  var now = new Date(2026, 10, 13, 15, 42).getTime();
+  assert.equal(ZK.relTime(now - 59e3, now), "právě teď");
+  assert.equal(ZK.relTime(now - 60e3, now), "před 1 min");
+  assert.equal(ZK.relTime(now - 59 * 60e3, now), "před 59 min");
+  assert.equal(ZK.relTime(now - 60 * 60e3, now), "před 1 h");
+  assert.equal(ZK.relTime(now - (23 * 60 + 59) * 60e3, now), "před 23 h");
+  assert.equal(ZK.relTime(now - 24 * 3600e3, now), "12. 11. 15:42");
+});
+
 test("formatClock: weekday, date and zero-padded time", function () {
   assert.equal(ZK.formatClock(new Date(2026, 10, 13, 15, 42)), "pá 13. 11. 2026 · 15:42");
   assert.equal(ZK.formatClock(new Date(2026, 0, 4, 7, 5)), "ne 4. 1. 2026 · 07:05");
