@@ -294,6 +294,62 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   cursor: pointer;
   padding: 0;
 }
+.hra-btn {
+  display: block;
+  margin-top: .9rem;
+  min-height: 44px;
+  padding: .6rem 1.2rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hra-btn:hover { background: var(--porcelain); }
+.zamceno { overflow: hidden; }
+.vrstva {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--tile);
+  color: var(--ink);
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.vrstva[hidden] { display: none; }
+.hra-hlava {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .8rem;
+  padding: .5rem .75rem;
+  background: var(--porcelain);
+  border-bottom: 2px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.hra-hlava h2 {
+  margin: 0;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: 1.1rem;
+  margin-right: auto;
+}
+.hra-hlava span { font-size: .9rem; color: var(--muted); }
+.hra-hlava button {
+  min-width: 44px; min-height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--porcelain);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.hra-hlava button:hover { border-color: var(--brass); }
+#hraPlocha { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
 /* Money rain */
 .rain {
   position: fixed;
@@ -366,6 +422,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   <header>
     <h1>Záchodová kalkulačka</h1>
     <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
+    <button class="hra-btn" id="hrajBtn" type="button">Zahraj si: Rulička na útěku</button>
   </header>
 
   <div class="grid">
@@ -460,6 +517,70 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   </div>
 </div>
 
+<div id="hra" class="vrstva" role="dialog" aria-modal="true" aria-labelledby="hraTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="hraTitul">Rulička na útěku</h2>
+    <span id="hraSkore">0 Kč</span>
+    <span id="hraRekord">Rekord: 0 Kč</span>
+    <span id="hraZivoty" aria-label="Životy">3 životy</span>
+    <span id="hraUroven">Úroveň 1</span>
+    <span id="hraStopky" hidden>0:00</span>
+    <button id="hraPauza" type="button" aria-label="Pauza">II</button>
+    <button id="hraZavrit" type="button" aria-label="Zavřít hru">×</button>
+  </div>
+  <canvas id="hraPlocha" tabindex="0"></canvas>
+</div>
+
+<script id="vrstvy">
+(function () {
+  var stack = [];
+  function finish(entry) {
+    var i = stack.indexOf(entry);
+    if (i < 0) return;
+    stack.splice(i, 1);
+    entry.el.hidden = true;
+    if (!stack.length) document.documentElement.classList.remove("zamceno");
+    if (entry.onClose) entry.onClose();
+    if (entry.returnFocus && entry.returnFocus.focus) entry.returnFocus.focus();
+  }
+  function top() {
+    return stack.length ? stack[stack.length - 1].el : null;
+  }
+  function find(el) {
+    for (var i = stack.length - 1; i >= 0; i--) if (stack[i].el === el) return stack[i];
+    return null;
+  }
+  function open(el, opts) {
+    opts = opts || {};
+    stack.push({ el: el, onClose: opts.onClose, returnFocus: opts.returnFocus, closing: false });
+    el.hidden = false;
+    document.documentElement.classList.add("zamceno");
+    history.pushState({ vrstva: true }, "");
+    window.dispatchEvent(new CustomEvent("vrstva-otevrena", { detail: el }));
+  }
+  function close(el) {
+    var entry = el ? find(el) : stack[stack.length - 1];
+    if (!entry || entry.closing) return;
+    if (entry === stack[stack.length - 1]) {
+      // Vrstva vlastni polozku historie: vratime se a zavreme v popstate.
+      entry.closing = true;
+      history.back();
+    } else {
+      finish(entry);
+    }
+  }
+  window.addEventListener("popstate", function () {
+    if (stack.length) finish(stack[stack.length - 1]);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && stack.length) {
+      e.preventDefault();
+      close();
+    }
+  });
+  window.Vrstvy = { open: open, close: close, top: top };
+})();
+</script>
 <script id="stopky-logika">
 (function () {
   var MAX_AGE_MS = 12 * 3600 * 1000;
@@ -702,6 +823,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       else localStorage.removeItem(Stopky.KEY);
     }
   } catch (e) {}
+
+  $("hrajBtn").addEventListener("click", function () {
+    Vrstvy.open($("hra"), { returnFocus: $("hrajBtn") });
+  });
+  $("hraZavrit").addEventListener("click", function () { Vrstvy.close(); });
 
   window.zachod = {
     timerStart: function () { return timerStart; },
