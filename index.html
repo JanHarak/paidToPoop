@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Záchodová kalkulačka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --tile: #e6f1f2;
+  --grout: #cfe0e2;
+  --porcelain: #ffffff;
+  --ink: #0e3b43;
+  --muted: #4d6f75;
+  --brass: #a8761c;
+  --brass-soft: #f4e6c8;
+  --line: #bcd3d6;
+  --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tile: #0f2226;
+    --grout: #17323a;
+    --porcelain: #15292e;
+    --ink: #e4f2f3;
+    --muted: #9dbcc1;
+    --brass: #e2b45a;
+    --brass-soft: #3a2f17;
+    --line: #2a4950;
+    --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --tile: #0f2226;
+  --grout: #17323a;
+  --porcelain: #15292e;
+  --ink: #e4f2f3;
+  --muted: #9dbcc1;
+  --brass: #e2b45a;
+  --brass-soft: #3a2f17;
+  --line: #2a4950;
+  --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--tile);
+  background-image:
+    linear-gradient(var(--grout) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grout) 2px, transparent 2px);
+  background-size: 56px 56px;
+}
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+header h1 {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.2rem, 7vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -.02em;
+  margin: 0 0 .6rem;
+}
+header p {
+  margin: 0 0 2rem;
+  max-width: 52ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+@media (min-width: 820px) {
+  .grid { grid-template-columns: 1fr 1.1fr; align-items: start; }
+  .results { position: sticky; top: calc(1rem + env(safe-area-inset-top, 0px)); }
+}
+.panel {
+  background: var(--porcelain);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.4rem;
+}
+.panel h2 {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin: 0 0 1rem;
+}
+.field { margin-bottom: 1.1rem; }
+.field label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: .35rem;
+}
+.field .hint {
+  display: block;
+  font-size: .85rem;
+  color: var(--muted);
+  margin-top: .3rem;
+}
+.input-row {
+  display: flex;
+  align-items: stretch;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--porcelain);
+}
+.input-row:focus-within { border-color: var(--brass); }
+.input-row input, .input-row select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  padding: .6rem .75rem;
+  outline: none;
+}
+.input-row .unit {
+  display: flex;
+  align-items: center;
+  padding: 0 .8rem;
+  color: var(--muted);
+  background: var(--tile);
+  font-size: .95rem;
+  white-space: nowrap;
+}
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+
+/* Mode switch */
+.seg {
+  display: flex;
+  background: var(--tile);
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 1.1rem;
+}
+.seg-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  padding: .55rem .8rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg-btn[aria-checked="true"] {
+  background: var(--porcelain);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+/* Counter */
+.counter {
+  margin-top: .4rem;
+  padding: 1.1rem;
+  border-radius: 14px;
+  background: var(--tile);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .8rem;
+}
+.counter .count {
+  text-align: center;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 3rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.counter .count small {
+  display: block;
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: .85rem;
+  color: var(--muted);
+  margin-top: .3rem;
+}
+.step {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--porcelain);
+  color: var(--ink);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.step:hover { border-color: var(--brass); }
+.flush {
+  margin-top: .9rem;
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: .9rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  background: var(--ink);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+:root[data-theme="dark"] .flush { color: #0f2226; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .flush { color: #0f2226; } }
+.flush:active { transform: scale(.98); }
+.flush.timing { background: var(--brass); }
+.timer-note {
+  text-align: center;
+  font-size: .85rem;
+  color: var(--muted);
+  margin-top: .5rem;
+  min-height: 1.3em;
+}
+button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+/* Results */
+.today {
+  background: var(--brass-soft);
+  border-radius: 14px;
+  padding: 1.2rem 1.2rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.today .label { font-weight: 700; }
+.today .big {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.6rem, 9vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -.02em;
+  color: var(--brass);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+.today .sub { color: var(--muted); font-size: .95rem; }
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: .75rem 0;
+  border-bottom: 2px dashed var(--line);
+}
+.rows li:last-child { border-bottom: 0; }
+.rows .k { color: var(--muted); }
+.rows .v {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.facts {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--line);
+  color: var(--muted);
+  font-size: .95rem;
+}
+.facts p { margin: 0 0 .4rem; }
+.facts strong { color: var(--ink); }
+.reset {
+  margin-top: 1rem;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  font: inherit;
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 0;
+}
+/* Money rain */
+.rain {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: max(44px, calc((100vw - 980px) / 2));
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+.rain-l { left: 0; }
+.rain-r { right: 0; }
+.bill {
+  position: absolute;
+  top: 0;
+  width: 46px;
+  height: 24px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #7fc77a 0%, #4f9d4a 50%, #6db868 100%);
+  border: 1.5px solid #24592a;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .28), 0 4px 8px -3px rgba(0, 0, 0, .35);
+  color: #133b18;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  animation: fall var(--dur, 4s) linear forwards;
+}
+.bill::before, .bill::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(19, 59, 24, .55);
+}
+.bill::before { left: 5px; }
+.bill::after { right: 5px; }
+@keyframes fall {
+  0% { transform: translate(0, -60px) rotate(var(--r0)) scale(var(--s)); }
+  50% { transform: translate(calc(var(--dx) * -1), 50vh) rotate(calc(var(--r0) + var(--r1) / 2)) rotateX(55deg) scale(var(--s)); }
+  100% { transform: translate(var(--dx), calc(100vh + 60px)) rotate(var(--r1)) scale(var(--s)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bill { animation-name: fall-calm; }
+  @keyframes fall-calm {
+    from { transform: translateY(-60px) scale(var(--s)); }
+    to { transform: translateY(calc(100vh + 60px)) scale(var(--s)); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flush { transition: none; }
+  .bump { animation: none !important; }
+}
+.bump { animation: bump .35s ease; }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body>
+<div class="rain rain-l" aria-hidden="true"></div>
+<div class="rain rain-r" aria-hidden="true"></div>
+<div class="wrap">
+  <header>
+    <h1>Záchodová kalkulačka</h1>
+    <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="in-h">
+      <h2 id="in-h">Tvoje údaje</h2>
+
+      <div class="seg" role="radiogroup" aria-label="Způsob odměny">
+        <button type="button" role="radio" class="seg-btn" id="modeMd" aria-checked="true">MD sazba</button>
+        <button type="button" role="radio" class="seg-btn" id="modeSal" aria-checked="false">Měsíční plat</button>
+      </div>
+
+      <div class="field">
+        <label for="md" id="mdLabel">MD sazba</label>
+        <div class="input-row">
+          <input id="md" type="number" inputmode="decimal" min="0" step="100" value="6000">
+          <select id="cur" aria-label="Měna">
+            <option value="CZK">Kč</option>
+            <option value="EUR">€</option>
+            <option value="USD">$</option>
+          </select>
+        </div>
+        <span class="hint" id="mdHint">Kolik fakturuješ za jeden pracovní den.</span>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="hours">Délka MD</label>
+          <div class="input-row">
+            <input id="hours" type="number" inputmode="decimal" min="1" max="24" step="0.5" value="8">
+            <span class="unit">hod</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="mins">Průměr na návštěvu</label>
+          <div class="input-row">
+            <input id="mins" type="number" inputmode="decimal" min="0" step="0.5" value="7">
+            <span class="unit">min</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="dm">Pracovních dní / měsíc</label>
+          <div class="input-row">
+            <input id="dm" type="number" inputmode="numeric" min="0" max="31" step="1" value="20">
+            <span class="unit">dní</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="dy">Pracovních dní / rok</label>
+          <div class="input-row">
+            <input id="dy" type="number" inputmode="numeric" min="0" max="366" step="1" value="220">
+            <span class="unit">dní</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label id="cnt-l">Návštěvy záchodu za den</label>
+        <div class="counter" role="group" aria-labelledby="cnt-l">
+          <button class="step" id="minus" type="button" aria-label="Ubrat návštěvu">−</button>
+          <div class="count"><span id="count" aria-live="polite">3</span><small>návštěv dnes</small></div>
+          <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
+        </div>
+        <button class="flush" id="flush" type="button">Jdu na záchod</button>
+        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se přičte.</div>
+      </div>
+    </section>
+
+    <section class="panel results" aria-labelledby="out-h">
+      <h2 id="out-h">Výdělek na záchodě</h2>
+      <div class="today">
+        <div class="label">Dnes</div>
+        <div class="big" id="rDay">0 Kč</div>
+        <div class="sub" id="rDaySub"></div>
+      </div>
+      <ul class="rows">
+        <li><span class="k">Za jednu minutu</span><span class="v" id="rMin"></span></li>
+        <li><span class="k">Za jednu návštěvu</span><span class="v" id="rVisit"></span></li>
+        <li><span class="k">Za měsíc</span><span class="v" id="rMonth"></span></li>
+        <li><span class="k">Za rok</span><span class="v" id="rYear"></span></li>
+      </ul>
+      <div class="facts">
+        <p>Tvoje denní sazba je <strong id="fRate"></strong>.</p>
+        <p>Na záchodě strávíš <strong id="fPct"></strong> pracovní doby.</p>
+        <p>Za rok to dělá <strong id="fHours"></strong> placeného sezení.</p>
+        <p>To je <strong id="fMd"></strong> celých pracovních dní.</p>
+      </div>
+      <button class="reset" id="reset" type="button">Vrátit výchozí hodnoty</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = "zachodova-kalkulacka-v1";
+  var DEFAULTS = { md: 6000, sal: 60000, cur: "CZK", hours: 8, mins: 7, dm: 20, dy: 220, count: 3 };
+  var $ = function (id) { return document.getElementById(id); };
+  var els = { md: $("md"), cur: $("cur"), hours: $("hours"), mins: $("mins"), dm: $("dm"), dy: $("dy") };
+  var count = DEFAULTS.count;
+  var timerStart = null, timerTick = null;
+  var mode = "md";
+  var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
+      if (typeof s.count === "number") count = s.count;
+      if (s.mode === "md" || s.mode === "sal") mode = s.mode;
+      if (s.amounts) {
+        if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
+        if (s.amounts.sal !== undefined) amounts.sal = s.amounts.sal;
+      } else if (s.md !== undefined) {
+        amounts.md = s.md;
+      }
+      if (s.mins !== undefined) els.mins.value = s.mins;
+    } catch (e) {}
+  }
+  function save() {
+    try {
+      amounts[mode] = els.md.value;
+      var s = { count: count, mode: mode, amounts: amounts };
+      Object.keys(els).forEach(function (k) { s[k] = els[k].value; });
+      localStorage.setItem(KEY, JSON.stringify(s));
+    } catch (e) {}
+  }
+  function num(el) {
+    var v = parseFloat(String(el.value).replace(",", "."));
+    return isFinite(v) && v >= 0 ? v : 0;
+  }
+  function money(v) {
+    var cur = els.cur.value;
+    var digits = v < 100 ? 2 : 0;
+    try {
+      return new Intl.NumberFormat("cs-CZ", { style: "currency", currency: cur, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+    } catch (e) { return v.toFixed(digits) + " " + cur; }
+  }
+  function n(v, d) {
+    return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: d }).format(v);
+  }
+  function visitsWord(c) {
+    if (c === 1) return "návštěva";
+    if (c >= 2 && c <= 4) return "návštěvy";
+    return "návštěv";
+  }
+
+  function dayRate() {
+    var amount = num(els.md), dm = num(els.dm);
+    if (mode === "sal") return dm > 0 ? amount / dm : 0;
+    return amount;
+  }
+  function rateMin() {
+    var hours = num(els.hours);
+    return hours > 0 ? dayRate() / (hours * 60) : 0;
+  }
+
+  function render() {
+    var md = num(els.md), hours = num(els.hours), mins = num(els.mins);
+    var dm = num(els.dm), dy = num(els.dy);
+    var perMin = rateMin();
+    var perVisit = perMin * mins;
+    var dayMins = mins * count;
+    var perDay = perVisit * count;
+
+    $("count").textContent = count;
+    $("rDay").textContent = money(perDay);
+    $("rDaySub").textContent = count + " " + visitsWord(count) + " × " + n(mins, 1) + " min = " + n(dayMins, 1) + " min placeného trůnu";
+    $("rMin").textContent = money(perMin);
+    $("rVisit").textContent = money(perVisit);
+    $("rMonth").textContent = money(perDay * dm);
+    $("rYear").textContent = money(perDay * dy);
+
+    var pct = hours > 0 ? (dayMins / (hours * 60)) * 100 : 0;
+    var yearHours = (dayMins * dy) / 60;
+    $("fPct").textContent = n(pct, 1) + " %";
+    $("fHours").textContent = n(yearHours, 1) + " hodin";
+    $("fMd").textContent = hours > 0 ? n(yearHours / hours, 1) : "0";
+    $("fRate").textContent = money(dayRate());
+    save();
+  }
+
+  function bump() {
+    var c = $("count");
+    c.classList.remove("bump");
+    void c.offsetWidth;
+    c.classList.add("bump");
+  }
+
+  Object.keys(els).forEach(function (k) {
+    els[k].addEventListener("input", render);
+    els[k].addEventListener("change", render);
+  });
+  $("plus").addEventListener("click", function () { count++; bump(); render(); });
+  $("minus").addEventListener("click", function () { if (count > 0) count--; bump(); render(); });
+
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  var rainTimer = null;
+  var reduceMotion = false;
+  try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  function spawnBill() {
+    var sides = document.querySelectorAll(".rain");
+    for (var i = 0; i < sides.length; i++) {
+      var side = sides[i];
+      var w = side.clientWidth;
+      if (w < 30) continue;
+      var b = document.createElement("div");
+      var s = 0.7 + Math.random() * 0.6;
+      b.className = "bill";
+      b.textContent = "$";
+      b.style.left = Math.max(0, Math.random() * (w - 46)) + "px";
+      b.style.setProperty("--s", s.toFixed(2));
+      b.style.setProperty("--dur", (reduceMotion ? 7 : 3 + Math.random() * 2.5).toFixed(2) + "s");
+      b.style.setProperty("--dx", (Math.random() * 40 - 20).toFixed(0) + "px");
+      b.style.setProperty("--r0", (Math.random() * 60 - 30).toFixed(0) + "deg");
+      b.style.setProperty("--r1", (Math.random() * 360 - 180).toFixed(0) + "deg");
+      b.addEventListener("animationend", function (ev) { ev.target.remove(); });
+      side.appendChild(b);
+    }
+  }
+  function startRain() {
+    if (rainTimer) return;
+    spawnBill();
+    rainTimer = setInterval(spawnBill, reduceMotion ? 900 : 260);
+  }
+  function stopRain() {
+    clearInterval(rainTimer);
+    rainTimer = null;
+  }
+
+  $("flush").addEventListener("click", function () {
+    var btn = $("flush"), note = $("timerNote");
+    if (timerStart === null) {
+      timerStart = Date.now();
+      btn.textContent = "Hotovo, spláchnout";
+      btn.classList.add("timing");
+      startRain();
+      timerTick = setInterval(function () {
+        var elapsed = Date.now() - timerStart;
+        var earned = rateMin() * (elapsed / 60000);
+        note.textContent = "Sedíš " + fmtTime(elapsed) + " a už máš " + money(earned);
+      }, 250);
+    } else {
+      var elapsedMin = (Date.now() - timerStart) / 60000;
+      clearInterval(timerTick);
+      stopRain();
+      timerStart = null;
+      // Update running average of visit length with the measured visit
+      var oldAvg = num(els.mins);
+      var newAvg = count > 0 ? (oldAvg * count + elapsedMin) / (count + 1) : elapsedMin;
+      els.mins.value = Math.round(newAvg * 10) / 10;
+      count++;
+      btn.textContent = "Jdu na záchod";
+      btn.classList.remove("timing");
+      note.textContent = "Návštěva trvala " + n(elapsedMin, 1) + " min. Započteno a průměr upraven.";
+      bump();
+      render();
+    }
+  });
+
+  $("reset").addEventListener("click", function () {
+    Object.keys(els).forEach(function (k) { els[k].value = DEFAULTS[k]; });
+    count = DEFAULTS.count;
+    amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
+    setMode("md", true);
+    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se přičte.";
+    render();
+  });
+
+  function setMode(m, skipStore) {
+    if (!skipStore) amounts[mode] = els.md.value;
+    mode = m;
+    els.md.value = amounts[m];
+    els.md.step = m === "sal" ? 1000 : 100;
+    $("mdLabel").textContent = m === "sal" ? "Měsíční plat" : "MD sazba";
+    $("mdHint").textContent = m === "sal"
+      ? "Hrubý měsíční plat. Na den ho rozpočítám podle pracovních dní v měsíci."
+      : "Kolik fakturuješ za jeden pracovní den.";
+    $("modeMd").setAttribute("aria-checked", String(m === "md"));
+    $("modeSal").setAttribute("aria-checked", String(m === "sal"));
+  }
+  $("modeMd").addEventListener("click", function () { if (mode !== "md") { setMode("md"); render(); } });
+  $("modeSal").addEventListener("click", function () { if (mode !== "sal") { setMode("sal"); render(); } });
+
+  load();
+  setMode(mode, true);
+  render();
+})();
+</script>
+</body>
+</html>
