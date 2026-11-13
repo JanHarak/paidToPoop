@@ -523,6 +523,45 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     return out;
   };
 
+  ZK.WARN_AFTER_MS = 1200000;
+
+  ZK.mergeArticles = function (lists) {
+    var seen = {};
+    var all = [];
+    lists.forEach(function (list) {
+      list.forEach(function (a) {
+        if (seen[a.link]) return;
+        seen[a.link] = true;
+        all.push(a);
+      });
+    });
+    all.sort(function (a, b) {
+      if (a.date === null && b.date === null) return 0;
+      if (a.date === null) return 1;
+      if (b.date === null) return -1;
+      return b.date - a.date;
+    });
+    return all;
+  };
+
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+
+  ZK.relTime = function (dateMs, nowMs) {
+    if (dateMs === null || dateMs === undefined) return "";
+    var diff = nowMs - dateMs;
+    if (diff < 60000) return "právě teď";
+    if (diff < 3600000) return "před " + Math.floor(diff / 60000) + " min";
+    if (diff < 86400000) return "před " + Math.floor(diff / 3600000) + " h";
+    var d = new Date(dateMs);
+    return d.getDate() + ". " + (d.getMonth() + 1) + ". " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  };
+
+  ZK.formatClock = function (d) {
+    var days = ["ne", "po", "út", "st", "čt", "pá", "so"];
+    return days[d.getDay()] + " " + d.getDate() + ". " + (d.getMonth() + 1) + ". " + d.getFullYear() +
+      " · " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  };
+
   root.ZK = ZK;
 })(typeof window !== "undefined" ? window : globalThis);
 /* ZK-CORE:END */

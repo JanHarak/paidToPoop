@@ -72,3 +72,32 @@ test("parseRss: empty or invalid input gives []", function () {
   assert.equal(ZK.parseRss("<rss></rss>", "X").length, 0);
   assert.equal(ZK.parseRss("nesmysl", "X").length, 0);
 });
+
+function art(link, date) {
+  return { id: link, title: "t", link: link, perex: "", image: null, category: "", date: date, source: "X" };
+}
+
+test("mergeArticles: dedupes by link, sorts desc, null last", function () {
+  var a10 = art("l10", 10);
+  var res = ZK.mergeArticles([[a10, art("lnull", null)], [art("l30", 30), art("l10", 10)]]);
+  assert.equal(res.length, 3);
+  assert.equal(JSON.stringify(Array.from(res).map(function (x) { return x.date; })), "[30,10,null]");
+});
+
+test("relTime: relative and absolute formats", function () {
+  var now = new Date(2026, 10, 13, 15, 42).getTime();
+  assert.equal(ZK.relTime(now - 30e3, now), "právě teď");
+  assert.equal(ZK.relTime(now - 12 * 60e3, now), "před 12 min");
+  assert.equal(ZK.relTime(now - 5 * 3600e3, now), "před 5 h");
+  assert.equal(ZK.relTime(new Date(2026, 10, 10, 9, 5).getTime(), now), "10. 11. 09:05");
+  assert.equal(ZK.relTime(null, now), "");
+});
+
+test("formatClock: weekday, date and zero-padded time", function () {
+  assert.equal(ZK.formatClock(new Date(2026, 10, 13, 15, 42)), "pá 13. 11. 2026 · 15:42");
+  assert.equal(ZK.formatClock(new Date(2026, 0, 4, 7, 5)), "ne 4. 1. 2026 · 07:05");
+});
+
+test("WARN_AFTER_MS is 20 minutes", function () {
+  assert.equal(ZK.WARN_AFTER_MS, 1200000);
+});
