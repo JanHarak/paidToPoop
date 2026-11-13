@@ -461,8 +461,78 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 </div>
 
 <script>
+/* ZK-CORE:START */
+(function (root) {
+  var ZK = {};
+
+  ZK.decodeEntities = function (s) {
+    return String(s)
+      .replace(/&#x([0-9a-fA-F]+);/g, function (m, h) { return String.fromCodePoint(parseInt(h, 16)); })
+      .replace(/&#(\d+);/g, function (m, d) { return String.fromCodePoint(parseInt(d, 10)); })
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&");
+  };
+
+  ZK.stripTags = function (s) {
+    var t = String(s).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+    t = t.replace(/<[^>]*>/g, "");
+    return ZK.decodeEntities(t).replace(/\s+/g, " ").trim();
+  };
+
+  ZK.safeUrl = function (u) {
+    if (typeof u !== "string") return null;
+    u = u.trim();
+    return /^https:\/\//i.test(u) ? u : null;
+  };
+
+  function tagText(block, name) {
+    var m = block.match(new RegExp("<" + name + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + name + ">", "i"));
+    return m ? m[1] : null;
+  }
+
+  function attrOf(block, tag, attr) {
+    var m = block.match(new RegExp("<" + tag + "\\s[^>]*?\\b" + attr + "\\s*=\\s*[\"']([^\"']*)[\"']", "i"));
+    return m ? ZK.decodeEntities(m[1]) : null;
+  }
+
+  ZK.parseRss = function (xml, sourceName) {
+    var out = [];
+    var items = String(xml).match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
+    items.forEach(function (block) {
+      var title = ZK.stripTags(tagText(block, "title") || "");
+      var linkRaw = tagText(block, "link");
+      var link = ZK.safeUrl(linkRaw === null ? null : ZK.stripTags(linkRaw));
+      if (!title || !link) return;
+      var cat = tagText(block, "category");
+      var category = cat === null ? null : (ZK.stripTags(cat) || null);
+      var pub = tagText(block, "pubDate");
+      var ts = pub === null ? NaN : Date.parse(ZK.stripTags(pub));
+      out.push({
+        id: link,
+        title: title,
+        link: link,
+        perex: ZK.stripTags(tagText(block, "description") || ""),
+        image: ZK.safeUrl(attrOf(block, "enclosure", "url") || attrOf(block, "media:content", "url")),
+        category: category,
+        date: isNaN(ts) ? null : ts,
+        source: sourceName
+      });
+    });
+    return out;
+  };
+
+  root.ZK = ZK;
+})(typeof window !== "undefined" ? window : globalThis);
+/* ZK-CORE:END */
+</script>
+
+<script>
 (function () {
-  var KEY = "zachodova-kalkulacka-v1";
+  var KEY ="zachodova-kalkulacka-v1";
   var DEFAULTS = { md: 0, sal: 0, cur: "CZK", hours: 0, mins: 0, dm: 0, dy: 0, count: 0 };
   var $ = function (id) { return document.getElementById(id); };
   var els = { md: $("md"), cur: $("cur"), hours: $("hours"), mins: $("mins"), dm: $("dm"), dy: $("dy") };
