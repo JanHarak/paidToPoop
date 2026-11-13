@@ -350,7 +350,73 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   cursor: pointer;
 }
 .hra-hlava button:hover { border-color: var(--brass); }
-#hraPlocha { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+.hra-hlava .hra-info { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .8rem; }
+.hra-hlava #hraSkore { color: var(--ink); font-weight: 700; }
+.hra-hlava #hraStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.hra-hlava #hraPauza { font-size: .9rem; padding: 0 .8rem; }
+.hra-zivoty { display: inline-flex; gap: 3px; align-items: center; }
+.hra-zivot {
+  display: inline-block;
+  width: 9px; height: 14px;
+  border: 1.5px solid var(--muted);
+  border-radius: 3px / 2px;
+  background: var(--porcelain);
+  box-shadow: inset 0 3px 0 -1px var(--line);
+}
+.hra-pole {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  overflow: hidden;
+}
+#hraPlocha { display: block; touch-action: none; border-radius: 6px; }
+#hraPlocha:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.hra-hlaska {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+.hra-hlaska[hidden] { display: none; }
+.hra-hlaska-box {
+  pointer-events: none;
+  max-width: 20rem;
+  padding: .9rem 1.2rem;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.hra-hlaska-box p { margin: 0; font-weight: 700; color: var(--ink); }
+.hra-hlaska-box p + p { margin-top: .3rem; font-weight: 400; color: var(--muted); }
+.hra-hlaska-tlacitka { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: .8rem; pointer-events: auto; }
+.hra-hlaska-tlacitka[hidden] { display: none; }
+.hra-hlaska-tlacitka button {
+  min-height: 44px;
+  padding: .4rem 1rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hra-hlaska-tlacitka button.vedlejsi { border-color: var(--line); background: var(--porcelain); }
+@media (max-width: 480px) {
+  .hra-hlava { gap: .3rem .5rem; padding: .4rem .5rem; }
+  .hra-hlava h2 { font-size: 1rem; flex: 1 1 0; min-width: 0; }
+  .hra-hlava .hra-info { order: 5; flex-basis: 100%; gap: 0 .6rem; }
+  .hra-hlava span { font-size: .85rem; }
+}
 /* Money rain */
 .rain {
   position: fixed;
@@ -521,15 +587,30 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 <div id="hra" class="vrstva" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="hraTitul" hidden>
   <div class="hra-hlava">
     <h2 id="hraTitul">Rulička na útěku</h2>
-    <span id="hraSkore">0 Kč</span>
-    <span id="hraRekord">Rekord: 0 Kč</span>
-    <span id="hraZivoty" aria-label="Životy">3 životy</span>
-    <span id="hraUroven">Úroveň 1</span>
+    <div class="hra-info">
+      <span id="hraSkore">Vydělal jsi 0 Kč</span>
+      <span id="hraRekord">Rekord: 0 Kč</span>
+      <span id="hraZivoty" class="hra-zivoty" role="img" aria-label="Životy: 3"></span>
+      <span id="hraUroven">Úroveň 1</span>
+    </div>
     <span id="hraStopky" hidden>0:00</span>
-    <button id="hraPauza" type="button" aria-label="Pauza">II</button>
+    <button id="hraPauza" type="button">Pauza</button>
     <button id="hraZavrit" type="button" aria-label="Zavřít hru">×</button>
   </div>
-  <canvas id="hraPlocha" tabindex="0"></canvas>
+  <div class="hra-pole" id="hraPole">
+    <canvas id="hraPlocha" tabindex="0" aria-label="Hrací plocha, ovládání šipkami, WASD nebo tažením prstem"></canvas>
+    <div class="hra-hlaska" id="hraHlaska" hidden>
+      <div class="hra-hlaska-box" role="status" aria-live="polite">
+        <p id="hraHlaskaText"></p>
+        <p id="hraHlaskaPod" hidden></p>
+        <div class="hra-hlaska-tlacitka" id="hraHlaskaTlacitka" hidden>
+          <button type="button" id="hraZnovu">Hrát znovu</button>
+          <button type="button" id="hraPokracovat">Pokračovat</button>
+          <button type="button" id="hraZpet" class="vedlejsi">Zpět ke kalkulačce</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script id="vrstvy">
@@ -835,10 +916,6 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     }
   } catch (e) {}
 
-  $("hrajBtn").addEventListener("click", function () {
-    Vrstvy.open($("hra"), { returnFocus: $("hrajBtn"), initialFocus: $("hraPlocha") });
-  });
-  $("hraZavrit").addEventListener("click", function () { Vrstvy.close(); });
 
   window.zachod = {
     timerStart: function () { return timerStart; },
@@ -1326,6 +1403,669 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     newGame: newGame,
     update: update
   };
+})();
+</script>
+<script id="hra-ui">
+(function () {
+  var hrajBtn = document.getElementById("hrajBtn");
+  try {
+    init();
+  } catch (err) {
+    if (hrajBtn) hrajBtn.style.display = "none";
+    if (window.console) console.error("Hra se nenacetla", err);
+  }
+
+  function init() {
+    var H = window.HraLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!H || !V || !Z || !S) throw new Error("chybi zavislosti hry");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi prvek #" + id);
+      return el;
+    };
+    var hraEl = $("hra"), canvas = $("hraPlocha"), pole = $("hraPole");
+    var ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas 2d neni k dispozici");
+    var ui = {
+      skore: $("hraSkore"), rekord: $("hraRekord"), zivoty: $("hraZivoty"), uroven: $("hraUroven"),
+      stopky: $("hraStopky"), pauza: $("hraPauza"), zavrit: $("hraZavrit"),
+      hlaska: $("hraHlaska"), text: $("hraHlaskaText"), pod: $("hraHlaskaPod"),
+      tlacitka: $("hraHlaskaTlacitka"), znovu: $("hraZnovu"), pokracovat: $("hraPokracovat"), zpet: $("hraZpet")
+    };
+
+    var BEST_KEY = "zachodova-hra-v1";
+    var STEP = 1 / 60;
+    var SWIPE_PX = 20;
+    var BLINK_S = 2;
+    var LIFE_MSGS = ["Šéf: Máš chvilku?", "PM: Jen rychlý sync…", "Kolega: Máš chvilku?", "HR: Musíme si promluvit."];
+    var KEYS = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right"
+    };
+    var ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+
+    var maze = H.parseMaze(H.MAZE);
+    var state = null;
+    var open = false, paused = false;
+    var input = null;           // last requested direction, kept until a new one
+    var rafId = 0, lastT = 0, acc = 0;
+    var stopkyId = 0;
+    var rolled = 0;             // tiles travelled by the roll (drives its pattern)
+    var lastDir = "right";
+    var lifeMsg = LIFE_MSGS[0];
+    var storedBest = loadBest();
+    var newRecord = false;
+    var startBest = 0;          // record when this game started
+    var tile = 16, dpr = 1;
+    var bg = document.createElement("canvas");
+    var col = {};
+    var reduceMq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    var hudCache = {}, hlaskaKey = "";
+
+    // ---- storage ----
+    function loadBest() {
+      try {
+        var raw = localStorage.getItem(BEST_KEY);
+        if (!raw) return 0;
+        var o = JSON.parse(raw);
+        return o && typeof o.best === "number" && isFinite(o.best) && o.best > 0 ? o.best : 0;
+      } catch (e) { return 0; }
+    }
+    function saveBest() {
+      if (!state || state.best <= storedBest) return;
+      storedBest = state.best;
+      try { localStorage.setItem(BEST_KEY, JSON.stringify({ best: storedBest })); } catch (e) {}
+    }
+
+    // ---- game state ----
+    function newState() {
+      state = H.newGame(maze, Math.random);
+      state.best = storedBest;
+      input = null;
+      rolled = 0;
+      lastDir = "right";
+      newRecord = false;
+      startBest = storedBest;
+      paused = false;
+      acc = 0;
+    }
+
+    function handle(events) {
+      for (var i = 0; i < events.length; i++) {
+        var t = events[i].type;
+        if (t === "lifeLost") {
+          lifeMsg = LIFE_MSGS[Math.floor(Math.random() * LIFE_MSGS.length)];
+          input = null;
+        } else if (t === "levelDone") {
+          input = null;
+          saveBest();
+        } else if (t === "gameOver") {
+          newRecord = state.score > 0 && state.score > startBest;
+          saveBest();
+        }
+      }
+    }
+
+    // ---- colours ----
+    function readColors() {
+      var cs = getComputedStyle(document.documentElement);
+      var v = function (n, d) { var x = cs.getPropertyValue(n).trim(); return x || d; };
+      col = {
+        tile: v("--tile", "#e6f1f2"), grout: v("--grout", "#cfe0e2"), porcelain: v("--porcelain", "#ffffff"),
+        ink: v("--ink", "#0e3b43"), muted: v("--muted", "#4d6f75"), brass: v("--brass", "#a8761c"),
+        brassSoft: v("--brass-soft", "#f4e6c8"), line: v("--line", "#bcd3d6")
+      };
+      var dark = isDark(col.tile);
+      // each enemy its own hue: brass from the page, green from the money rain, slate blue, plum
+      col.enemy = {
+        sef: col.brass,
+        pm: dark ? "#7fa6e0" : "#3f6fb0",
+        kolega: dark ? "#7fc77a" : "#4f9d4a",
+        hr: dark ? "#c88ac0" : "#8e4f86"
+      };
+      col.roll = "#ffffff";
+      col.core = dark ? "#c9a46a" : "#d9b77e";
+    }
+    function isDark(c) {
+      var m = /^#([0-9a-f]{6})$/i.exec(c);
+      if (!m) return darkMq ? darkMq.matches : false;
+      var n = parseInt(m[1], 16);
+      return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) < 128;
+    }
+    function reduced() { return !!(reduceMq && reduceMq.matches); }
+
+    // ---- layout ----
+    function resize() {
+      if (!open) return;
+      var cs = getComputedStyle(pole);
+      var aw = pole.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+      var ah = pole.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+      var t = Math.floor(Math.min(aw / maze.w, ah / maze.h, 44));
+      tile = Math.max(8, t || 8);
+      dpr = window.devicePixelRatio || 1;
+      canvas.style.width = tile * maze.w + "px";
+      canvas.style.height = tile * maze.h + "px";
+      canvas.width = Math.round(tile * maze.w * dpr);
+      canvas.height = Math.round(tile * maze.h * dpr);
+      buildBg();
+      draw();
+    }
+    function tileTransform(g) {
+      g.setTransform(dpr * tile, 0, 0, dpr * tile, 0, 0);
+    }
+
+    // ---- static board: floor, desks and partitions, meeting room, door ----
+    function wallAt(x, y) {
+      return x >= 0 && y >= 0 && x < maze.w && y < maze.h && maze.walls[y * maze.w + x];
+    }
+    function wallShape(g, a) {
+      var b = 1 - 2 * a;
+      g.beginPath();
+      for (var y = 0; y < maze.h; y++) {
+        for (var x = 0; x < maze.w; x++) {
+          if (!wallAt(x, y)) continue;
+          var L = wallAt(x - 1, y), R = wallAt(x + 1, y), U = wallAt(x, y - 1), D = wallAt(x, y + 1);
+          g.rect(x + a, y + a, b, b);
+          if (L) g.rect(x, y + a, a, b);
+          if (R) g.rect(x + 1 - a, y + a, a, b);
+          if (U) g.rect(x + a, y, b, a);
+          if (D) g.rect(x + a, y + 1 - a, b, a);
+          if (L && U && wallAt(x - 1, y - 1)) g.rect(x, y, a, a);
+          if (R && U && wallAt(x + 1, y - 1)) g.rect(x + 1 - a, y, a, a);
+          if (L && D && wallAt(x - 1, y + 1)) g.rect(x, y + 1 - a, a, a);
+          if (R && D && wallAt(x + 1, y + 1)) g.rect(x + 1 - a, y + 1 - a, a, a);
+        }
+      }
+    }
+    function buildBg() {
+      bg.width = canvas.width;
+      bg.height = canvas.height;
+      var g = bg.getContext("2d");
+      tileTransform(g);
+      g.fillStyle = col.tile;
+      g.fillRect(0, 0, maze.w, maze.h);
+      // meeting room carpet
+      g.fillStyle = col.grout;
+      for (var i = 0; i < maze.pen.length; i++) g.fillRect(maze.pen[i].x, maze.pen[i].y, 1, 1);
+      // desks: outline (line) and top (porcelain), joined into blocks
+      wallShape(g, 0.1);
+      g.fillStyle = col.line;
+      g.fill();
+      wallShape(g, 0.2);
+      g.fillStyle = col.porcelain;
+      g.fill();
+      // door of the meeting room
+      if (maze.door) {
+        g.fillStyle = col.muted;
+        g.fillRect(maze.door.x + 0.05, maze.door.y + 0.42, 0.9, 0.16);
+      }
+    }
+
+    // ---- dynamic drawing ----
+    function rrect(g, x, y, w, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.lineTo(x + w - r, y);
+      g.quadraticCurveTo(x + w, y, x + w, y + r);
+      g.lineTo(x + w, y + h - r);
+      g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      g.lineTo(x + r, y + h);
+      g.quadraticCurveTo(x, y + h, x, y + h - r);
+      g.lineTo(x, y + r);
+      g.quadraticCurveTo(x, y, x + r, y);
+      g.closePath();
+    }
+
+    function drawCoins() {
+      ctx.fillStyle = col.brass;
+      ctx.beginPath();
+      state.coinsLeft.forEach(function (k) {
+        var x = k % maze.w, y = (k - x) / maze.w;
+        ctx.moveTo(x + 0.62, y + 0.5);
+        ctx.arc(x + 0.5, y + 0.5, 0.12, 0, Math.PI * 2);
+      });
+      ctx.fill();
+    }
+
+    // "Meeting cancelled": a calendar card with a header strip, crossed out
+    function drawPowerups() {
+      state.powerLeft.forEach(function (k) {
+        var x = k % maze.w, y = (k - x) / maze.w;
+        var l = x + 0.18, t = y + 0.2, w = 0.64, h = 0.6;
+        rrect(ctx, l, t, w, h, 0.08);
+        ctx.fillStyle = col.porcelain;
+        ctx.fill();
+        ctx.lineWidth = 0.06;
+        ctx.strokeStyle = col.ink;
+        ctx.stroke();
+        ctx.fillStyle = col.brass;
+        ctx.fillRect(l + 0.03, t + 0.03, w - 0.06, 0.14);
+        ctx.beginPath();
+        ctx.moveTo(l + 0.12, t + 0.26);
+        ctx.lineTo(l + w - 0.12, t + h - 0.08);
+        ctx.moveTo(l + w - 0.12, t + 0.26);
+        ctx.lineTo(l + 0.12, t + h - 0.08);
+        ctx.lineWidth = 0.08;
+        ctx.stroke();
+      });
+    }
+
+    // draws fn at x, plus a copy on the other side while passing through the side passage
+    function wrapped(x, y, fn) {
+      fn(x, y);
+      if (x < 0) fn(x + maze.w, y);
+      else if (x > maze.w - 1) fn(x - maze.w, y);
+    }
+
+    // toilet roll seen from above, lying across its direction of travel, the
+    // perforation lines turn with the distance rolled
+    function drawRoll(px, py) {
+      var p = state.player;
+      var dir = p.dir || lastDir;
+      var scale = 1;
+      if (state.phase === "dying") scale = Math.max(0.15, 1 - state.phaseTime / H.DYING_S);
+      if (state.phase === "over") scale = 0.15;
+      var r = 0.3, half = 0.4;
+      ctx.save();
+      ctx.translate(px + 0.5, py + 0.5);
+      ctx.rotate(ANGLE[dir]);
+      ctx.scale(scale, scale);
+      // body (along x = travel, y = roll axis)
+      ctx.fillStyle = col.roll;
+      ctx.strokeStyle = col.muted;
+      ctx.lineWidth = 0.06;
+      rrect(ctx, -r, -half, 2 * r, 2 * half, 0.07);
+      ctx.fill();
+      // perforation lines on the visible half of the cylinder
+      ctx.save();
+      ctx.clip();
+      ctx.strokeStyle = col.line;
+      ctx.lineWidth = 0.035;
+      var turn = rolled / r;
+      for (var k = 0; k < 6; k++) {
+        var a = turn + k * Math.PI / 3;
+        if (Math.cos(a) <= 0) continue;
+        var sx = r * Math.sin(a);
+        ctx.beginPath();
+        ctx.moveTo(sx, -half);
+        ctx.lineTo(sx, half);
+        ctx.stroke();
+      }
+      ctx.restore();
+      rrect(ctx, -r, -half, 2 * r, 2 * half, 0.07);
+      ctx.stroke();
+      // cardboard core peeking out at both ends
+      ctx.fillStyle = col.core;
+      ctx.fillRect(-0.1, -half - 0.06, 0.2, 0.06);
+      ctx.fillRect(-0.1, half, 0.2, 0.06);
+      ctx.restore();
+    }
+
+    function drawItem(kind, faded) {
+      ctx.lineWidth = 0.04;
+      ctx.strokeStyle = col.ink;
+      if (kind === "sef") {            // tie
+        ctx.fillStyle = faded ? col.muted : col.ink;
+        ctx.beginPath();
+        ctx.moveTo(-0.05, 0.02);
+        ctx.lineTo(0.05, 0.02);
+        ctx.lineTo(0.08, 0.26);
+        ctx.lineTo(0, 0.34);
+        ctx.lineTo(-0.08, 0.26);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "pm") {      // open notebook held in front
+        ctx.fillStyle = col.porcelain;
+        ctx.fillRect(-0.24, 0.12, 0.48, 0.2);
+        ctx.strokeRect(-0.24, 0.12, 0.48, 0.2);
+        ctx.fillStyle = col.line;
+        ctx.fillRect(-0.18, 0.16, 0.36, 0.1);
+      } else if (kind === "kolega") {  // mug
+        ctx.fillStyle = col.porcelain;
+        ctx.fillRect(0.12, 0.08, 0.18, 0.22);
+        ctx.strokeRect(0.12, 0.08, 0.18, 0.22);
+        ctx.beginPath();
+        ctx.arc(0.32, 0.19, 0.06, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+      } else {                          // hr: folder
+        ctx.fillStyle = col.brassSoft;
+        ctx.fillRect(-0.3, 0.06, 0.26, 0.3);
+        ctx.strokeRect(-0.3, 0.06, 0.26, 0.3);
+        ctx.fillRect(-0.3, 0.02, 0.12, 0.05);
+      }
+    }
+
+    function drawEyes(dir, big) {
+      var d = H.DIRS[dir] || { x: 0, y: 1 };
+      var er = big ? 0.07 : 0.05;
+      ctx.fillStyle = col.porcelain;
+      ctx.strokeStyle = col.ink;
+      ctx.lineWidth = 0.02;
+      for (var s = -1; s <= 1; s += 2) {
+        ctx.beginPath();
+        ctx.arc(s * 0.08, -0.24, er, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = col.ink;
+        ctx.beginPath();
+        ctx.arc(s * 0.08 + d.x * er * 0.5, -0.24 + d.y * er * 0.5, er * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = col.porcelain;
+      }
+    }
+
+    // a small office figure: shoulders, round head, the item that tells them apart
+    function drawEnemy(en, ex, ey) {
+      var e = en.e;
+      ctx.save();
+      ctx.translate(ex + 0.5, ey + 0.55);
+      if (en.mode === "eaten") {       // only the item and eyes hurry back to the meeting room
+        ctx.scale(0.75, 0.75);
+        drawItem(en.kind, false);
+        drawEyes(e.dir, true);
+        ctx.restore();
+        return;
+      }
+      var body = col.enemy[en.kind], stroke = col.ink, faded = false;
+      if (en.mode === "flee") {
+        faded = true;
+        body = col.line;
+        stroke = col.muted;
+        if (state.powerTime < BLINK_S) {
+          if (reduced()) body = col.brassSoft;
+          else if (Math.floor(state.powerTime * 5) % 2 === 0) { body = col.enemy[en.kind]; stroke = col.ink; }
+        }
+      }
+      ctx.fillStyle = body;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 0.05;
+      // torso with shoulders
+      ctx.beginPath();
+      ctx.moveTo(-0.32, 0.38);
+      ctx.lineTo(-0.32, 0.08);
+      ctx.quadraticCurveTo(-0.32, -0.08, -0.14, -0.08);
+      ctx.lineTo(0.14, -0.08);
+      ctx.quadraticCurveTo(0.32, -0.08, 0.32, 0.08);
+      ctx.lineTo(0.32, 0.38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // head
+      ctx.beginPath();
+      ctx.arc(0, -0.24, 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      drawEyes(e.dir, false);
+      drawItem(en.kind, faded);
+      ctx.restore();
+    }
+
+    function draw() {
+      if (!state || !bg.width) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bg, 0, 0);
+      tileTransform(ctx);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, maze.w, maze.h);
+      ctx.clip();
+      if (state.phase !== "levelDone") {
+        drawCoins();
+        drawPowerups();
+      }
+      var p = state.player;
+      wrapped(p.x, p.y, drawRoll);
+      var en = state.enemies;
+      for (var i = 0; i < en.length; i++) {
+        (function (one) {
+          wrapped(one.e.x, one.e.y, function (x, y) { drawEnemy(one, x, y); });
+        })(en[i]);
+      }
+      ctx.restore();
+    }
+
+    // ---- HUD and overlay messages ----
+    function setText(el, key, v) {
+      if (hudCache[key] === v) return;
+      hudCache[key] = v;
+      el.textContent = v;
+    }
+    function hud() {
+      setText(ui.skore, "skore", "Vydělal jsi " + Z.money(state.score));
+      setText(ui.rekord, "rekord", "Rekord: " + Z.money(Math.max(state.best, storedBest)));
+      setText(ui.uroven, "uroven", "Úroveň " + state.level);
+      if (hudCache.zivoty !== state.lives) {
+        hudCache.zivoty = state.lives;
+        ui.zivoty.textContent = "";
+        for (var i = 0; i < state.lives; i++) {
+          var s = document.createElement("span");
+          s.className = "hra-zivot";
+          ui.zivoty.appendChild(s);
+        }
+        ui.zivoty.setAttribute("aria-label", "Životy: " + state.lives);
+      }
+      var over = state.phase === "over";
+      setText(ui.pauza, "pauza", paused && !over ? "Hrát" : "Pauza");
+      ui.pauza.disabled = over;
+      hlaska();
+    }
+
+    function hlaska() {
+      var over = state.phase === "over";
+      var text = "", pod = "", buttons = "";
+      if (over) {
+        text = newRecord ? "Konec hry. Nový rekord!" : "Konec hry";
+        pod = "Vydělal jsi " + Z.money(state.score) + " · Rekord " + Z.money(Math.max(state.best, storedBest));
+        buttons = "konec";
+      } else if (paused) {
+        text = "Pauza";
+        pod = "Pokračuj mezerníkem, klávesou P nebo tlačítkem.";
+        buttons = "pauza";
+      } else if (state.phase === "ready") {
+        text = state.level > 1 ? "Úroveň " + state.level + ". Připrav se!" : "Připrav se!";
+      } else if (state.phase === "dying") {
+        text = lifeMsg;
+      } else if (state.phase === "levelDone") {
+        text = "Úroveň hotová, šéf nic nepoznal";
+      }
+      var key = text + "|" + pod + "|" + buttons;
+      if (key === hlaskaKey) return;
+      var hadFocusInside = ui.hlaska.contains(document.activeElement);
+      hlaskaKey = key;
+      ui.hlaska.hidden = !text;
+      ui.text.textContent = text;
+      ui.pod.textContent = pod;
+      ui.pod.hidden = !pod;
+      ui.tlacitka.hidden = !buttons;
+      ui.znovu.hidden = buttons !== "konec";
+      ui.pokracovat.hidden = buttons !== "pauza";
+      ui.zpet.hidden = !buttons;
+      if (buttons === "konec" && open) ui.znovu.focus();
+      else if (!buttons && hadFocusInside && open) canvas.focus();
+    }
+
+    // ---- stopwatch line ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        ui.stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      ui.stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      ui.stopky.hidden = false;
+    }
+
+    // ---- loop ----
+    function running() {
+      return open && !paused && state && state.phase !== "over";
+    }
+    function startLoop() {
+      if (rafId || !running()) return;
+      lastT = 0;
+      acc = 0;
+      rafId = requestAnimationFrame(frame);
+    }
+    function cancelLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    function frame(t) {
+      rafId = 0;
+      try {
+        if (!running()) return;
+        var dt = lastT ? (t - lastT) / 1000 : 0;
+        lastT = t;
+        if (!(dt > 0)) dt = 0;
+        acc += Math.min(dt, 0.1);
+        while (acc >= STEP && state.phase !== "over") {
+          var p = state.player, ox = p.x, oy = p.y;
+          handle(H.update(state, STEP, input));
+          var q = state.player;
+          if (q === p) {
+            var dx = Math.abs(q.x - ox);
+            if (dx > maze.w / 2) dx = maze.w - dx;
+            rolled += dx + Math.abs(q.y - oy);
+          }
+          if (q.dir) lastDir = q.dir;
+          acc -= STEP;
+        }
+        draw();
+        hud();
+        if (running()) rafId = requestAnimationFrame(frame);
+      } catch (err) {
+        fail(err);
+      }
+    }
+    function fail(err) {
+      cancelLoop();
+      if (window.console) console.error("Hra spadla", err);
+      try { if (open) V.close(hraEl); } catch (e) {}
+      hrajBtn.style.display = "none";
+    }
+
+    function refresh() {
+      draw();
+      hud();
+    }
+    function setPaused(v) {
+      if (!state || state.phase === "over") return;
+      paused = v;
+      if (paused) cancelLoop();
+      refresh();
+      if (!paused) startLoop();
+    }
+    function pause() { if (open) setPaused(true); }
+
+    // ---- open / close ----
+    function onClose() {
+      open = false;
+      if (state && state.phase !== "over") paused = true;
+      cancelLoop();
+      if (stopkyId) clearInterval(stopkyId);
+      stopkyId = 0;
+      saveBest();
+      window.removeEventListener("resize", resize);
+    }
+    function openGame() {
+      if (open) return;
+      if (!state || state.phase === "over") newState();
+      readColors();
+      hudCache = {};
+      hlaskaKey = "";
+      open = true;
+      V.open(hraEl, { onClose: onClose, returnFocus: hrajBtn, initialFocus: canvas });
+      window.addEventListener("resize", resize);
+      resize();
+      hud();
+      tickStopky();
+      stopkyId = setInterval(tickStopky, 1000);
+      startLoop();
+    }
+
+    hrajBtn.addEventListener("click", openGame);
+    ui.zavrit.addEventListener("click", function () { V.close(hraEl); });
+    ui.zpet.addEventListener("click", function () { V.close(hraEl); });
+    ui.pauza.addEventListener("click", function () { setPaused(!paused); });
+    ui.pokracovat.addEventListener("click", function () {
+      canvas.focus();
+      setPaused(false);
+    });
+    ui.znovu.addEventListener("click", function () {
+      newState();
+      hudCache = {};
+      canvas.focus();
+      refresh();
+      startLoop();
+    });
+
+    // ---- controls ----
+    document.addEventListener("keydown", function (e) {
+      if (!open || V.top() !== hraEl || e.ctrlKey || e.metaKey || e.altKey) return;
+      var dir = KEYS[e.key];
+      if (dir) {
+        e.preventDefault();
+        input = dir;
+        return;
+      }
+      if (e.key === " " || e.key === "Spacebar" || e.key === "p" || e.key === "P") {
+        var tag = e.target && e.target.tagName;
+        if ((e.key === " " || e.key === "Spacebar") && tag === "BUTTON") return; // the button handles it
+        e.preventDefault();
+        if (!e.repeat) setPaused(!paused);
+      }
+    });
+
+    var touch = null;
+    canvas.addEventListener("pointerdown", function (e) {
+      touch = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      if (canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      canvas.focus();
+      e.preventDefault();
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      if (!touch || touch.id !== e.pointerId) return;
+      var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+      if (Math.abs(dx) > Math.abs(dy)) input = dx > 0 ? "right" : "left";
+      else input = dy > 0 ? "down" : "up";
+      touch.x = e.clientX;
+      touch.y = e.clientY;
+      e.preventDefault();
+    });
+    function endTouch(e) { if (touch && touch.id === e.pointerId) touch = null; }
+    canvas.addEventListener("pointerup", endTouch);
+    canvas.addEventListener("pointercancel", endTouch);
+
+    // ---- pausing from outside ----
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) pause();
+    });
+    window.addEventListener("vrstva-otevrena", function (e) {
+      if (e.detail !== hraEl) pause();
+    });
+
+    // ---- theme changes ----
+    function themeChanged() {
+      if (!open) return;
+      readColors();
+      buildBg();
+      draw();
+    }
+    if (darkMq) {
+      if (darkMq.addEventListener) darkMq.addEventListener("change", themeChanged);
+      else if (darkMq.addListener) darkMq.addListener(themeChanged);
+    }
+    if (window.MutationObserver) {
+      new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    }
+
+    window.Hra = { pause: pause, isOpen: function () { return open; } };
+  }
 })();
 </script>
 </body>
