@@ -441,6 +441,82 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   .news-skel { animation: skel 1.2s ease-in-out infinite alternate; }
   @keyframes skel { from { opacity: .45; } to { opacity: 1; } }
 }
+body.detail-open { overflow: hidden; }
+.detail {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  background: var(--tile);
+  color: var(--ink);
+}
+.detail[hidden] { display: none; }
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--porcelain);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.detail-bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .5rem .8rem;
+  background: var(--porcelain);
+  border-bottom: 2px dashed var(--line);
+}
+.detail-back {
+  min-height: 44px;
+  padding: .4rem .9rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--porcelain);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.detail-back:hover { border-color: var(--brass); }
+.detail-src { font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
+.detail-img { display: block; width: 100%; max-height: 40vh; object-fit: cover; background: var(--tile); }
+.detail-img[hidden] { display: none; }
+.detail-body { padding: 1rem 1rem 2rem; }
+.detail-meta { margin: 0 0 .5rem; font-size: .85rem; color: var(--muted); }
+.detail-title { margin: 0 0 .8rem; font-size: 1.4rem; line-height: 1.25; overflow-wrap: anywhere; }
+.detail-perex { margin: 0 0 1.2rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.detail-link {
+  display: inline-block;
+  min-height: 44px;
+  padding: .7rem 1.4rem;
+  border-radius: 999px;
+  background: var(--brass);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .detail-link { color: #1a1204; }
+}
+:root[data-theme="dark"] .detail-link { color: #1a1204; }
+@media (min-width: 820px) {
+  .detail {
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 24, 28, .65);
+  }
+  .detail-panel {
+    max-width: 640px;
+    height: auto;
+    max-height: 90vh;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px -20px rgba(0, 0, 0, .6);
+  }
+}
 </style>
 </head>
 <body>
@@ -553,6 +629,22 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     <button class="more" id="feedMore" type="button" hidden>Načíst další</button>
     <p class="news-end" id="feedEnd" hidden>To je všechno, spláchni a jdi pracovat.</p>
   </section>
+</div>
+
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="detailTitle" hidden>
+  <div class="detail-panel">
+    <div class="detail-bar">
+      <button class="detail-back" id="detailBack" type="button">← Zpět</button>
+      <span class="detail-src" id="detailSrc"></span>
+    </div>
+    <img class="detail-img" id="detailImg" alt="" hidden>
+    <div class="detail-body">
+      <p class="detail-meta" id="detailMeta"></p>
+      <h2 class="detail-title" id="detailTitle"></h2>
+      <p class="detail-perex" id="detailPerex"></p>
+      <a class="detail-link" id="detailLink" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -986,13 +1078,68 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     else renderFeed();
   }
 
-  /* Single click handler: Task 5 swaps window.open for openDetail(article). */
+  var detailEl = $("detail");
+  var detailOpen = false;
+  var detailOpener = null;
+
+  function openDetail(a, opener) {
+    if (detailOpen) return;
+    detailOpener = opener || null;
+    $("detailSrc").textContent = a.source;
+    var parts = [a.source];
+    if (a.category) parts.push(a.category);
+    if (a.date) parts.push(ZK.relTime(a.date, Date.now()));
+    $("detailMeta").textContent = parts.join(" · ");
+    $("detailTitle").textContent = a.title;
+    $("detailPerex").textContent = a.perex || "";
+    var img = $("detailImg");
+    if (a.image) {
+      img.src = a.image;
+      img.hidden = false;
+    } else {
+      img.removeAttribute("src");
+      img.hidden = true;
+    }
+    var link = $("detailLink");
+    link.href = a.link;
+    link.textContent = "Číst celý článek na " + a.source + " ↗";
+    detailEl.hidden = false;
+    detailEl.querySelector(".detail-panel").scrollTop = 0;
+    document.body.classList.add("detail-open");
+    detailOpen = true;
+    history.pushState({ detail: true }, "");
+    $("detailBack").focus();
+  }
+
+  function closeDetail(fromPopstate) {
+    if (!detailOpen) return;
+    if (!fromPopstate) { history.back(); return; }
+    detailOpen = false;
+    detailEl.hidden = true;
+    document.body.classList.remove("detail-open");
+    $("detailImg").removeAttribute("src");
+    var back = detailOpener;
+    detailOpener = null;
+    if (back && document.body.contains(back)) back.focus();
+    else feedList.focus();
+  }
+
+  window.addEventListener("popstate", function () { closeDetail(true); });
+  $("detailBack").addEventListener("click", function () { closeDetail(); });
+  detailEl.addEventListener("click", function (e) { if (e.target === detailEl) closeDetail(); });
+  document.addEventListener("keydown", function (e) {
+    if (detailOpen && (e.key === "Escape" || e.key === "Esc")) {
+      e.preventDefault();
+      closeDetail();
+    }
+  });
+
   feedList.addEventListener("click", function (e) {
     var card = e.target.closest ? e.target.closest(".news-card") : null;
     if (!card) return;
     var id = card.getAttribute("data-id");
     var a = feedState[feedTab].items.filter(function (x) { return x.link === id; })[0];
-    if (a) window.open(a.link, "_blank", "noopener");
+    if (a) openDetail(a, card);
   });
   feedMore.addEventListener("click", function () {
     feedState[feedTab].shown += PAGE;
