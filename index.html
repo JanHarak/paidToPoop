@@ -21,6 +21,8 @@
   --hra-zelena: #4f9d4a;
   --hra-svestka: #8e4f86;
   --hra-dutinka: #d9b77e;
+  --hra-stul-hrana: #bcd3d6;
+  --hra-stul-deska: #ffffff;
   --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
   color-scheme: light;
   box-sizing: border-box;
@@ -41,6 +43,8 @@
     --hra-zelena: #7fc77a;
     --hra-svestka: #c88ac0;
     --hra-dutinka: #c9a46a;
+    --hra-stul-hrana: #5f8a91;
+    --hra-stul-deska: #1f3b42;
     --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -58,6 +62,8 @@
   --hra-zelena: #7fc77a;
   --hra-svestka: #c88ac0;
   --hra-dutinka: #c9a46a;
+  --hra-stul-hrana: #5f8a91;
+  --hra-stul-deska: #1f3b42;
   --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -321,6 +327,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 }
 .hra-btn:hover { background: var(--porcelain); }
 .zamceno { overflow: hidden; }
+html.zamceno, html.zamceno body { overscroll-behavior: none; }
 .vrstva {
   position: fixed;
   inset: 0;
@@ -330,6 +337,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   box-sizing: border-box;
   background: var(--tile);
   color: var(--ink);
+  overscroll-behavior: contain;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 .vrstva[hidden] { display: none; }
@@ -384,6 +392,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   justify-content: center;
   padding: .5rem;
   overflow: hidden;
+  touch-action: none;
 }
 #hraPlocha { display: block; touch-action: none; border-radius: 6px; }
 #hraPlocha:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
@@ -440,6 +449,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   z-index: 5;
 }
 .rain-l { left: 0; }
+.zamceno .rain { display: none; }
 .rain-r { right: 0; }
 .bill {
   position: absolute;
@@ -670,9 +680,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       hide(entry);
     }
   }
+  // A {vrstva:true} entry with no open layer is stale (reload, tab discard, Back then
+  // Forward): step back over it, so the next Back does something visible. Entries
+  // from before any layer have no such state, so this stops on a normal entry.
+  function skipStale() {
+    if (!stack.length && history.state && history.state.vrstva) history.back();
+  }
   window.addEventListener("popstate", function () {
     var entry = stack.pop();
-    if (!entry) return;
+    if (!entry) { skipStale(); return; }
     if (!entry.gone) hide(entry);
     if (stack.length && stack[stack.length - 1].gone) history.back();
   });
@@ -682,17 +698,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       close();
     }
   });
+  skipStale();
   window.Vrstvy = { open: open, close: close, top: top };
 })();
 </script>
 <script id="stopky-logika">
 (function () {
   var MAX_AGE_MS = 12 * 3600 * 1000;
+  var FUTURE_TOLERANCE_MS = 60 * 1000; // clock corrections (NTP) may move "now" back a little
   function restoreStart(raw, now) {
     if (typeof raw !== "string" || !/^\d+$/.test(raw)) return null;
     var start = Number(raw);
-    if (!isFinite(start) || start > now || now - start >= MAX_AGE_MS) return null;
-    return start;
+    if (!isFinite(start) || start - now > FUTURE_TOLERANCE_MS || now - start >= MAX_AGE_MS) return null;
+    return Math.min(start, now);
   }
   function elapsedMs(start, now) {
     return Math.max(0, now - start);
@@ -706,6 +724,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   window.Stopky = {
     KEY: "zachodova-stopky-v1",
     MAX_AGE_MS: MAX_AGE_MS,
+    FUTURE_TOLERANCE_MS: FUTURE_TOLERANCE_MS,
     restoreStart: restoreStart,
     elapsedMs: elapsedMs,
     fmtTime: fmtTime
@@ -821,6 +840,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   var reduceMotion = false;
   try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
   function spawnBill() {
+    if (document.documentElement.classList.contains("zamceno")) return; // hidden behind a layer
     var sides = document.querySelectorAll(".rain");
     for (var i = 0; i < sides.length; i++) {
       var side = sides[i];
@@ -949,7 +969,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   var MAX_SUB = 0.25;
 
   // Office floor plan: desk blocks, central meeting room (Z) with a door (-) on top,
-  // patrol tile H above the door, start S near the bottom, side passage on row 12.
+  // exit tile H above the door, start S near the bottom, side passage on row 12.
+  // HR patrols at the ends of the side passage (see parseMaze / targetFor).
   var MAZE = [
     "###################",
     "#........#........#",
@@ -979,7 +1000,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     var w = rows[0].length;
     var m = {
       w: w, h: h, walls: [], coins: new Set(), powerups: new Set(),
-      start: null, pen: [], door: null, patrol: null, tunnelRow: null
+      start: null, pen: [], door: null, exit: null, patrol: null, tunnelRow: null
     };
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -991,10 +1012,14 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
         else if (c === "S") m.start = { x: x, y: y };
         else if (c === "Z") m.pen.push({ x: x, y: y });
         else if (c === "-") m.door = { x: x, y: y };
-        else if (c === "H") m.patrol = { x: x, y: y };
+        else if (c === "H") m.exit = { x: x, y: y };
         else if (c === "<" && x === 0) m.tunnelRow = y;
       }
     }
+    // HR guards the side passage: first tile inside its left end (targetFor mirrors
+    // it to the right end when the player is on the right half). No passage -> exit.
+    if (m.tunnelRow !== null && !m.walls[m.tunnelRow * w + 1]) m.patrol = { x: 1, y: m.tunnelRow };
+    else m.patrol = m.exit;
     return m;
   }
 
@@ -1106,7 +1131,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     if (kind === "hr") {
       var t = tileOf(enemy);
       if (Math.abs(t.x - p.x) + Math.abs(t.y - p.y) <= HR_RANGE) return p;
-      return { x: maze.patrol.x, y: maze.patrol.y };
+      // patrol the end of the side passage on the player's half of the office
+      var px = maze.patrol.x;
+      if (p.x > (maze.w - 1) / 2) px = maze.w - 1 - px;
+      return { x: px, y: maze.patrol.y };
     }
     return null;
   }
@@ -1216,7 +1244,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       powerTime: 0, chain: 0, time: 0, phase: "ready", phaseTime: 0,
       home: home,
       toHome: distField(maze, home),
-      toExit: distField(maze, maze.patrol)
+      toExit: distField(maze, maze.exit)
     };
     resetRound(s);
     return s;
@@ -1230,7 +1258,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   }
 
   // Decision on a tile centre: eaten -> back home; pen -> out through the door to the
-  // patrol tile; chase/flee -> chooseDir with the door treated as a wall.
+  // exit tile; chase/flee -> chooseDir with the door treated as a wall.
   function atCentre(s, en) {
     var e = en.e, m = s.maze;
     if (en.mode === "eaten") {
@@ -1239,7 +1267,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       en.releaseAt = s.time;
     }
     if (en.mode === "pen") {
-      if (e.x !== m.patrol.x || e.y !== m.patrol.y) { e.dir = downhill(e, m, s.toExit); return; }
+      if (e.x !== m.exit.x || e.y !== m.exit.y) { e.dir = downhill(e, m, s.toExit); return; }
       en.mode = "chase";
     }
     if (en.mode === "flee") {
@@ -1474,6 +1502,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     var reduceMq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
     var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     var hudCache = {}, hlaskaKey = "";
+    var penize = function (v) { return Math.round(v) + " CZK"; };
     var ro = window.ResizeObserver ? new window.ResizeObserver(function () { resize(); }) : null;
 
     // ---- storage ----
@@ -1528,7 +1557,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
         tile: v("--tile", "#e6f1f2"), grout: v("--grout", "#cfe0e2"), porcelain: v("--porcelain", "#ffffff"),
         ink: v("--ink", "#0e3b43"), muted: v("--muted", "#4d6f75"), brass: v("--brass", "#a8761c"),
         brassSoft: v("--brass-soft", "#f4e6c8"), line: v("--line", "#bcd3d6"),
-        core: v("--hra-dutinka", "#d9b77e")
+        core: v("--hra-dutinka", "#d9b77e"),
+        deskEdge: v("--hra-stul-hrana", "#bcd3d6"), deskTop: v("--hra-stul-deska", "#ffffff")
       };
       // each enemy its own hue from the page palette
       col.enemy = {
@@ -1540,6 +1570,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       col.roll = "#ffffff"; // the roll is white in both themes
     }
     function reduced() { return !!(reduceMq && reduceMq.matches); }
+
+    // score and record in whole units of the calculator currency (read at game open)
+    function readCurrency() {
+      var curEl = document.getElementById("cur");
+      var cur = (curEl && curEl.value) || "CZK";
+      try {
+        var fmt = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        fmt.format(0);
+        penize = function (v) { return fmt.format(v); };
+      } catch (e) {
+        penize = function (v) { return Math.round(v) + " " + cur; };
+      }
+    }
 
     // ---- layout ----
     function resize() {
@@ -1594,12 +1637,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       // meeting room carpet
       g.fillStyle = col.grout;
       for (var i = 0; i < maze.pen.length; i++) g.fillRect(maze.pen[i].x, maze.pen[i].y, 1, 1);
-      // desks: outline (line) and top (porcelain), joined into blocks
+      // desks: outline and top, joined into blocks
       wallShape(g, 0.1);
-      g.fillStyle = col.line;
+      g.fillStyle = col.deskEdge;
       g.fill();
       wallShape(g, 0.2);
-      g.fillStyle = col.porcelain;
+      g.fillStyle = col.deskTop;
       g.fill();
       // door of the meeting room
       if (maze.door) {
@@ -1708,6 +1751,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       ctx.restore();
     }
 
+    // rough centre of each item in drawItem coordinates
+    var ITEM_CENTRE = { sef: [0, 0.18], pm: [0, 0.22], kolega: [0.22, 0.19], hr: [-0.17, 0.2] };
+
     function drawItem(kind, faded) {
       ctx.lineWidth = 0.04;
       ctx.strokeStyle = col.ink;
@@ -1742,9 +1788,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       }
     }
 
-    function drawEyes(dir, big) {
+    function drawEyes(dir) {
       var d = H.DIRS[dir] || { x: 0, y: 1 };
-      var er = big ? 0.07 : 0.05;
+      var er = 0.05;
       ctx.fillStyle = col.porcelain;
       ctx.strokeStyle = col.ink;
       ctx.lineWidth = 0.02;
@@ -1765,11 +1811,26 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     function drawEnemy(en, ex, ey) {
       var e = en.e;
       ctx.save();
-      ctx.translate(ex + 0.5, ey + 0.55);
-      if (en.mode === "eaten") {       // only the item and eyes hurry back to the meeting room
-        ctx.scale(0.75, 0.75);
+      ctx.translate(ex + 0.5, en.mode === "eaten" ? ey + 0.5 : ey + 0.55);
+      if (en.mode === "eaten") {       // only the dropped item hurries back to the meeting room
+        var d = H.DIRS[e.dir];
+        ctx.globalAlpha = 0.55;
+        if (d) {                        // speed lines trailing behind it
+          ctx.strokeStyle = col.muted;
+          ctx.lineWidth = 0.05;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          for (var k = -1; k <= 1; k += 2) {
+            var ox = -d.y * 0.09 * k, oy = d.x * 0.09 * k;
+            ctx.moveTo(ox - d.x * 0.22, oy - d.y * 0.22);
+            ctx.lineTo(ox - d.x * 0.42, oy - d.y * 0.42);
+          }
+          ctx.stroke();
+        }
+        var c = ITEM_CENTRE[en.kind] || [0, 0.2];
+        ctx.scale(0.8, 0.8);
+        ctx.translate(-c[0], -c[1]);
         drawItem(en.kind, false);
-        drawEyes(e.dir, true);
         ctx.restore();
         return;
       }
@@ -1802,7 +1863,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       ctx.arc(0, -0.24, 0.17, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      drawEyes(e.dir, false);
+      drawEyes(e.dir);
       drawItem(en.kind, faded);
       ctx.restore();
     }
@@ -1839,8 +1900,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       el.textContent = v;
     }
     function hud() {
-      setText(ui.skore, "skore", "Vydělal jsi " + Z.money(state.score));
-      setText(ui.rekord, "rekord", "Rekord: " + Z.money(Math.max(state.best, storedBest)));
+      setText(ui.skore, "skore", "Vydělal jsi " + penize(state.score));
+      setText(ui.rekord, "rekord", "Rekord: " + penize(Math.max(state.best, storedBest)));
       setText(ui.uroven, "uroven", "Úroveň " + state.level);
       if (hudCache.zivoty !== state.lives) {
         hudCache.zivoty = state.lives;
@@ -1863,7 +1924,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       var text = "", pod = "", buttons = "";
       if (over) {
         text = newRecord ? "Konec hry. Nový rekord!" : "Konec hry";
-        pod = "Vydělal jsi " + Z.money(state.score) + " · Rekord " + Z.money(Math.max(state.best, storedBest));
+        pod = "Vydělal jsi " + penize(state.score) + " · Rekord " + penize(Math.max(state.best, storedBest));
         buttons = "konec";
       } else if (paused) {
         text = "Pauza";
@@ -1980,6 +2041,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       if (open) return;
       if (!state || state.phase === "over") newState();
       readColors();
+      readCurrency();
       hudCache = {};
       hlaskaKey = "";
       open = true;
@@ -2027,16 +2089,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       }
     });
 
+    // swipes anywhere on the board area, not just on the canvas
     var touch = null;
-    canvas.addEventListener("pointerdown", function (e) {
+    pole.addEventListener("pointerdown", function (e) {
+      if (e.target && e.target.closest && e.target.closest("button")) return; // overlay buttons
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       touch = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      if (canvas.setPointerCapture) {
-        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      if (pole.setPointerCapture) {
+        try { pole.setPointerCapture(e.pointerId); } catch (err) {}
       }
       canvas.focus();
       e.preventDefault();
     });
-    canvas.addEventListener("pointermove", function (e) {
+    pole.addEventListener("pointermove", function (e) {
       if (!touch || touch.id !== e.pointerId) return;
       var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
@@ -2047,12 +2112,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       e.preventDefault();
     });
     function endTouch(e) { if (touch && touch.id === e.pointerId) touch = null; }
-    canvas.addEventListener("pointerup", endTouch);
-    canvas.addEventListener("pointercancel", endTouch);
+    pole.addEventListener("pointerup", endTouch);
+    pole.addEventListener("pointercancel", endTouch);
 
     // ---- pausing from outside ----
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) pause();
+      if (document.hidden) {
+        pause();
+        saveBest(); // a discarded tab must not lose a new record
+      }
     });
     window.addEventListener("vrstva-otevrena", function (e) {
       if (e.detail !== hraEl) pause();

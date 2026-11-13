@@ -77,6 +77,15 @@ test("hrPatrolsWhenFar", () => {
   assert.deepEqual(plain(t), { x: maze.patrol.x, y: maze.patrol.y });
 });
 
+test("hrPatrolsSidePassageNotTheDoor", () => {
+  // player on the left half -> left end of the side passage
+  assert.deepEqual(plain(H.targetFor("hr", ent(17, 1), ent(1, 19), maze)), { x: 1, y: maze.tunnelRow });
+  // player on the right half -> right end
+  assert.deepEqual(plain(H.targetFor("hr", ent(1, 1), ent(17, 19), maze)), { x: maze.w - 2, y: maze.tunnelRow });
+  var t = H.targetFor("hr", ent(17, 1), ent(1, 19), maze);
+  assert.notDeepEqual(plain(t), plain(maze.exit));
+});
+
 test("hrChasesWhenNear", () => {
   var p = ent(5, 5);
   assert.deepEqual(plain(H.targetFor("hr", ent(9, 1), p, maze)), { x: 5, y: 5 });

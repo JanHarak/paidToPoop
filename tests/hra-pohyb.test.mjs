@@ -27,6 +27,11 @@ test("parseMaze na MAZE", () => {
   assert.ok(maze.pen.length >= 4);
   assert.equal(typeof maze.tunnelRow, "number");
   assert.equal(H.MAZE.join("").split("H").length - 1, 1);
+  // H is the meeting-room exit; HR patrols the side passage
+  assert.deepEqual({ x: maze.exit.x, y: maze.exit.y }, { x: maze.door.x, y: maze.door.y - 1 });
+  assert.deepEqual({ x: maze.patrol.x, y: maze.patrol.y }, { x: 1, y: maze.tunnelRow });
+  assert.equal(H.isWall(maze, maze.patrol.x, maze.patrol.y, false), false);
+  assert.equal(H.isWall(maze, maze.w - 1 - maze.patrol.x, maze.patrol.y, false), false);
 });
 
 test("mazeIsSymmetric", () => {
