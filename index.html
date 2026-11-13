@@ -375,6 +375,72 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 }
 .bump { animation: bump .35s ease; }
 @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* Feed */
+.feed { margin-top: 1.25rem; }
+.seg.tabs { max-width: 320px; margin-bottom: 1rem; }
+.seg-btn { min-height: 44px; }
+.seg-btn[aria-selected="true"] {
+  background: var(--porcelain);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.news-list { display: flex; flex-direction: column; }
+.news-card {
+  display: flex;
+  align-items: flex-start;
+  gap: .8rem;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px dashed var(--line);
+  padding: .8rem .2rem;
+  cursor: pointer;
+}
+.news-card:last-child { border-bottom: 0; }
+.news-card:hover .news-title { text-decoration: underline; }
+.news-thumb {
+  flex: none;
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--tile);
+}
+.news-body { flex: 1; min-width: 0; }
+.news-title { display: block; font-weight: 700; overflow-wrap: anywhere; }
+.news-meta { display: block; font-size: .85rem; color: var(--muted); margin-top: .15rem; }
+.news-skel {
+  height: 54px;
+  margin: .8rem 0;
+  border-radius: 10px;
+  background: var(--tile);
+}
+.news-msg { color: var(--muted); padding: .5rem 0; margin: 0; }
+.news-end { color: var(--muted); text-align: center; margin: 1rem 0 0; }
+.more, .retry {
+  display: block;
+  min-height: 44px;
+  margin: 1rem auto 0;
+  padding: .6rem 1.4rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--porcelain);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.more:hover, .retry:hover { border-color: var(--brass); }
+.more[hidden], .news-end[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .news-skel { animation: skel 1.2s ease-in-out infinite alternate; }
+  @keyframes skel { from { opacity: .45; } to { opacity: 1; } }
+}
 </style>
 </head>
 <body>
@@ -477,6 +543,16 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       <button class="reset" id="reset" type="button">Vrátit výchozí hodnoty</button>
     </section>
   </div>
+  <section class="panel feed" id="feed" aria-labelledby="feedTitle">
+    <h2 id="feedTitle">Čtení na trůn</h2>
+    <div class="seg tabs" role="tablist" aria-label="Téma zpráv">
+      <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" aria-controls="newsList">Svět</button>
+      <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" aria-controls="newsList">Peníze</button>
+    </div>
+    <div class="news-list" id="newsList" role="tabpanel" aria-labelledby="tabSvet" aria-live="polite"></div>
+    <button class="more" id="feedMore" type="button" hidden>Načíst další</button>
+    <p class="news-end" id="feedEnd" hidden>To je všechno, spláchni a jdi pracovat.</p>
+  </section>
 </div>
 
 <script>
@@ -791,6 +867,137 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   }
   $("modeMd").addEventListener("click", function () { if (mode !== "md") { setMode("md"); render(); } });
   $("modeSal").addEventListener("click", function () { if (mode !== "sal") { setMode("sal"); render(); } });
+
+  /* Feed */
+  var FEEDS = {
+    svet: [
+      { name: "iROZHLAS", url: "https://www.irozhlas.cz/rss/irozhlas" },
+      { name: "ČT24", url: "https://ct24.ceskatelevize.cz/rss/tema/vyber-redakce-84313" },
+      { name: "iDNES", url: "https://servis.idnes.cz/rss.aspx?c=zpravodaj" }
+    ],
+    penize: [
+      { name: "iROZHLAS", url: "https://www.irozhlas.cz/rss/irozhlas/section/ekonomika" },
+      { name: "ČT24", url: "https://ct24.ceskatelevize.cz/rss/rubrika/ekonomika-17" },
+      { name: "iDNES", url: "https://servis.idnes.cz/rss.aspx?c=ekonomikah" }
+    ]
+  };
+  var PAGE = 10;
+  var feedState = {
+    svet: { status: "idle", items: [], shown: PAGE },
+    penize: { status: "idle", items: [], shown: PAGE }
+  };
+  var feedTab = "svet";
+  var feedList = $("newsList"), feedMore = $("feedMore"), feedEnd = $("feedEnd");
+
+  function loadTab(tab) {
+    var st = feedState[tab];
+    if (st.status === "loading") return Promise.resolve();
+    st.status = "loading";
+    renderFeed();
+    var jobs = FEEDS[tab].map(function (f) {
+      return fetch(f.url).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then(function (xml) { return ZK.parseRss(xml, f.name); });
+    });
+    return Promise.allSettled(jobs).then(function (res) {
+      var lists = [];
+      res.forEach(function (r) { if (r.status === "fulfilled") lists.push(r.value); });
+      var items = ZK.mergeArticles(lists);
+      st.items = items;
+      st.shown = PAGE;
+      st.status = items.length ? "ok" : "error";
+      renderFeed();
+    });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function renderFeed() {
+    var st = feedState[feedTab];
+    var now = Date.now();
+    feedList.textContent = "";
+    feedMore.hidden = true;
+    feedEnd.hidden = true;
+    if (st.status === "idle" || st.status === "loading") {
+      for (var s = 0; s < 3; s++) feedList.appendChild(el("div", "news-skel"));
+      feedList.setAttribute("aria-busy", "true");
+      return;
+    }
+    feedList.setAttribute("aria-busy", "false");
+    if (st.status === "error") {
+      feedList.appendChild(el("p", "news-msg", "Zprávy se nepodařilo načíst."));
+      var retry = el("button", "retry", "Zkusit znovu");
+      retry.type = "button";
+      retry.addEventListener("click", function () { loadTab(feedTab); });
+      feedList.appendChild(retry);
+      return;
+    }
+    st.items.slice(0, st.shown).forEach(function (a) {
+      var card = el("button", "news-card");
+      card.type = "button";
+      card.setAttribute("data-id", a.link);
+      if (a.image) {
+        var img = el("img", "news-thumb");
+        img.src = a.image;
+        img.alt = "";
+        img.width = 72;
+        img.height = 54;
+        img.loading = "lazy";
+        card.appendChild(img);
+      }
+      var body = el("span", "news-body");
+      body.appendChild(el("span", "news-title", a.title));
+      var meta = a.source + (a.date ? " · " + ZK.relTime(a.date, now) : "");
+      body.appendChild(el("span", "news-meta", meta));
+      card.appendChild(body);
+      feedList.appendChild(card);
+    });
+    if (st.shown >= st.items.length) feedEnd.hidden = false;
+    else feedMore.hidden = false;
+  }
+
+  function showTab(tab) {
+    feedTab = tab;
+    $("tabSvet").setAttribute("aria-selected", String(tab === "svet"));
+    $("tabPenize").setAttribute("aria-selected", String(tab === "penize"));
+    feedList.setAttribute("aria-labelledby", tab === "svet" ? "tabSvet" : "tabPenize");
+    if (feedState[tab].status === "idle") loadTab(tab);
+    else renderFeed();
+  }
+
+  /* Single click handler: Task 5 swaps window.open for openDetail(article). */
+  feedList.addEventListener("click", function (e) {
+    var card = e.target.closest ? e.target.closest(".news-card") : null;
+    if (!card) return;
+    var id = card.getAttribute("data-id");
+    var a = feedState[feedTab].items.filter(function (x) { return x.link === id; })[0];
+    if (a) window.open(a.link, "_blank", "noopener");
+  });
+  feedMore.addEventListener("click", function () {
+    feedState[feedTab].shown += PAGE;
+    renderFeed();
+  });
+  $("tabSvet").addEventListener("click", function () { showTab("svet"); });
+  $("tabPenize").addEventListener("click", function () { showTab("penize"); });
+
+  renderFeed();
+  if ("IntersectionObserver" in window) {
+    var feedObs = new IntersectionObserver(function (entries) {
+      if (entries.some(function (en) { return en.isIntersecting; })) {
+        feedObs.disconnect();
+        if (feedState.svet.status === "idle") loadTab("svet");
+      }
+    }, { rootMargin: "300px" });
+    feedObs.observe($("feed"));
+  } else {
+    loadTab("svet");
+  }
 
   load();
   setMode(mode, true);
