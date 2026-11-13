@@ -17,6 +17,10 @@
   --brass: #a8761c;
   --brass-soft: #f4e6c8;
   --line: #bcd3d6;
+  --hra-modra: #3f6fb0;
+  --hra-zelena: #4f9d4a;
+  --hra-svestka: #8e4f86;
+  --hra-dutinka: #d9b77e;
   --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
   color-scheme: light;
   box-sizing: border-box;
@@ -33,6 +37,10 @@
     --brass: #e2b45a;
     --brass-soft: #3a2f17;
     --line: #2a4950;
+    --hra-modra: #7fa6e0;
+    --hra-zelena: #7fc77a;
+    --hra-svestka: #c88ac0;
+    --hra-dutinka: #c9a46a;
     --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -46,6 +54,10 @@
   --brass: #e2b45a;
   --brass-soft: #3a2f17;
   --line: #2a4950;
+  --hra-modra: #7fa6e0;
+  --hra-zelena: #7fc77a;
+  --hra-svestka: #c88ac0;
+  --hra-dutinka: #c9a46a;
   --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -1462,6 +1474,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     var reduceMq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
     var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     var hudCache = {}, hlaskaKey = "";
+    var ro = window.ResizeObserver ? new window.ResizeObserver(function () { resize(); }) : null;
 
     // ---- storage ----
     function loadBest() {
@@ -1514,24 +1527,17 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       col = {
         tile: v("--tile", "#e6f1f2"), grout: v("--grout", "#cfe0e2"), porcelain: v("--porcelain", "#ffffff"),
         ink: v("--ink", "#0e3b43"), muted: v("--muted", "#4d6f75"), brass: v("--brass", "#a8761c"),
-        brassSoft: v("--brass-soft", "#f4e6c8"), line: v("--line", "#bcd3d6")
+        brassSoft: v("--brass-soft", "#f4e6c8"), line: v("--line", "#bcd3d6"),
+        core: v("--hra-dutinka", "#d9b77e")
       };
-      var dark = isDark(col.tile);
-      // each enemy its own hue: brass from the page, green from the money rain, slate blue, plum
+      // each enemy its own hue from the page palette
       col.enemy = {
         sef: col.brass,
-        pm: dark ? "#7fa6e0" : "#3f6fb0",
-        kolega: dark ? "#7fc77a" : "#4f9d4a",
-        hr: dark ? "#c88ac0" : "#8e4f86"
+        pm: v("--hra-modra", "#3f6fb0"),
+        kolega: v("--hra-zelena", "#4f9d4a"),
+        hr: v("--hra-svestka", "#8e4f86")
       };
-      col.roll = "#ffffff";
-      col.core = dark ? "#c9a46a" : "#d9b77e";
-    }
-    function isDark(c) {
-      var m = /^#([0-9a-f]{6})$/i.exec(c);
-      if (!m) return darkMq ? darkMq.matches : false;
-      var n = parseInt(m[1], 16);
-      return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) < 128;
+      col.roll = "#ffffff"; // the roll is white in both themes
     }
     function reduced() { return !!(reduceMq && reduceMq.matches); }
 
@@ -1967,7 +1973,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       if (stopkyId) clearInterval(stopkyId);
       stopkyId = 0;
       saveBest();
-      window.removeEventListener("resize", resize);
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", resize);
     }
     function openGame() {
       if (open) return;
@@ -1977,10 +1984,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
       hlaskaKey = "";
       open = true;
       V.open(hraEl, { onClose: onClose, returnFocus: hrajBtn, initialFocus: canvas });
-      window.addEventListener("resize", resize);
-      resize();
+      // header content first, so the board is sized for the final header height
       hud();
       tickStopky();
+      resize();
+      if (ro) ro.observe(pole);
+      else window.addEventListener("resize", resize);
       stopkyId = setInterval(tickStopky, 1000);
       startLoop();
     }
