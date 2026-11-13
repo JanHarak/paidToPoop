@@ -13,6 +13,18 @@ test("decodeEntities decodes named and numeric entities", function () {
   assert.equal(ZK.decodeEntities("A&nbsp;&amp;&#269;&#x161;"), "A &čš");
 });
 
+test("decodeEntities is single-pass (no double decoding)", function () {
+  assert.equal(ZK.decodeEntities("&#38;lt;"), "&lt;");
+  assert.equal(ZK.decodeEntities("&amp;lt;"), "&lt;");
+});
+
+test("decodeEntities does not throw on out-of-range code points", function () {
+  assert.doesNotThrow(function () { ZK.decodeEntities("a&#99999999;b&#x110000;c"); });
+  assert.equal(ZK.decodeEntities("a&#99999999;b&#x110000;c"), "a�b�c");
+  var xml = "<rss><item><title>T&#99999999;</title><link>https://a.cz/1</link></item></rss>";
+  assert.equal(ZK.parseRss(xml, "X").length, 1);
+});
+
 test("stripTags removes CDATA, tags and entities", function () {
   assert.equal(ZK.stripTags("<![CDATA[<p>Ahoj&nbsp;<b>světe</b></p>]]>"), "Ahoj světe");
 });
