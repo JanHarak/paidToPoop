@@ -460,6 +460,33 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   </div>
 </div>
 
+<script id="stopky-logika">
+(function () {
+  var MAX_AGE_MS = 12 * 3600 * 1000;
+  function restoreStart(raw, now) {
+    if (typeof raw !== "string" || !/^\d+$/.test(raw)) return null;
+    var start = Number(raw);
+    if (!isFinite(start) || start > now || now - start >= MAX_AGE_MS) return null;
+    return start;
+  }
+  function elapsedMs(start, now) {
+    return Math.max(0, now - start);
+  }
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  window.Stopky = {
+    KEY: "zachodova-stopky-v1",
+    MAX_AGE_MS: MAX_AGE_MS,
+    restoreStart: restoreStart,
+    elapsedMs: elapsedMs,
+    fmtTime: fmtTime
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
@@ -565,12 +592,6 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   $("plus").addEventListener("click", function () { count++; bump(); render(); });
   $("minus").addEventListener("click", function () { if (count > 0) count--; bump(); render(); });
 
-  function fmtTime(ms) {
-    var s = Math.floor(ms / 1000);
-    var m = Math.floor(s / 60);
-    s = s % 60;
-    return m + ":" + (s < 10 ? "0" : "") + s;
-  }
   var rainTimer = null;
   var reduceMotion = false;
   try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
@@ -604,23 +625,34 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
     rainTimer = null;
   }
 
+  function startTimer(start) {
+    var btn = $("flush"), note = $("timerNote");
+    timerStart = start;
+    btn.textContent = "Hotovo, spláchnout";
+    btn.classList.add("timing");
+    startRain();
+    clearInterval(timerTick);
+    var tick = function () {
+      var elapsed = Stopky.elapsedMs(timerStart, Date.now());
+      var earned = rateMin() * (elapsed / 60000);
+      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + money(earned);
+    };
+    tick();
+    timerTick = setInterval(tick, 250);
+  }
+
   $("flush").addEventListener("click", function () {
     var btn = $("flush"), note = $("timerNote");
     if (timerStart === null) {
-      timerStart = Date.now();
-      btn.textContent = "Hotovo, spláchnout";
-      btn.classList.add("timing");
-      startRain();
-      timerTick = setInterval(function () {
-        var elapsed = Date.now() - timerStart;
-        var earned = rateMin() * (elapsed / 60000);
-        note.textContent = "Sedíš " + fmtTime(elapsed) + " a už máš " + money(earned);
-      }, 250);
+      var start = Date.now();
+      try { localStorage.setItem(Stopky.KEY, String(start)); } catch (e) {}
+      startTimer(start);
     } else {
-      var elapsedMin = (Date.now() - timerStart) / 60000;
+      var elapsedMin = Stopky.elapsedMs(timerStart, Date.now()) / 60000;
       clearInterval(timerTick);
       stopRain();
       timerStart = null;
+      try { localStorage.removeItem(Stopky.KEY); } catch (e) {}
       // Update running average of visit length with the measured visit
       var oldAvg = num(els.mins);
       var newAvg = count > 0 ? (oldAvg * count + elapsedMin) / (count + 1) : elapsedMin;
@@ -661,6 +693,21 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   load();
   setMode(mode, true);
   render();
+
+  try {
+    var saved = localStorage.getItem(Stopky.KEY);
+    if (saved !== null) {
+      var restored = Stopky.restoreStart(saved, Date.now());
+      if (restored !== null) startTimer(restored);
+      else localStorage.removeItem(Stopky.KEY);
+    }
+  } catch (e) {}
+
+  window.zachod = {
+    timerStart: function () { return timerStart; },
+    earned: function (ms) { return rateMin() * ms / 60000; },
+    money: money
+  };
 })();
 </script>
 </body>
