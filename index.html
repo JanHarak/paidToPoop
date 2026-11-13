@@ -17,6 +17,12 @@
   --brass: #a8761c;
   --brass-soft: #f4e6c8;
   --line: #bcd3d6;
+  --hra-modra: #3f6fb0;
+  --hra-zelena: #4f9d4a;
+  --hra-svestka: #8e4f86;
+  --hra-dutinka: #d9b77e;
+  --hra-stul-hrana: #bcd3d6;
+  --hra-stul-deska: #ffffff;
   --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
   color-scheme: light;
   box-sizing: border-box;
@@ -33,6 +39,12 @@
     --brass: #e2b45a;
     --brass-soft: #3a2f17;
     --line: #2a4950;
+    --hra-modra: #7fa6e0;
+    --hra-zelena: #7fc77a;
+    --hra-svestka: #c88ac0;
+    --hra-dutinka: #c9a46a;
+    --hra-stul-hrana: #5f8a91;
+    --hra-stul-deska: #1f3b42;
     --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -46,6 +58,12 @@
   --brass: #e2b45a;
   --brass-soft: #3a2f17;
   --line: #2a4950;
+  --hra-modra: #7fa6e0;
+  --hra-zelena: #7fc77a;
+  --hra-svestka: #c88ac0;
+  --hra-dutinka: #c9a46a;
+  --hra-stul-hrana: #5f8a91;
+  --hra-stul-deska: #1f3b42;
   --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -317,7 +335,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .warn-tint {
   position: fixed;
   inset: 0;
-  z-index: 32;
+  z-index: 62;
   pointer-events: none;
   box-shadow: inset 0 0 0 6px #d93a2b, inset 0 0 60px rgba(217, 58, 43, .45);
 }
@@ -325,7 +343,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .warn-modal {
   position: fixed;
   inset: 0;
-  z-index: 31;
+  z-index: 61;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,6 +388,132 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .warn-box { animation: none; }
 }
+.hra-btn {
+  display: block;
+  margin-top: .9rem;
+  min-height: 44px;
+  padding: .6rem 1.2rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hra-btn:hover { background: var(--porcelain); }
+.zamceno { overflow: hidden; }
+html.zamceno, html.zamceno body { overscroll-behavior: none; }
+.vrstva {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--tile);
+  color: var(--ink);
+  overscroll-behavior: contain;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.vrstva[hidden] { display: none; }
+.vrstva:focus { outline: none; }
+.hra-hlava {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .8rem;
+  padding: .5rem .75rem;
+  background: var(--porcelain);
+  border-bottom: 2px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.hra-hlava h2 {
+  margin: 0;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: 1.1rem;
+  margin-right: auto;
+}
+.hra-hlava span { font-size: .9rem; color: var(--muted); }
+.hra-hlava button {
+  min-width: 44px; min-height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--porcelain);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.hra-hlava button:hover { border-color: var(--brass); }
+.hra-hlava .hra-info { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .8rem; }
+.hra-hlava #hraSkore { color: var(--ink); font-weight: 700; }
+.hra-hlava #hraStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.hra-hlava #hraPauza { font-size: .9rem; padding: 0 .8rem; }
+.hra-zivoty { display: inline-flex; gap: 3px; align-items: center; }
+.hra-zivot {
+  display: inline-block;
+  width: 9px; height: 14px;
+  border: 1.5px solid var(--muted);
+  border-radius: 3px / 2px;
+  background: var(--porcelain);
+  box-shadow: inset 0 3px 0 -1px var(--line);
+}
+.hra-pole {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  overflow: hidden;
+  touch-action: none;
+}
+#hraPlocha { display: block; touch-action: none; border-radius: 6px; }
+#hraPlocha:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.hra-hlaska {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+.hra-hlaska[hidden] { display: none; }
+.hra-hlaska-box {
+  pointer-events: none;
+  max-width: 20rem;
+  padding: .9rem 1.2rem;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.hra-hlaska-box p { margin: 0; font-weight: 700; color: var(--ink); }
+.hra-hlaska-box p + p { margin-top: .3rem; font-weight: 400; color: var(--muted); }
+.hra-hlaska-tlacitka { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: .8rem; pointer-events: auto; }
+.hra-hlaska-tlacitka[hidden] { display: none; }
+.hra-hlaska-tlacitka button {
+  min-height: 44px;
+  padding: .4rem 1rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hra-hlaska-tlacitka button.vedlejsi { border-color: var(--line); background: var(--porcelain); }
+@media (max-width: 480px) {
+  .hra-hlava { gap: .3rem .5rem; padding: .4rem .5rem; }
+  .hra-hlava h2 { font-size: 1rem; flex: 1 1 0; min-width: 0; }
+  .hra-hlava .hra-info { order: 5; flex-basis: 100%; gap: 0 .6rem; }
+  .hra-hlava span { font-size: .85rem; }
+}
 /* Money rain */
 .rain {
   position: fixed;
@@ -381,6 +525,7 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   z-index: 5;
 }
 .rain-l { left: 0; }
+.zamceno .rain { display: none; }
 .rain-r { right: 0; }
 .bill {
   position: absolute;
@@ -581,6 +726,7 @@ body.detail-open { overflow: hidden; }
   <header>
     <h1>Záchodová kalkulačka</h1>
     <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
+    <button class="hra-btn" id="hrajBtn" type="button">Zahraj si: Rulička na útěku</button>
   </header>
 
   <div class="grid">
@@ -698,6 +844,35 @@ body.detail-open { overflow: hidden; }
       <h2 class="detail-title" id="detailTitle"></h2>
       <p class="detail-perex" id="detailPerex"></p>
       <a class="detail-link" id="detailLink" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
+</div>
+
+<div id="hra" class="vrstva" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="hraTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="hraTitul">Rulička na útěku</h2>
+    <div class="hra-info">
+      <span id="hraSkore">Vydělal jsi 0 Kč</span>
+      <span id="hraRekord">Rekord: 0 Kč</span>
+      <span id="hraZivoty" class="hra-zivoty" role="img" aria-label="Životy: 3"></span>
+      <span id="hraUroven">Úroveň 1</span>
+    </div>
+    <span id="hraStopky" hidden>0:00</span>
+    <button id="hraPauza" type="button">Pauza</button>
+    <button id="hraZavrit" type="button" aria-label="Zavřít hru">×</button>
+  </div>
+  <div class="hra-pole" id="hraPole">
+    <canvas id="hraPlocha" tabindex="0" aria-label="Hrací plocha, ovládání šipkami, WASD nebo tažením prstem"></canvas>
+    <div class="hra-hlaska" id="hraHlaska" hidden>
+      <div class="hra-hlaska-box" role="status" aria-live="polite">
+        <p id="hraHlaskaText"></p>
+        <p id="hraHlaskaPod" hidden></p>
+        <div class="hra-hlaska-tlacitka" id="hraHlaskaTlacitka" hidden>
+          <button type="button" id="hraZnovu">Hrát znovu</button>
+          <button type="button" id="hraPokracovat">Pokračovat</button>
+          <button type="button" id="hraZpet" class="vedlejsi">Zpět ke kalkulačce</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -823,6 +998,102 @@ body.detail-open { overflow: hidden; }
 /* ZK-CORE:END */
 </script>
 
+<script id="vrstvy">
+(function () {
+  // Kazda vrstva vlastni jednu polozku historie. Vrstva zavrena mimo vrchol
+  // se jen skryje (gone) a ze zasobniku zmizi, az na ni prijde rada v popstate.
+  var stack = [];
+  function active() {
+    for (var i = stack.length - 1; i >= 0; i--) if (!stack[i].gone) return stack[i];
+    return null;
+  }
+  function hide(entry) {
+    entry.gone = true;
+    entry.el.hidden = true;
+    if (!active()) document.documentElement.classList.remove("zamceno");
+    if (entry.onClose) entry.onClose();
+    if (entry.returnFocus && entry.returnFocus.focus) entry.returnFocus.focus();
+  }
+  function top() {
+    var e = active();
+    return e ? e.el : null;
+  }
+  function open(el, opts) {
+    opts = opts || {};
+    stack.push({ el: el, onClose: opts.onClose, returnFocus: opts.returnFocus, closing: false, gone: false });
+    el.hidden = false;
+    document.documentElement.classList.add("zamceno");
+    history.pushState({ vrstva: true }, "");
+    var f = opts.initialFocus || el;
+    if (f.focus) f.focus();
+    window.dispatchEvent(new CustomEvent("vrstva-otevrena", { detail: el }));
+  }
+  function close(el) {
+    var entry = null, i;
+    if (el) {
+      for (i = stack.length - 1; i >= 0; i--) if (stack[i].el === el && !stack[i].gone) { entry = stack[i]; break; }
+    } else {
+      entry = active();
+    }
+    if (!entry || entry.closing) return;
+    if (entry === stack[stack.length - 1]) {
+      entry.closing = true;
+      history.back();
+    } else {
+      hide(entry);
+    }
+  }
+  // A {vrstva:true} entry with no open layer is stale (reload, tab discard, Back then
+  // Forward): step back over it, so the next Back does something visible. Entries
+  // from before any layer have no such state, so this stops on a normal entry.
+  function skipStale() {
+    if (!stack.length && history.state && history.state.vrstva) history.back();
+  }
+  window.addEventListener("popstate", function () {
+    var entry = stack.pop();
+    if (!entry) { skipStale(); return; }
+    if (!entry.gone) hide(entry);
+    if (stack.length && stack[stack.length - 1].gone) history.back();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && active()) {
+      e.preventDefault();
+      close();
+    }
+  });
+  skipStale();
+  window.Vrstvy = { open: open, close: close, top: top };
+})();
+</script>
+<script id="stopky-logika">
+(function () {
+  var MAX_AGE_MS = 12 * 3600 * 1000;
+  var FUTURE_TOLERANCE_MS = 60 * 1000; // clock corrections (NTP) may move "now" back a little
+  function restoreStart(raw, now) {
+    if (typeof raw !== "string" || !/^\d+$/.test(raw)) return null;
+    var start = Number(raw);
+    if (!isFinite(start) || start - now > FUTURE_TOLERANCE_MS || now - start >= MAX_AGE_MS) return null;
+    return Math.min(start, now);
+  }
+  function elapsedMs(start, now) {
+    return Math.max(0, now - start);
+  }
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  window.Stopky = {
+    KEY: "zachodova-stopky-v1",
+    MAX_AGE_MS: MAX_AGE_MS,
+    FUTURE_TOLERANCE_MS: FUTURE_TOLERANCE_MS,
+    restoreStart: restoreStart,
+    elapsedMs: elapsedMs,
+    fmtTime: fmtTime
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
@@ -928,16 +1199,11 @@ body.detail-open { overflow: hidden; }
   $("plus").addEventListener("click", function () { count++; bump(); render(); });
   $("minus").addEventListener("click", function () { if (count > 0) count--; bump(); render(); });
 
-  function fmtTime(ms) {
-    var s = Math.floor(ms / 1000);
-    var m = Math.floor(s / 60);
-    s = s % 60;
-    return m + ":" + (s < 10 ? "0" : "") + s;
-  }
   var rainTimer = null;
   var reduceMotion = false;
   try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
   function spawnBill() {
+    if (document.documentElement.classList.contains("zamceno")) return; // hidden behind a layer
     var sides = document.querySelectorAll(".rain");
     for (var i = 0; i < sides.length; i++) {
       var side = sides[i];
@@ -990,6 +1256,8 @@ body.detail-open { overflow: hidden; }
     warned = true;
     warnOpen = true;
     warnPrevFocus = document.activeElement;
+    // The game stays open under the warning, but paused until the player resumes it.
+    if (window.Hra && window.Hra.isOpen()) window.Hra.pause();
     document.body.classList.add("warn");
     warnTint.hidden = false;
     warnModal.hidden = false;
@@ -1032,27 +1300,38 @@ body.detail-open { overflow: hidden; }
     if (document.visibilityState === "visible") checkWarning();
   });
 
+  function startTimer(start) {
+    var btn = $("flush"), note = $("timerNote");
+    timerStart = start;
+    btn.textContent = "Hotovo, spláchnout";
+    btn.classList.add("timing");
+    startRain();
+    clearInterval(timerTick);
+    var tick = function () {
+      var elapsed = Stopky.elapsedMs(timerStart, Date.now());
+      var earned = rateMin() * (elapsed / 60000);
+      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + money(earned);
+      checkWarning();
+    };
+    tick();
+    timerTick = setInterval(tick, 250);
+  }
+
   $("flush").addEventListener("click", function () {
     var btn = $("flush"), note = $("timerNote");
     if (timerStart === null) {
-      timerStart = Date.now();
+      var start = Date.now();
       warned = false;
-      btn.textContent = "Hotovo, spláchnout";
-      btn.classList.add("timing");
-      startRain();
-      timerTick = setInterval(function () {
-        var elapsed = Date.now() - timerStart;
-        var earned = rateMin() * (elapsed / 60000);
-        note.textContent = "Sedíš " + fmtTime(elapsed) + " a už máš " + money(earned);
-        checkWarning();
-      }, 250);
+      try { localStorage.setItem(Stopky.KEY, String(start)); } catch (e) {}
+      startTimer(start);
     } else {
-      var elapsedMin = (Date.now() - timerStart) / 60000;
+      var elapsedMin = Stopky.elapsedMs(timerStart, Date.now()) / 60000;
       clearInterval(timerTick);
       stopRain();
       timerStart = null;
       hideWarning();
       warned = false;
+      try { localStorage.removeItem(Stopky.KEY); } catch (e) {}
       // Update running average of visit length with the measured visit
       var oldAvg = num(els.mins);
       var newAvg = count > 0 ? (oldAvg * count + elapsedMin) / (count + 1) : elapsedMin;
@@ -1353,6 +1632,1211 @@ body.detail-open { overflow: hidden; }
   load();
   setMode(mode, true);
   render();
+
+  try {
+    var saved = localStorage.getItem(Stopky.KEY);
+    if (saved !== null) {
+      var restored = Stopky.restoreStart(saved, Date.now());
+      if (restored !== null) startTimer(restored);
+      else localStorage.removeItem(Stopky.KEY);
+    }
+  } catch (e) {}
+
+
+  window.zachod = {
+    timerStart: function () { return timerStart; },
+    earned: function (ms) { return rateMin() * ms / 60000; },
+    money: money
+  };
+})();
+</script>
+<script id="hra-logika">
+(function () {
+  var DIRS = {
+    up: { x: 0, y: -1 },
+    left: { x: -1, y: 0 },
+    down: { x: 0, y: 1 },
+    right: { x: 1, y: 0 }
+  };
+  var OPPOSITE = { up: "down", down: "up", left: "right", right: "left" };
+  var EPS = 1e-9;
+  var MAX_SUB = 0.25;
+
+  // Office floor plan: desk blocks, central meeting room (Z) with a door (-) on top,
+  // exit tile H above the door, start S near the bottom, side passage on row 12.
+  // HR patrols at the ends of the side passage (see parseMaze / targetFor).
+  var MAZE = [
+    "###################",
+    "#........#........#",
+    "#o##.###.#.###.##o#",
+    "#.................#",
+    "#.##.#.#####.#.##.#",
+    "#....#...#...#....#",
+    "####.###.#.###.####",
+    "####.#...H...#.####",
+    "####.#.##-##.#.####",
+    "####.#.#ZZZ#.#.####",
+    "####.#.#ZZZ#.#.####",
+    "####.#.#####.#.####",
+    "<.................>",
+    "####.#.#####.#.####",
+    "#........#........#",
+    "#.##.###.#.###.##.#",
+    "#o.......S.......o#",
+    "#.##.#.#####.#.##.#",
+    "#....#...#...#....#",
+    "#.................#",
+    "###################"
+  ];
+
+  function parseMaze(rows) {
+    var h = rows.length;
+    var w = rows[0].length;
+    var m = {
+      w: w, h: h, walls: [], coins: new Set(), powerups: new Set(),
+      start: null, pen: [], door: null, exit: null, patrol: null, tunnelRow: null
+    };
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var c = rows[y].charAt(x);
+        var i = y * w + x;
+        m.walls[i] = c === "#";
+        if (c === ".") m.coins.add(i);
+        else if (c === "o") m.powerups.add(i);
+        else if (c === "S") m.start = { x: x, y: y };
+        else if (c === "Z") m.pen.push({ x: x, y: y });
+        else if (c === "-") m.door = { x: x, y: y };
+        else if (c === "H") m.exit = { x: x, y: y };
+        else if (c === "<" && x === 0) m.tunnelRow = y;
+      }
+    }
+    // HR guards the side passage: first tile inside its left end (targetFor mirrors
+    // it to the right end when the player is on the right half). No passage -> exit.
+    if (m.tunnelRow !== null && !m.walls[m.tunnelRow * w + 1]) m.patrol = { x: 1, y: m.tunnelRow };
+    else m.patrol = m.exit;
+    return m;
+  }
+
+  function isWall(maze, x, y, forEnemy) {
+    if (y < 0 || y >= maze.h) return true;
+    if (x < 0 || x >= maze.w) return maze.tunnelRow !== y;
+    if (maze.walls[y * maze.w + x]) return true;
+    if (!forEnemy && maze.door && maze.door.x === x && maze.door.y === y) return true;
+    return false;
+  }
+
+  // Centre-of-tile decision: wrap through the side passage, turn to e.next if
+  // possible, otherwise continue, otherwise stop exactly on the centre.
+  function decide(e, maze, forEnemy) {
+    var cx = Math.round(e.x), cy = Math.round(e.y);
+    if (Math.abs(e.x - cx) >= EPS || Math.abs(e.y - cy) >= EPS) return false;
+    e.x = cx; e.y = cy;
+    if (e.x <= -1) e.x += maze.w;
+    else if (e.x >= maze.w) e.x -= maze.w;
+    cx = e.x;
+    if (e.next && !isWall(maze, cx + DIRS[e.next].x, cy + DIRS[e.next].y, forEnemy)) {
+      e.dir = e.next;
+      e.next = null;
+    } else if (e.dir && isWall(maze, cx + DIRS[e.dir].x, cy + DIRS[e.dir].y, forEnemy)) {
+      e.dir = null;
+    }
+    return true;
+  }
+
+  // Moves along e.dir by at most `s` tiles, never past the next tile centre
+  // without making the centre decision.
+  function subStep(e, maze, s, forEnemy) {
+    while (s > EPS) {
+      if (!decide(e, maze, forEnemy) && e.dir && e.next === OPPOSITE[e.dir]) {
+        e.dir = e.next;
+        e.next = null;
+      }
+      if (!e.dir) return;
+      var d = DIRS[e.dir];
+      var pos = d.x !== 0 ? e.x : e.y;
+      var target = d.x + d.y > 0 ? Math.floor(pos + EPS) + 1 : Math.ceil(pos - EPS) - 1;
+      var dist = Math.abs(target - pos);
+      var m = Math.min(s, dist);
+      if (m >= dist - EPS) {
+        if (d.x !== 0) e.x = target; else e.y = target;
+        m = dist;
+      } else if (d.x !== 0) e.x += d.x * m;
+      else e.y += d.y * m;
+      s -= m;
+    }
+  }
+
+  function stepEntity(e, maze, dt, forEnemy) {
+    var dist = e.speed * dt;
+    while (dist > EPS) {
+      var s = Math.min(dist, MAX_SUB);
+      dist -= s;
+      subStep(e, maze, s, forEnemy);
+    }
+    // a centre reached exactly at the end still needs its decision (turn / stop at wall)
+    decide(e, maze, forEnemy);
+  }
+
+  // ---- Game rules: enemies, power-up, score, levels ----
+
+  var DIR_ORDER = ["up", "left", "down", "right"];
+  var ENEMIES = ["sef", "pm", "kolega", "hr"];
+  var RELEASE_S = { sef: 0, pm: 3, kolega: 6, hr: 9 };
+  var POINTS = { coin: 10, powerup: 50, enemy: [200, 400, 800, 1600] };
+  var PLAYER_SPEED = 6;               // tiles per second
+  var EATEN_SPEED = 2 * PLAYER_SPEED; // eaten enemy hurrying back to the meeting room
+  var START_LIVES = 3;
+  var READY_S = 2;                    // countdown before a round starts
+  var DYING_S = 1.5;                  // pause after a lost life
+  var LEVEL_DONE_S = 2;               // pause after a cleared level
+  var TICK = 1 / 60;                  // update() simulates in steps of at most this
+  var HIT_DIST = 0.5;                 // collision when centres are closer than this
+  var HR_RANGE = 8;                   // HR chases when this close (manhattan), else patrols
+  var PM_AHEAD = 4;
+  // start tiles relative to the "home" tile (just below the door)
+  var START_OFFSET = { sef: [0, 0], pm: [-1, 1], kolega: [1, 1], hr: [0, 1] };
+
+  function powerDuration(level) {
+    return Math.max(3, 8 - level);
+  }
+
+  function enemySpeed(level, playerSpeed) {
+    var base = 0.85 * playerSpeed;
+    return Math.min(playerSpeed, base * (1 + 0.05 * (level - 1)));
+  }
+
+  function tileOf(e) {
+    return { x: Math.round(e.x), y: Math.round(e.y) };
+  }
+
+  function wrapX(maze, x) {
+    if (x < 0) return x + maze.w;
+    if (x >= maze.w) return x - maze.w;
+    return x;
+  }
+
+  function targetFor(kind, enemy, player, maze) {
+    var p = tileOf(player);
+    if (kind === "sef") return p;
+    if (kind === "pm") {
+      var d = player.dir ? DIRS[player.dir] : { x: 0, y: 0 };
+      return { x: p.x + PM_AHEAD * d.x, y: p.y + PM_AHEAD * d.y };
+    }
+    if (kind === "hr") {
+      var t = tileOf(enemy);
+      if (Math.abs(t.x - p.x) + Math.abs(t.y - p.y) <= HR_RANGE) return p;
+      // patrol the end of the side passage on the player's half of the office
+      var px = maze.patrol.x;
+      if (p.x > (maze.w - 1) / 2) px = maze.w - 1 - px;
+      return { x: px, y: maze.patrol.y };
+    }
+    return null;
+  }
+
+  // Direction for an enemy standing on a tile centre. No 180 degree turn unless it is
+  // the only way; target -> nearest (straight line), fleeFrom -> farthest, neither ->
+  // random via rng. Ties follow DIR_ORDER. useDoor lets it pass the meeting-room door.
+  function chooseDir(enemy, maze, target, rng, fleeFrom, useDoor) {
+    var c = tileOf(enemy);
+    var open = [], ahead = [];
+    for (var i = 0; i < DIR_ORDER.length; i++) {
+      var d = DIR_ORDER[i];
+      if (isWall(maze, c.x + DIRS[d].x, c.y + DIRS[d].y, useDoor === true)) continue;
+      open.push(d);
+      if (d !== OPPOSITE[enemy.dir]) ahead.push(d);
+    }
+    var opts = ahead.length ? ahead : open;
+    if (!opts.length) return null;
+    var goal = target || fleeFrom;
+    if (!goal) return opts[Math.min(opts.length - 1, Math.floor(rng() * opts.length))];
+    var best = null, bestD = 0;
+    for (var j = 0; j < opts.length; j++) {
+      var dx = c.x + DIRS[opts[j]].x - goal.x;
+      var dy = c.y + DIRS[opts[j]].y - goal.y;
+      var dd = dx * dx + dy * dy;
+      if (best === null || (target ? dd < bestD : dd > bestD)) {
+        best = opts[j];
+        bestD = dd;
+      }
+    }
+    return best;
+  }
+
+  // Breadth-first distances (in tiles) to `goal` over enemy-passable tiles incl. the door.
+  function distField(maze, goal) {
+    var w = maze.w, dist = [], q = [goal.x, goal.y], head = 0;
+    for (var i = 0; i < w * maze.h; i++) dist[i] = Infinity;
+    dist[goal.y * w + goal.x] = 0;
+    while (head < q.length) {
+      var x = q[head++], y = q[head++];
+      var nd = dist[y * w + x] + 1;
+      for (var k = 0; k < DIR_ORDER.length; k++) {
+        var nx = x + DIRS[DIR_ORDER[k]].x, ny = y + DIRS[DIR_ORDER[k]].y;
+        if (isWall(maze, nx, ny, true)) continue;
+        nx = wrapX(maze, nx);
+        if (dist[ny * w + nx] > nd) {
+          dist[ny * w + nx] = nd;
+          q.push(nx, ny);
+        }
+      }
+    }
+    return dist;
+  }
+
+  // Shortest-path step along a distance field (reversing allowed, ties by DIR_ORDER).
+  function downhill(e, maze, field) {
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < DIR_ORDER.length; i++) {
+      var d = DIR_ORDER[i];
+      var nx = e.x + DIRS[d].x, ny = e.y + DIRS[d].y;
+      if (isWall(maze, nx, ny, true)) continue;
+      var v = field[ny * maze.w + wrapX(maze, nx)];
+      if (v < bestD) { best = d; bestD = v; }
+    }
+    return best;
+  }
+
+  function addScore(s, points) {
+    s.score += points;
+    if (s.score > s.best) s.best = s.score;
+  }
+
+  function isPenTile(maze, x, y) {
+    for (var i = 0; i < maze.pen.length; i++) {
+      if (maze.pen[i].x === x && maze.pen[i].y === y) return true;
+    }
+    return false;
+  }
+
+  // Player back to start, enemies back to the meeting room, new "ready" countdown.
+  function resetRound(s) {
+    var m = s.maze;
+    s.player = { x: m.start.x, y: m.start.y, dir: null, next: null, speed: PLAYER_SPEED };
+    s.enemies = ENEMIES.map(function (kind) {
+      var x = s.home.x + START_OFFSET[kind][0], y = s.home.y + START_OFFSET[kind][1];
+      if (!isPenTile(m, x, y)) { x = s.home.x; y = s.home.y; }
+      return {
+        kind: kind,
+        e: { x: x, y: y, dir: null, next: null, speed: enemySpeed(s.level, PLAYER_SPEED) },
+        mode: "pen",
+        releaseAt: RELEASE_S[kind]
+      };
+    });
+    s.powerTime = 0;
+    s.chain = 0;
+    s.time = 0;
+    s.phase = "ready";
+    s.phaseTime = 0;
+  }
+
+  function newGame(maze, rng) {
+    var home = { x: maze.door.x, y: maze.door.y + 1 };
+    var s = {
+      maze: maze, rng: rng, level: 1, score: 0, best: 0, lives: START_LIVES,
+      player: null, enemies: [],
+      coinsLeft: new Set(maze.coins), powerLeft: new Set(maze.powerups),
+      powerTime: 0, chain: 0, time: 0, phase: "ready", phaseTime: 0,
+      home: home,
+      toHome: distField(maze, home),
+      toExit: distField(maze, maze.exit)
+    };
+    resetRound(s);
+    return s;
+  }
+
+  function speedFor(s, en) {
+    var base = enemySpeed(s.level, PLAYER_SPEED);
+    if (en.mode === "eaten") return EATEN_SPEED;
+    if (en.mode === "flee") return base / 2;
+    return base;
+  }
+
+  // Decision on a tile centre: eaten -> back home; pen -> out through the door to the
+  // exit tile; chase/flee -> chooseDir with the door treated as a wall.
+  function atCentre(s, en) {
+    var e = en.e, m = s.maze;
+    if (en.mode === "eaten") {
+      if (e.x !== s.home.x || e.y !== s.home.y) { e.dir = downhill(e, m, s.toHome); return; }
+      en.mode = "pen";
+      en.releaseAt = s.time;
+    }
+    if (en.mode === "pen") {
+      if (e.x !== m.exit.x || e.y !== m.exit.y) { e.dir = downhill(e, m, s.toExit); return; }
+      en.mode = "chase";
+    }
+    if (en.mode === "flee") {
+      e.dir = chooseDir(e, m, null, s.rng, tileOf(s.player), false);
+    } else {
+      e.dir = chooseDir(e, m, targetFor(en.kind, e, s.player, m), s.rng, null, false);
+    }
+  }
+
+  // Moves an enemy `dist` tiles, deciding afresh on every tile centre it passes.
+  function moveEnemy(s, en, dist) {
+    var e = en.e, m = s.maze;
+    while (dist > EPS) {
+      var cx = Math.round(e.x), cy = Math.round(e.y);
+      if (Math.abs(e.x - cx) < EPS && Math.abs(e.y - cy) < EPS) {
+        e.x = wrapX(m, cx);
+        e.y = cy;
+        atCentre(s, en);
+      }
+      if (!e.dir) return;
+      var d = DIRS[e.dir];
+      var pos = d.x !== 0 ? e.x : e.y;
+      var target = d.x + d.y > 0 ? Math.floor(pos + EPS) + 1 : Math.ceil(pos - EPS) - 1;
+      var gap = Math.abs(target - pos);
+      var mv = dist >= gap - EPS ? gap : dist;
+      if (mv === gap) { if (d.x !== 0) e.x = target; else e.y = target; }
+      else if (d.x !== 0) e.x += d.x * mv;
+      else e.y += d.y * mv;
+      dist -= mv;
+    }
+  }
+
+  function centreGap(m, a, b) {
+    var dx = Math.abs(a.x - b.x);
+    if (dx > m.w / 2) dx = m.w - dx;
+    var dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function eat(s, ev) {
+    var m = s.maze, p = s.player;
+    var x = Math.round(p.x), y = Math.round(p.y);
+    if (x < 0 || x >= m.w) return;
+    var k = y * m.w + x;
+    if (s.coinsLeft.delete(k)) {
+      addScore(s, POINTS.coin);
+      ev.push({ type: "coin", points: POINTS.coin });
+    } else if (s.powerLeft.delete(k)) {
+      addScore(s, POINTS.powerup);
+      ev.push({ type: "powerup", points: POINTS.powerup });
+      s.powerTime = powerDuration(s.level);
+      s.chain = 0;
+      s.enemies.forEach(function (en) {
+        if (en.mode !== "chase" && en.mode !== "flee") return;
+        en.mode = "flee";
+        if (en.e.dir) en.e.dir = OPPOSITE[en.e.dir];
+        en.e.speed = speedFor(s, en);
+      });
+    }
+    if (s.coinsLeft.size === 0 && s.powerLeft.size === 0) {
+      ev.push({ type: "levelDone" });
+      s.level++;
+      s.coinsLeft = new Set(m.coins);
+      s.powerLeft = new Set(m.powerups);
+      s.phase = "levelDone";
+      s.phaseTime = 0;
+    }
+  }
+
+  function collide(s, ev) {
+    for (var i = 0; i < s.enemies.length; i++) {
+      var en = s.enemies[i];
+      if (en.mode === "eaten") continue;
+      if (centreGap(s.maze, s.player, en.e) >= HIT_DIST) continue;
+      if (en.mode === "flee") {
+        var pts = POINTS.enemy[Math.min(s.chain, POINTS.enemy.length - 1)];
+        s.chain++;
+        addScore(s, pts);
+        ev.push({ type: "enemyEaten", points: pts });
+        en.mode = "eaten";
+        en.e.speed = EATEN_SPEED;
+        continue;
+      }
+      s.lives--;
+      ev.push({ type: "lifeLost" });
+      if (s.lives <= 0) {
+        s.lives = 0;
+        s.phase = "over";
+        ev.push({ type: "gameOver" });
+      } else {
+        s.phase = "dying";
+        s.phaseTime = 0;
+      }
+      return;
+    }
+  }
+
+  function pause(s, dt, length) {
+    s.phaseTime += dt;
+    return s.phaseTime >= length - 1e-9;
+  }
+
+  function tick(s, dt, input, ev) {
+    if (s.phase === "ready") {
+      if (pause(s, dt, READY_S)) { s.phase = "play"; s.phaseTime = 0; }
+      return;
+    }
+    if (s.phase === "dying") {
+      if (pause(s, dt, DYING_S)) resetRound(s);
+      return;
+    }
+    if (s.phase === "levelDone") {
+      if (pause(s, dt, LEVEL_DONE_S)) resetRound(s);
+      return;
+    }
+    if (s.phase !== "play") return;
+
+    s.time += dt;
+    if (s.powerTime > 0) {
+      s.powerTime = Math.max(0, s.powerTime - dt);
+      if (s.powerTime === 0) {
+        s.enemies.forEach(function (en) { if (en.mode === "flee") en.mode = "chase"; });
+      }
+    }
+
+    s.player.next = input || null;
+    s.player.speed = PLAYER_SPEED;
+    stepEntity(s.player, s.maze, dt, false);
+    eat(s, ev);
+    if (s.phase !== "play") return;
+
+    for (var i = 0; i < s.enemies.length; i++) {
+      var en = s.enemies[i];
+      if (en.mode === "pen" && s.time < en.releaseAt) continue;
+      en.e.speed = speedFor(s, en);
+      moveEnemy(s, en, en.e.speed * dt);
+    }
+    collide(s, ev);
+  }
+
+  // Advances the game by dt seconds (simulated in steps of at most TICK).
+  function update(s, dt, input) {
+    var ev = [];
+    var left = dt;
+    while (left > 1e-12 && s.phase !== "over") {
+      var h = Math.min(left, TICK);
+      left -= h;
+      tick(s, h, input, ev);
+    }
+    return ev;
+  }
+
+  window.HraLogika = {
+    DIRS: DIRS,
+    DIR_ORDER: DIR_ORDER,
+    MAZE: MAZE,
+    parseMaze: parseMaze,
+    isWall: isWall,
+    stepEntity: stepEntity,
+    ENEMIES: ENEMIES,
+    RELEASE_S: RELEASE_S,
+    POINTS: POINTS,
+    PLAYER_SPEED: PLAYER_SPEED,
+    EATEN_SPEED: EATEN_SPEED,
+    START_LIVES: START_LIVES,
+    READY_S: READY_S,
+    DYING_S: DYING_S,
+    LEVEL_DONE_S: LEVEL_DONE_S,
+    powerDuration: powerDuration,
+    enemySpeed: enemySpeed,
+    targetFor: targetFor,
+    chooseDir: chooseDir,
+    newGame: newGame,
+    update: update
+  };
+})();
+</script>
+<script id="hra-ui">
+(function () {
+  var hrajBtn = document.getElementById("hrajBtn");
+  try {
+    init();
+  } catch (err) {
+    if (hrajBtn) hrajBtn.style.display = "none";
+    if (window.console) console.error("Hra se nenacetla", err);
+  }
+
+  function init() {
+    var H = window.HraLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!H || !V || !Z || !S) throw new Error("chybi zavislosti hry");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi prvek #" + id);
+      return el;
+    };
+    var hraEl = $("hra"), canvas = $("hraPlocha"), pole = $("hraPole");
+    var ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas 2d neni k dispozici");
+    var ui = {
+      skore: $("hraSkore"), rekord: $("hraRekord"), zivoty: $("hraZivoty"), uroven: $("hraUroven"),
+      stopky: $("hraStopky"), pauza: $("hraPauza"), zavrit: $("hraZavrit"),
+      hlaska: $("hraHlaska"), text: $("hraHlaskaText"), pod: $("hraHlaskaPod"),
+      tlacitka: $("hraHlaskaTlacitka"), znovu: $("hraZnovu"), pokracovat: $("hraPokracovat"), zpet: $("hraZpet")
+    };
+
+    var BEST_KEY = "zachodova-hra-v1";
+    var STEP = 1 / 60;
+    var SWIPE_PX = 20;
+    var BLINK_S = 2;
+    var LIFE_MSGS = ["Šéf: Máš chvilku?", "PM: Jen rychlý sync…", "Kolega: Máš chvilku?", "HR: Musíme si promluvit."];
+    var KEYS = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right"
+    };
+    var ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+
+    var maze = H.parseMaze(H.MAZE);
+    var state = null;
+    var open = false, paused = false;
+    var input = null;           // last requested direction, kept until a new one
+    var rafId = 0, lastT = 0, acc = 0;
+    var stopkyId = 0;
+    var rolled = 0;             // tiles travelled by the roll (drives its pattern)
+    var lastDir = "right";
+    var lifeMsg = LIFE_MSGS[0];
+    var storedBest = loadBest();
+    var newRecord = false;
+    var startBest = 0;          // record when this game started
+    var tile = 16, dpr = 1;
+    var bg = document.createElement("canvas");
+    var col = {};
+    var reduceMq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    var hudCache = {}, hlaskaKey = "";
+    var penize = function (v) { return Math.round(v) + " CZK"; };
+    var ro = window.ResizeObserver ? new window.ResizeObserver(function () { resize(); }) : null;
+
+    // ---- storage ----
+    function loadBest() {
+      try {
+        var raw = localStorage.getItem(BEST_KEY);
+        if (!raw) return 0;
+        var o = JSON.parse(raw);
+        return o && typeof o.best === "number" && isFinite(o.best) && o.best > 0 ? o.best : 0;
+      } catch (e) { return 0; }
+    }
+    function saveBest() {
+      if (!state || state.best <= storedBest) return;
+      storedBest = state.best;
+      try { localStorage.setItem(BEST_KEY, JSON.stringify({ best: storedBest })); } catch (e) {}
+    }
+
+    // ---- game state ----
+    function newState() {
+      state = H.newGame(maze, Math.random);
+      state.best = storedBest;
+      input = null;
+      rolled = 0;
+      lastDir = "right";
+      newRecord = false;
+      startBest = storedBest;
+      paused = false;
+      acc = 0;
+    }
+
+    function handle(events) {
+      for (var i = 0; i < events.length; i++) {
+        var t = events[i].type;
+        if (t === "lifeLost") {
+          lifeMsg = LIFE_MSGS[Math.floor(Math.random() * LIFE_MSGS.length)];
+          input = null;
+        } else if (t === "levelDone") {
+          input = null;
+          saveBest();
+        } else if (t === "gameOver") {
+          newRecord = state.score > 0 && state.score > startBest;
+          saveBest();
+        }
+      }
+    }
+
+    // ---- colours ----
+    function readColors() {
+      var cs = getComputedStyle(document.documentElement);
+      var v = function (n, d) { var x = cs.getPropertyValue(n).trim(); return x || d; };
+      col = {
+        tile: v("--tile", "#e6f1f2"), grout: v("--grout", "#cfe0e2"), porcelain: v("--porcelain", "#ffffff"),
+        ink: v("--ink", "#0e3b43"), muted: v("--muted", "#4d6f75"), brass: v("--brass", "#a8761c"),
+        brassSoft: v("--brass-soft", "#f4e6c8"), line: v("--line", "#bcd3d6"),
+        core: v("--hra-dutinka", "#d9b77e"),
+        deskEdge: v("--hra-stul-hrana", "#bcd3d6"), deskTop: v("--hra-stul-deska", "#ffffff")
+      };
+      // each enemy its own hue from the page palette
+      col.enemy = {
+        sef: col.brass,
+        pm: v("--hra-modra", "#3f6fb0"),
+        kolega: v("--hra-zelena", "#4f9d4a"),
+        hr: v("--hra-svestka", "#8e4f86")
+      };
+      col.roll = "#ffffff"; // the roll is white in both themes
+    }
+    function reduced() { return !!(reduceMq && reduceMq.matches); }
+
+    // score and record in whole units of the calculator currency (read at game open)
+    function readCurrency() {
+      var curEl = document.getElementById("cur");
+      var cur = (curEl && curEl.value) || "CZK";
+      try {
+        var fmt = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        fmt.format(0);
+        penize = function (v) { return fmt.format(v); };
+      } catch (e) {
+        penize = function (v) { return Math.round(v) + " " + cur; };
+      }
+    }
+
+    // ---- layout ----
+    function resize() {
+      if (!open) return;
+      var cs = getComputedStyle(pole);
+      var aw = pole.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+      var ah = pole.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+      var t = Math.floor(Math.min(aw / maze.w, ah / maze.h, 44));
+      tile = Math.max(8, t || 8);
+      dpr = window.devicePixelRatio || 1;
+      canvas.style.width = tile * maze.w + "px";
+      canvas.style.height = tile * maze.h + "px";
+      canvas.width = Math.round(tile * maze.w * dpr);
+      canvas.height = Math.round(tile * maze.h * dpr);
+      buildBg();
+      draw();
+    }
+    function tileTransform(g) {
+      g.setTransform(dpr * tile, 0, 0, dpr * tile, 0, 0);
+    }
+
+    // ---- static board: floor, desks and partitions, meeting room, door ----
+    function wallAt(x, y) {
+      return x >= 0 && y >= 0 && x < maze.w && y < maze.h && maze.walls[y * maze.w + x];
+    }
+    function wallShape(g, a) {
+      var b = 1 - 2 * a;
+      g.beginPath();
+      for (var y = 0; y < maze.h; y++) {
+        for (var x = 0; x < maze.w; x++) {
+          if (!wallAt(x, y)) continue;
+          var L = wallAt(x - 1, y), R = wallAt(x + 1, y), U = wallAt(x, y - 1), D = wallAt(x, y + 1);
+          g.rect(x + a, y + a, b, b);
+          if (L) g.rect(x, y + a, a, b);
+          if (R) g.rect(x + 1 - a, y + a, a, b);
+          if (U) g.rect(x + a, y, b, a);
+          if (D) g.rect(x + a, y + 1 - a, b, a);
+          if (L && U && wallAt(x - 1, y - 1)) g.rect(x, y, a, a);
+          if (R && U && wallAt(x + 1, y - 1)) g.rect(x + 1 - a, y, a, a);
+          if (L && D && wallAt(x - 1, y + 1)) g.rect(x, y + 1 - a, a, a);
+          if (R && D && wallAt(x + 1, y + 1)) g.rect(x + 1 - a, y + 1 - a, a, a);
+        }
+      }
+    }
+    function buildBg() {
+      bg.width = canvas.width;
+      bg.height = canvas.height;
+      var g = bg.getContext("2d");
+      tileTransform(g);
+      g.fillStyle = col.tile;
+      g.fillRect(0, 0, maze.w, maze.h);
+      // meeting room carpet
+      g.fillStyle = col.grout;
+      for (var i = 0; i < maze.pen.length; i++) g.fillRect(maze.pen[i].x, maze.pen[i].y, 1, 1);
+      // desks: outline and top, joined into blocks
+      wallShape(g, 0.1);
+      g.fillStyle = col.deskEdge;
+      g.fill();
+      wallShape(g, 0.2);
+      g.fillStyle = col.deskTop;
+      g.fill();
+      // door of the meeting room
+      if (maze.door) {
+        g.fillStyle = col.muted;
+        g.fillRect(maze.door.x + 0.05, maze.door.y + 0.42, 0.9, 0.16);
+      }
+    }
+
+    // ---- dynamic drawing ----
+    function rrect(g, x, y, w, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.lineTo(x + w - r, y);
+      g.quadraticCurveTo(x + w, y, x + w, y + r);
+      g.lineTo(x + w, y + h - r);
+      g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      g.lineTo(x + r, y + h);
+      g.quadraticCurveTo(x, y + h, x, y + h - r);
+      g.lineTo(x, y + r);
+      g.quadraticCurveTo(x, y, x + r, y);
+      g.closePath();
+    }
+
+    function drawCoins() {
+      ctx.fillStyle = col.brass;
+      ctx.beginPath();
+      state.coinsLeft.forEach(function (k) {
+        var x = k % maze.w, y = (k - x) / maze.w;
+        ctx.moveTo(x + 0.62, y + 0.5);
+        ctx.arc(x + 0.5, y + 0.5, 0.12, 0, Math.PI * 2);
+      });
+      ctx.fill();
+    }
+
+    // "Meeting cancelled": a calendar card with a header strip, crossed out
+    function drawPowerups() {
+      state.powerLeft.forEach(function (k) {
+        var x = k % maze.w, y = (k - x) / maze.w;
+        var l = x + 0.18, t = y + 0.2, w = 0.64, h = 0.6;
+        rrect(ctx, l, t, w, h, 0.08);
+        ctx.fillStyle = col.porcelain;
+        ctx.fill();
+        ctx.lineWidth = 0.06;
+        ctx.strokeStyle = col.ink;
+        ctx.stroke();
+        ctx.fillStyle = col.brass;
+        ctx.fillRect(l + 0.03, t + 0.03, w - 0.06, 0.14);
+        ctx.beginPath();
+        ctx.moveTo(l + 0.12, t + 0.26);
+        ctx.lineTo(l + w - 0.12, t + h - 0.08);
+        ctx.moveTo(l + w - 0.12, t + 0.26);
+        ctx.lineTo(l + 0.12, t + h - 0.08);
+        ctx.lineWidth = 0.08;
+        ctx.stroke();
+      });
+    }
+
+    // draws fn at x, plus a copy on the other side while passing through the side passage
+    function wrapped(x, y, fn) {
+      fn(x, y);
+      if (x < 0) fn(x + maze.w, y);
+      else if (x > maze.w - 1) fn(x - maze.w, y);
+    }
+
+    // toilet roll seen from above, lying across its direction of travel, the
+    // perforation lines turn with the distance rolled
+    function drawRoll(px, py) {
+      var p = state.player;
+      var dir = p.dir || lastDir;
+      var scale = 1;
+      if (state.phase === "dying") scale = Math.max(0.15, 1 - state.phaseTime / H.DYING_S);
+      if (state.phase === "over") scale = 0.15;
+      var r = 0.3, half = 0.4;
+      ctx.save();
+      ctx.translate(px + 0.5, py + 0.5);
+      ctx.rotate(ANGLE[dir]);
+      ctx.scale(scale, scale);
+      // body (along x = travel, y = roll axis)
+      ctx.fillStyle = col.roll;
+      ctx.strokeStyle = col.muted;
+      ctx.lineWidth = 0.06;
+      rrect(ctx, -r, -half, 2 * r, 2 * half, 0.07);
+      ctx.fill();
+      // perforation lines on the visible half of the cylinder
+      ctx.save();
+      ctx.clip();
+      ctx.strokeStyle = col.line;
+      ctx.lineWidth = 0.035;
+      var turn = rolled / r;
+      for (var k = 0; k < 6; k++) {
+        var a = turn + k * Math.PI / 3;
+        if (Math.cos(a) <= 0) continue;
+        var sx = r * Math.sin(a);
+        ctx.beginPath();
+        ctx.moveTo(sx, -half);
+        ctx.lineTo(sx, half);
+        ctx.stroke();
+      }
+      ctx.restore();
+      rrect(ctx, -r, -half, 2 * r, 2 * half, 0.07);
+      ctx.stroke();
+      // cardboard core peeking out at both ends
+      ctx.fillStyle = col.core;
+      ctx.fillRect(-0.1, -half - 0.06, 0.2, 0.06);
+      ctx.fillRect(-0.1, half, 0.2, 0.06);
+      ctx.restore();
+    }
+
+    // rough centre of each item in drawItem coordinates
+    var ITEM_CENTRE = { sef: [0, 0.18], pm: [0, 0.22], kolega: [0.22, 0.19], hr: [-0.17, 0.2] };
+
+    function drawItem(kind, faded) {
+      ctx.lineWidth = 0.04;
+      ctx.strokeStyle = col.ink;
+      if (kind === "sef") {            // tie
+        ctx.fillStyle = faded ? col.muted : col.ink;
+        ctx.beginPath();
+        ctx.moveTo(-0.05, 0.02);
+        ctx.lineTo(0.05, 0.02);
+        ctx.lineTo(0.08, 0.26);
+        ctx.lineTo(0, 0.34);
+        ctx.lineTo(-0.08, 0.26);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "pm") {      // open notebook held in front
+        ctx.fillStyle = col.porcelain;
+        ctx.fillRect(-0.24, 0.12, 0.48, 0.2);
+        ctx.strokeRect(-0.24, 0.12, 0.48, 0.2);
+        ctx.fillStyle = col.line;
+        ctx.fillRect(-0.18, 0.16, 0.36, 0.1);
+      } else if (kind === "kolega") {  // mug
+        ctx.fillStyle = col.porcelain;
+        ctx.fillRect(0.12, 0.08, 0.18, 0.22);
+        ctx.strokeRect(0.12, 0.08, 0.18, 0.22);
+        ctx.beginPath();
+        ctx.arc(0.32, 0.19, 0.06, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+      } else {                          // hr: folder
+        ctx.fillStyle = col.brassSoft;
+        ctx.fillRect(-0.3, 0.06, 0.26, 0.3);
+        ctx.strokeRect(-0.3, 0.06, 0.26, 0.3);
+        ctx.fillRect(-0.3, 0.02, 0.12, 0.05);
+      }
+    }
+
+    function drawEyes(dir) {
+      var d = H.DIRS[dir] || { x: 0, y: 1 };
+      var er = 0.05;
+      ctx.fillStyle = col.porcelain;
+      ctx.strokeStyle = col.ink;
+      ctx.lineWidth = 0.02;
+      for (var s = -1; s <= 1; s += 2) {
+        ctx.beginPath();
+        ctx.arc(s * 0.08, -0.24, er, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = col.ink;
+        ctx.beginPath();
+        ctx.arc(s * 0.08 + d.x * er * 0.5, -0.24 + d.y * er * 0.5, er * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = col.porcelain;
+      }
+    }
+
+    // a small office figure: shoulders, round head, the item that tells them apart
+    function drawEnemy(en, ex, ey) {
+      var e = en.e;
+      ctx.save();
+      ctx.translate(ex + 0.5, en.mode === "eaten" ? ey + 0.5 : ey + 0.55);
+      if (en.mode === "eaten") {       // only the dropped item hurries back to the meeting room
+        var d = H.DIRS[e.dir];
+        ctx.globalAlpha = 0.55;
+        if (d) {                        // speed lines trailing behind it
+          ctx.strokeStyle = col.muted;
+          ctx.lineWidth = 0.05;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          for (var k = -1; k <= 1; k += 2) {
+            var ox = -d.y * 0.09 * k, oy = d.x * 0.09 * k;
+            ctx.moveTo(ox - d.x * 0.22, oy - d.y * 0.22);
+            ctx.lineTo(ox - d.x * 0.42, oy - d.y * 0.42);
+          }
+          ctx.stroke();
+        }
+        var c = ITEM_CENTRE[en.kind] || [0, 0.2];
+        ctx.scale(0.8, 0.8);
+        ctx.translate(-c[0], -c[1]);
+        drawItem(en.kind, false);
+        ctx.restore();
+        return;
+      }
+      var body = col.enemy[en.kind], stroke = col.ink, faded = false;
+      if (en.mode === "flee") {
+        faded = true;
+        body = col.line;
+        stroke = col.muted;
+        if (state.powerTime < BLINK_S) {
+          if (reduced()) body = col.brassSoft;
+          else if (Math.floor(state.powerTime * 5) % 2 === 0) { body = col.enemy[en.kind]; stroke = col.ink; }
+        }
+      }
+      ctx.fillStyle = body;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 0.05;
+      // torso with shoulders
+      ctx.beginPath();
+      ctx.moveTo(-0.32, 0.38);
+      ctx.lineTo(-0.32, 0.08);
+      ctx.quadraticCurveTo(-0.32, -0.08, -0.14, -0.08);
+      ctx.lineTo(0.14, -0.08);
+      ctx.quadraticCurveTo(0.32, -0.08, 0.32, 0.08);
+      ctx.lineTo(0.32, 0.38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // head
+      ctx.beginPath();
+      ctx.arc(0, -0.24, 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      drawEyes(e.dir);
+      drawItem(en.kind, faded);
+      ctx.restore();
+    }
+
+    function draw() {
+      if (!state || !bg.width) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bg, 0, 0);
+      tileTransform(ctx);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, maze.w, maze.h);
+      ctx.clip();
+      if (state.phase !== "levelDone") {
+        drawCoins();
+        drawPowerups();
+      }
+      var p = state.player;
+      wrapped(p.x, p.y, drawRoll);
+      var en = state.enemies;
+      for (var i = 0; i < en.length; i++) {
+        (function (one) {
+          wrapped(one.e.x, one.e.y, function (x, y) { drawEnemy(one, x, y); });
+        })(en[i]);
+      }
+      ctx.restore();
+    }
+
+    // ---- HUD and overlay messages ----
+    function setText(el, key, v) {
+      if (hudCache[key] === v) return;
+      hudCache[key] = v;
+      el.textContent = v;
+    }
+    function hud() {
+      setText(ui.skore, "skore", "Vydělal jsi " + penize(state.score));
+      setText(ui.rekord, "rekord", "Rekord: " + penize(Math.max(state.best, storedBest)));
+      setText(ui.uroven, "uroven", "Úroveň " + state.level);
+      if (hudCache.zivoty !== state.lives) {
+        hudCache.zivoty = state.lives;
+        ui.zivoty.textContent = "";
+        for (var i = 0; i < state.lives; i++) {
+          var s = document.createElement("span");
+          s.className = "hra-zivot";
+          ui.zivoty.appendChild(s);
+        }
+        ui.zivoty.setAttribute("aria-label", "Životy: " + state.lives);
+      }
+      var over = state.phase === "over";
+      setText(ui.pauza, "pauza", paused && !over ? "Hrát" : "Pauza");
+      ui.pauza.disabled = over;
+      hlaska();
+    }
+
+    function hlaska() {
+      var over = state.phase === "over";
+      var text = "", pod = "", buttons = "";
+      if (over) {
+        text = newRecord ? "Konec hry. Nový rekord!" : "Konec hry";
+        pod = "Vydělal jsi " + penize(state.score) + " · Rekord " + penize(Math.max(state.best, storedBest));
+        buttons = "konec";
+      } else if (paused) {
+        text = "Pauza";
+        pod = "Pokračuj mezerníkem, klávesou P nebo tlačítkem.";
+        buttons = "pauza";
+      } else if (state.phase === "ready") {
+        text = state.level > 1 ? "Úroveň " + state.level + ". Připrav se!" : "Připrav se!";
+      } else if (state.phase === "dying") {
+        text = lifeMsg;
+      } else if (state.phase === "levelDone") {
+        text = "Úroveň hotová, šéf nic nepoznal";
+      }
+      var key = text + "|" + pod + "|" + buttons;
+      if (key === hlaskaKey) return;
+      var hadFocusInside = ui.hlaska.contains(document.activeElement);
+      hlaskaKey = key;
+      ui.hlaska.hidden = !text;
+      ui.text.textContent = text;
+      ui.pod.textContent = pod;
+      ui.pod.hidden = !pod;
+      ui.tlacitka.hidden = !buttons;
+      ui.znovu.hidden = buttons !== "konec";
+      ui.pokracovat.hidden = buttons !== "pauza";
+      ui.zpet.hidden = !buttons;
+      if (buttons === "konec" && open) ui.znovu.focus();
+      else if (!buttons && hadFocusInside && open) canvas.focus();
+    }
+
+    // ---- stopwatch line ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        ui.stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      ui.stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      ui.stopky.hidden = false;
+    }
+
+    // ---- loop ----
+    function running() {
+      return open && !paused && state && state.phase !== "over";
+    }
+    function startLoop() {
+      if (rafId || !running()) return;
+      lastT = 0;
+      acc = 0;
+      rafId = requestAnimationFrame(frame);
+    }
+    function cancelLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    function frame(t) {
+      rafId = 0;
+      try {
+        if (!running()) return;
+        var dt = lastT ? (t - lastT) / 1000 : 0;
+        lastT = t;
+        if (!(dt > 0)) dt = 0;
+        acc += Math.min(dt, 0.1);
+        while (acc >= STEP && state.phase !== "over") {
+          var p = state.player, ox = p.x, oy = p.y;
+          handle(H.update(state, STEP, input));
+          var q = state.player;
+          if (q === p) {
+            var dx = Math.abs(q.x - ox);
+            if (dx > maze.w / 2) dx = maze.w - dx;
+            rolled += dx + Math.abs(q.y - oy);
+          }
+          if (q.dir) lastDir = q.dir;
+          acc -= STEP;
+        }
+        draw();
+        hud();
+        if (running()) rafId = requestAnimationFrame(frame);
+      } catch (err) {
+        fail(err);
+      }
+    }
+    function fail(err) {
+      cancelLoop();
+      if (window.console) console.error("Hra spadla", err);
+      try { if (open) V.close(hraEl); } catch (e) {}
+      hrajBtn.style.display = "none";
+    }
+
+    function refresh() {
+      draw();
+      hud();
+    }
+    function setPaused(v) {
+      if (!state || state.phase === "over") return;
+      paused = v;
+      if (paused) cancelLoop();
+      refresh();
+      if (!paused) startLoop();
+    }
+    function pause() { if (open) setPaused(true); }
+
+    // ---- open / close ----
+    function onClose() {
+      open = false;
+      if (state && state.phase !== "over") paused = true;
+      cancelLoop();
+      if (stopkyId) clearInterval(stopkyId);
+      stopkyId = 0;
+      saveBest();
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", resize);
+    }
+    function openGame() {
+      if (open) return;
+      if (!state || state.phase === "over") newState();
+      readColors();
+      readCurrency();
+      hudCache = {};
+      hlaskaKey = "";
+      open = true;
+      V.open(hraEl, { onClose: onClose, returnFocus: hrajBtn, initialFocus: canvas });
+      // header content first, so the board is sized for the final header height
+      hud();
+      tickStopky();
+      resize();
+      if (ro) ro.observe(pole);
+      else window.addEventListener("resize", resize);
+      stopkyId = setInterval(tickStopky, 1000);
+      startLoop();
+    }
+
+    hrajBtn.addEventListener("click", openGame);
+    ui.zavrit.addEventListener("click", function () { V.close(hraEl); });
+    ui.zpet.addEventListener("click", function () { V.close(hraEl); });
+    ui.pauza.addEventListener("click", function () { setPaused(!paused); });
+    ui.pokracovat.addEventListener("click", function () {
+      canvas.focus();
+      setPaused(false);
+    });
+    ui.znovu.addEventListener("click", function () {
+      newState();
+      hudCache = {};
+      canvas.focus();
+      refresh();
+      startLoop();
+    });
+
+    // ---- controls ----
+    document.addEventListener("keydown", function (e) {
+      if (!open || V.top() !== hraEl || hraEl.hasAttribute("inert") || e.ctrlKey || e.metaKey || e.altKey) return;
+      var dir = KEYS[e.key];
+      if (dir) {
+        e.preventDefault();
+        input = dir;
+        return;
+      }
+      if (e.key === " " || e.key === "Spacebar" || e.key === "p" || e.key === "P") {
+        var tag = e.target && e.target.tagName;
+        if ((e.key === " " || e.key === "Spacebar") && tag === "BUTTON") return; // the button handles it
+        e.preventDefault();
+        if (!e.repeat) setPaused(!paused);
+      }
+    });
+
+    // swipes anywhere on the board area, not just on the canvas
+    var touch = null;
+    pole.addEventListener("pointerdown", function (e) {
+      if (e.target && e.target.closest && e.target.closest("button")) return; // overlay buttons
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      touch = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      if (pole.setPointerCapture) {
+        try { pole.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      canvas.focus();
+      e.preventDefault();
+    });
+    pole.addEventListener("pointermove", function (e) {
+      if (!touch || touch.id !== e.pointerId) return;
+      var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+      if (Math.abs(dx) > Math.abs(dy)) input = dx > 0 ? "right" : "left";
+      else input = dy > 0 ? "down" : "up";
+      touch.x = e.clientX;
+      touch.y = e.clientY;
+      e.preventDefault();
+    });
+    function endTouch(e) { if (touch && touch.id === e.pointerId) touch = null; }
+    pole.addEventListener("pointerup", endTouch);
+    pole.addEventListener("pointercancel", endTouch);
+
+    // ---- pausing from outside ----
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        pause();
+        saveBest(); // a discarded tab must not lose a new record
+      }
+    });
+    window.addEventListener("vrstva-otevrena", function (e) {
+      if (e.detail !== hraEl) pause();
+    });
+
+    // ---- theme changes ----
+    function themeChanged() {
+      if (!open) return;
+      readColors();
+      buildBg();
+      draw();
+    }
+    if (darkMq) {
+      if (darkMq.addEventListener) darkMq.addEventListener("change", themeChanged);
+      else if (darkMq.addListener) darkMq.addListener(themeChanged);
+    }
+    if (window.MutationObserver) {
+      new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    }
+
+    window.Hra = { pause: pause, isOpen: function () { return open; } };
+  }
 })();
 </script>
 </body>
