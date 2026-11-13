@@ -847,5 +847,137 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   };
 })();
 </script>
+<script id="hra-logika">
+(function () {
+  var DIRS = {
+    up: { x: 0, y: -1 },
+    left: { x: -1, y: 0 },
+    down: { x: 0, y: 1 },
+    right: { x: 1, y: 0 }
+  };
+  var OPPOSITE = { up: "down", down: "up", left: "right", right: "left" };
+  var EPS = 1e-9;
+  var MAX_SUB = 0.25;
+
+  // Office floor plan: desk blocks, central meeting room (Z) with a door (-) on top,
+  // patrol tile H above the door, start S near the bottom, side passage on row 12.
+  var MAZE = [
+    "###################",
+    "#........#........#",
+    "#o##.###.#.###.##o#",
+    "#.................#",
+    "#.##.#.#####.#.##.#",
+    "#....#...#...#....#",
+    "####.###.#.###.####",
+    "####.#...H...#.####",
+    "####.#.##-##.#.####",
+    "####.#.#ZZZ#.#.####",
+    "####.#.#ZZZ#.#.####",
+    "####.#.#####.#.####",
+    "<.................>",
+    "####.#.#####.#.####",
+    "#........#........#",
+    "#.##.###.#.###.##.#",
+    "#o.......S.......o#",
+    "#.##.#.#####.#.##.#",
+    "#....#...#...#....#",
+    "#.................#",
+    "###################"
+  ];
+
+  function parseMaze(rows) {
+    var h = rows.length;
+    var w = rows[0].length;
+    var m = {
+      w: w, h: h, walls: [], coins: new Set(), powerups: new Set(),
+      start: null, pen: [], door: null, patrol: null, tunnelRow: null
+    };
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var c = rows[y].charAt(x);
+        var i = y * w + x;
+        m.walls[i] = c === "#";
+        if (c === ".") m.coins.add(i);
+        else if (c === "o") m.powerups.add(i);
+        else if (c === "S") m.start = { x: x, y: y };
+        else if (c === "Z") m.pen.push({ x: x, y: y });
+        else if (c === "-") m.door = { x: x, y: y };
+        else if (c === "H") m.patrol = { x: x, y: y };
+        else if (c === "<" && x === 0) m.tunnelRow = y;
+      }
+    }
+    return m;
+  }
+
+  function isWall(maze, x, y, forEnemy) {
+    if (y < 0 || y >= maze.h) return true;
+    if (x < 0 || x >= maze.w) return maze.tunnelRow !== y;
+    if (maze.walls[y * maze.w + x]) return true;
+    if (!forEnemy && maze.door && maze.door.x === x && maze.door.y === y) return true;
+    return false;
+  }
+
+  // Centre-of-tile decision: wrap through the side passage, turn to e.next if
+  // possible, otherwise continue, otherwise stop exactly on the centre.
+  function decide(e, maze, forEnemy) {
+    var cx = Math.round(e.x), cy = Math.round(e.y);
+    if (Math.abs(e.x - cx) >= EPS || Math.abs(e.y - cy) >= EPS) return false;
+    e.x = cx; e.y = cy;
+    if (e.x <= -1) e.x += maze.w;
+    else if (e.x >= maze.w) e.x -= maze.w;
+    cx = e.x;
+    if (e.next && !isWall(maze, cx + DIRS[e.next].x, cy + DIRS[e.next].y, forEnemy)) {
+      e.dir = e.next;
+      e.next = null;
+    } else if (e.dir && isWall(maze, cx + DIRS[e.dir].x, cy + DIRS[e.dir].y, forEnemy)) {
+      e.dir = null;
+    }
+    return true;
+  }
+
+  // Moves along e.dir by at most `s` tiles, never past the next tile centre
+  // without making the centre decision.
+  function subStep(e, maze, s, forEnemy) {
+    while (s > EPS) {
+      if (!decide(e, maze, forEnemy) && e.dir && e.next === OPPOSITE[e.dir]) {
+        e.dir = e.next;
+        e.next = null;
+      }
+      if (!e.dir) return;
+      var d = DIRS[e.dir];
+      var pos = d.x !== 0 ? e.x : e.y;
+      var target = d.x + d.y > 0 ? Math.floor(pos + EPS) + 1 : Math.ceil(pos - EPS) - 1;
+      var dist = Math.abs(target - pos);
+      var m = Math.min(s, dist);
+      if (m >= dist - EPS) {
+        if (d.x !== 0) e.x = target; else e.y = target;
+        m = dist;
+      } else if (d.x !== 0) e.x += d.x * m;
+      else e.y += d.y * m;
+      s -= m;
+    }
+  }
+
+  function stepEntity(e, maze, dt, forEnemy) {
+    var dist = e.speed * dt;
+    while (dist > EPS) {
+      var s = Math.min(dist, MAX_SUB);
+      dist -= s;
+      subStep(e, maze, s, forEnemy);
+    }
+    // a centre reached exactly at the end still needs its decision (turn / stop at wall)
+    decide(e, maze, forEnemy);
+  }
+
+  window.HraLogika = {
+    DIRS: DIRS,
+    DIR_ORDER: ["up", "left", "down", "right"],
+    MAZE: MAZE,
+    parseMaze: parseMaze,
+    isWall: isWall,
+    stepEntity: stepEntity
+  };
+})();
+</script>
 </body>
 </html>
