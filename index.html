@@ -86,11 +86,11 @@ header p {
 }
 .grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
 }
 @media (min-width: 820px) {
-  .grid { grid-template-columns: 1fr 1.1fr; align-items: start; }
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
   .results { position: sticky; top: calc(1rem + env(safe-area-inset-top, 0px)); }
 }
 .panel {
@@ -146,7 +146,7 @@ header p {
   font-size: .95rem;
   white-space: nowrap;
 }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .9rem; }
 
 /* Mode switch */
 .seg {

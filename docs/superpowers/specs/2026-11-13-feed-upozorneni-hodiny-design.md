@@ -39,13 +39,15 @@ Záchodová kalkulačka ([index.html](../../../index.html)) je vtipná statická
 | Záložka | Zdroj | URL | Článků |
 |---|---|---|---|
 | Svět | iROZHLAS | `https://www.irozhlas.cz/rss/irozhlas` | 20 |
-| Svět | ČT24 (výběr redakce) | `https://ct24.ceskatelevize.cz/rss/hlavni-zpravy` | 30 |
+| Svět | ČT24 (výběr redakce) | `https://ct24.ceskatelevize.cz/rss/tema/vyber-redakce-84313` | 30 |
 | Svět | iDNES Zpravodaj | `https://servis.idnes.cz/rss.aspx?c=zpravodaj` | 30 |
 | Peníze | iROZHLAS Ekonomika | `https://www.irozhlas.cz/rss/irozhlas/section/ekonomika` | 20 |
-| Peníze | ČT24 Ekonomika | `https://ct24.ceskatelevize.cz/rss/ekonomika` | 30 |
+| Peníze | ČT24 Ekonomika | `https://ct24.ceskatelevize.cz/rss/rubrika/ekonomika-17` | 30 |
 | Peníze | iDNES Ekonomika | `https://servis.idnes.cz/rss.aspx?c=ekonomikah` | 30 |
 
-- Obsah RSS: všechny zdroje mají `title`, `link`, `description` (perex) a `pubDate`. Obrázek má iROZHLAS v `<enclosure url>` a iDNES v `<media:content url>`. ČT24 obrázek v položce nemá. Perex ČT24 je v CDATA a obsahuje HTML entity (`&nbsp;`).
+Původní URL ČT24 (`/rss/hlavni-zpravy`, `/rss/ekonomika`) vracejí přesměrování 308 bez hlavičky CORS, proto aplikace používá výše uvedené adresy, které odpovídají přímo.
+
+- Obsah RSS: všechny zdroje mají `title`, `link`, `description` (perex) a `pubDate`. Obrázek má iROZHLAS v `<enclosure url>` a iDNES v `<media:content url>`. ČT24 obrázek v položce má jen někdy. Perex ČT24 je v CDATA a obsahuje HTML entity (`&nbsp;`).
 
 ## Rozhodnutí uživatele
 
