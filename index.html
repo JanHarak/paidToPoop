@@ -321,6 +321,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 .vrstva[hidden] { display: none; }
+.vrstva:focus { outline: none; }
 .hra-hlava {
   display: flex;
   flex-wrap: wrap;
@@ -517,7 +518,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   </div>
 </div>
 
-<div id="hra" class="vrstva" role="dialog" aria-modal="true" aria-labelledby="hraTitul" hidden>
+<div id="hra" class="vrstva" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="hraTitul" hidden>
   <div class="hra-hlava">
     <h2 id="hraTitul">Rulička na útěku</h2>
     <span id="hraSkore">0 Kč</span>
@@ -533,47 +534,57 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 
 <script id="vrstvy">
 (function () {
+  // Kazda vrstva vlastni jednu polozku historie. Vrstva zavrena mimo vrchol
+  // se jen skryje (gone) a ze zasobniku zmizi, az na ni prijde rada v popstate.
   var stack = [];
-  function finish(entry) {
-    var i = stack.indexOf(entry);
-    if (i < 0) return;
-    stack.splice(i, 1);
+  function active() {
+    for (var i = stack.length - 1; i >= 0; i--) if (!stack[i].gone) return stack[i];
+    return null;
+  }
+  function hide(entry) {
+    entry.gone = true;
     entry.el.hidden = true;
-    if (!stack.length) document.documentElement.classList.remove("zamceno");
+    if (!active()) document.documentElement.classList.remove("zamceno");
     if (entry.onClose) entry.onClose();
     if (entry.returnFocus && entry.returnFocus.focus) entry.returnFocus.focus();
   }
   function top() {
-    return stack.length ? stack[stack.length - 1].el : null;
-  }
-  function find(el) {
-    for (var i = stack.length - 1; i >= 0; i--) if (stack[i].el === el) return stack[i];
-    return null;
+    var e = active();
+    return e ? e.el : null;
   }
   function open(el, opts) {
     opts = opts || {};
-    stack.push({ el: el, onClose: opts.onClose, returnFocus: opts.returnFocus, closing: false });
+    stack.push({ el: el, onClose: opts.onClose, returnFocus: opts.returnFocus, closing: false, gone: false });
     el.hidden = false;
     document.documentElement.classList.add("zamceno");
     history.pushState({ vrstva: true }, "");
+    var f = opts.initialFocus || el;
+    if (f.focus) f.focus();
     window.dispatchEvent(new CustomEvent("vrstva-otevrena", { detail: el }));
   }
   function close(el) {
-    var entry = el ? find(el) : stack[stack.length - 1];
+    var entry = null, i;
+    if (el) {
+      for (i = stack.length - 1; i >= 0; i--) if (stack[i].el === el && !stack[i].gone) { entry = stack[i]; break; }
+    } else {
+      entry = active();
+    }
     if (!entry || entry.closing) return;
     if (entry === stack[stack.length - 1]) {
-      // Vrstva vlastni polozku historie: vratime se a zavreme v popstate.
       entry.closing = true;
       history.back();
     } else {
-      finish(entry);
+      hide(entry);
     }
   }
   window.addEventListener("popstate", function () {
-    if (stack.length) finish(stack[stack.length - 1]);
+    var entry = stack.pop();
+    if (!entry) return;
+    if (!entry.gone) hide(entry);
+    if (stack.length && stack[stack.length - 1].gone) history.back();
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && stack.length) {
+    if (e.key === "Escape" && active()) {
       e.preventDefault();
       close();
     }
@@ -825,7 +836,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   } catch (e) {}
 
   $("hrajBtn").addEventListener("click", function () {
-    Vrstvy.open($("hra"), { returnFocus: $("hrajBtn") });
+    Vrstvy.open($("hra"), { returnFocus: $("hrajBtn"), initialFocus: $("hraPlocha") });
   });
   $("hraZavrit").addEventListener("click", function () { Vrstvy.close(); });
 
