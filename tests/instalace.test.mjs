@@ -41,3 +41,5 @@ test("maZobrazit: odklad 24 h", () => {
   assert.equal(I.maZobrazit({ ...o, ted: t + I.ODKLAD_MS - 1 }), false);
   assert.equal(I.maZobrazit({ ...o, ted: t + I.ODKLAD_MS }), true);
 });
+
+test("KEY je pevny klic localStorage", () => assert.equal(I.KEY, "zachodova-instalace-v1"));

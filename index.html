@@ -1330,7 +1330,7 @@ body.detail-open { overflow: hidden; }
   function maZobrazit(o) {
     return !!o.mobil && !o.standalone && !o.nainstalovano && o.ted >= o.odlozenoDo && o.rezim !== null;
   }
-  window.InstalaceLogika = { ODKLAD_MS: ODKLAD_MS, platforma: platforma, parse: parse, maZobrazit: maZobrazit };
+  window.InstalaceLogika = { KEY: "zachodova-instalace-v1", ODKLAD_MS: ODKLAD_MS, platforma: platforma, parse: parse, maZobrazit: maZobrazit };
 })();
 </script>
 <script id="stopky-logika">
@@ -3813,13 +3813,13 @@ body.detail-open { overflow: hidden; }
 <script id="instalace-ui">
 (function () {
   var L = window.InstalaceLogika;
-  var KEY = "instalace";
+  var KEY = L.KEY;
   var box = document.getElementById("instalace");
   var txt = document.getElementById("instalaceText");
   var okBtn = document.getElementById("instalaceOk");
   var neBtn = document.getElementById("instalaceNe");
   var warnModal = document.getElementById("warnModal");
-  var rezim = null, deferred = null, tick = null;
+  var rezim = null, deferred = null, tick = null, pripraven = false;
 
   function mm(q) { try { return window.matchMedia(q).matches; } catch (e) { return false; } }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
@@ -3837,6 +3837,7 @@ body.detail-open { overflow: hidden; }
   }
   function skryj() { box.hidden = true; }
   function vyhodnot() {
+    if (!pripraven) return;
     if (!eligible()) {
       skryj();
       if (tick) { clearInterval(tick); tick = null; }
@@ -3857,6 +3858,13 @@ body.detail-open { overflow: hidden; }
     vyhodnot();
   }
 
+  function oznacNainstalovano() {
+    var s = nacti();
+    s.nainstalovano = true;
+    uloz(s);
+    vyhodnot();
+  }
+
   neBtn.addEventListener("click", odloz);
   okBtn.addEventListener("click", function () {
     if (!deferred) { odloz(); return; }
@@ -3865,9 +3873,10 @@ body.detail-open { overflow: hidden; }
     try {
       d.prompt();
       Promise.resolve(d.userChoice).then(function (c) {
-        if (c && c.outcome === "accepted") skryj(); else odloz();
-      }, odloz);
-    } catch (e) { odloz(); }
+        rezim = null;
+        if (c && c.outcome === "accepted") oznacNainstalovano(); else odloz();
+      }, function () { rezim = null; odloz(); });
+    } catch (e) { rezim = null; odloz(); }
   });
   window.addEventListener("beforeinstallprompt", function (e) {
     e.preventDefault();
@@ -3875,16 +3884,11 @@ body.detail-open { overflow: hidden; }
     rezim = "prompt";
     vyhodnot();
   });
-  window.addEventListener("appinstalled", function () {
-    var s = nacti();
-    s.nainstalovano = true;
-    uloz(s);
-    vyhodnot();
-  });
+  window.addEventListener("appinstalled", oznacNainstalovano);
   if (L.platforma(navigator.userAgent) === "ios-safari") rezim = "ios";
 
-  window.addEventListener("load", function () { setTimeout(vyhodnot, 4000); });
-  window.Instalace = { vyhodnot: function (r) { if (r !== undefined) rezim = r; vyhodnot(); } };
+  window.addEventListener("load", function () { setTimeout(function () { pripraven = true; vyhodnot(); }, 4000); });
+  window.Instalace = { vyhodnot: function (r) { pripraven = true; if (r !== undefined) rezim = r; vyhodnot(); } };
 })();
 </script>
 <script>
