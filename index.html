@@ -696,6 +696,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
 }
+.pisk-radek { display: contents; }
 .pisk-bunka {
   width: 34px;
   height: 34px;
@@ -3446,8 +3447,14 @@ body.detail-open { overflow: hidden; }
     }
 
     // ---- board cells, built once ----
-    var cells = [], shown = [], frag = document.createDocumentFragment();
+    var cells = [], shown = [], frag = document.createDocumentFragment(), row = null;
     for (var i = 0; i < N * N; i++) {
+      if (i % N === 0) {
+        row = document.createElement("div");
+        row.className = "pisk-radek";
+        row.setAttribute("role", "row");
+        frag.appendChild(row);
+      }
       var c = document.createElement("button");
       c.type = "button";
       c.className = "pisk-bunka";
@@ -3457,7 +3464,7 @@ body.detail-open { overflow: hidden; }
       c.setAttribute("aria-label", label(i, 0));
       cells.push(c);
       shown.push(0);
-      frag.appendChild(c);
+      row.appendChild(c);
     }
     mrizka.appendChild(frag);
     function label(i, v) {
