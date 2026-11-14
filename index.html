@@ -591,15 +591,44 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   font-size: 1.15rem;
 }
 .hra-panel-text { margin: 0; color: var(--muted); max-width: 52ch; }
-.hra-uvod {
+.hry-menu[hidden], .hry-detail[hidden], .hra-slot[hidden] { display: none; }
+.hry-seznam { display: flex; flex-direction: column; gap: .4rem; }
+.hry-polozka {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: .5rem .8rem;
+  border: 2px solid var(--line);
+  border-left: 5px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hry-polozka[aria-pressed="true"] { border-left-color: var(--brass); background: var(--porcelain); }
+.hry-nazev { font-weight: 700; }
+.hry-pod { color: var(--muted); font-size: .9rem; }
+.hry-detaily { margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed var(--line); }
+.hry-detail {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 1.2rem 0 .8rem;
+  padding: .2rem 0 .8rem;
 }
-.hra-uvod[hidden], .hra-slot[hidden] { display: none; }
-.hra-uvod .hra-btn { margin-top: 1rem; padding: .7rem 2rem; font-size: 1.05rem; }
+.hry-stat { margin: .8rem 0 0; color: var(--muted); font-weight: 700; }
+.hry-detail .hra-btn { margin-top: 1rem; padding: .7rem 2rem; font-size: 1.05rem; }
+.pisk-obtiznost { width: auto; margin: 1rem 0 0; }
+.seg-btn[aria-pressed="true"] {
+  background: var(--porcelain);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
 /* The game shown inside the "Hra" tab; fullscreen moves it back to <body> as a layer. */
 .vrstva.hra-inline {
   position: relative;
@@ -866,10 +895,35 @@ body.detail-open { overflow: hidden; }
     </div>
     <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet"></div>
     <div class="hra-panel" id="hraPanel" role="tabpanel" aria-labelledby="tabHra" hidden>
-      <div class="hra-uvod" id="hraUvod">
-        <p class="hra-panel-title">Rulička na útěku</p>
-        <p class="hra-panel-text">Kutálej se kanceláří, sbírej mince a uteč šéfovi, PM, kolegovi s „máš chvilku?“ i HR. Stopky sezení běží dál.</p>
-        <button class="hra-btn" id="hrajBtn" type="button">Zahraj si</button>
+      <div class="hry-menu" id="hryMenu">
+        <div class="hry-seznam" id="hrySeznam">
+          <button class="hry-polozka" type="button" data-hra="rulicka" aria-pressed="true">
+            <span class="hry-nazev">Rulička na útěku</span>
+            <span class="hry-pod">Utíkej šéfovi z kanceláře</span>
+          </button>
+          <button class="hry-polozka" type="button" data-hra="piskvorky" aria-pressed="false">
+            <span class="hry-nazev">Piškvorky</span>
+            <span class="hry-pod">Pět v řadě proti počítači</span>
+          </button>
+        </div>
+        <div class="hry-detaily">
+          <div class="hry-detail" data-hra="rulicka">
+            <p class="hra-panel-title">Rulička na útěku</p>
+            <p class="hra-panel-text">Kutálej se kanceláří, sbírej mince a uteč šéfovi, PM, kolegovi s „máš chvilku?“ i HR. Stopky sezení běží dál.</p>
+            <p class="hry-stat" id="rulickaRekord">Rekord: 0 Kč</p>
+            <button class="hra-btn" id="hrajBtn" type="button">Zahraj si</button>
+          </div>
+          <div class="hry-detail" data-hra="piskvorky" hidden>
+            <p class="hra-panel-title">Piškvorky</p>
+            <p class="hra-panel-text">Polož pět svých křížků do řady dřív než počítač. Pole se dá posouvat prstem. Stopky sezení běží dál.</p>
+            <div class="seg pisk-obtiznost" role="group" aria-label="Obtížnost">
+              <button class="seg-btn pisk-obt" type="button" data-obt="lehka" aria-pressed="true">Lehká</button>
+              <button class="seg-btn pisk-obt" type="button" data-obt="tezsi" aria-pressed="false">Těžší</button>
+            </div>
+            <p class="hry-stat" id="piskStat">Výhry 0 · Prohry 0 · Remízy 0</p>
+            <button class="hra-btn" id="piskHrajBtn" type="button">Zahraj si</button>
+          </div>
+        </div>
       </div>
       <div class="hra-slot" id="hraSlot" hidden></div>
     </div>
@@ -2371,11 +2425,106 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="hry-seznam">
+(function () {
+  var KEY = "zachodova-hry-vyber-v1";
+  var menu = document.getElementById("hryMenu");
+  var slot = document.getElementById("hraSlot");
+  var list = document.getElementById("hrySeznam");
+  if (!menu || !list) return;
+  var items = list.querySelectorAll(".hry-polozka");
+  var details = menu.querySelectorAll(".hry-detail");
+  var removed = {};
+  var selected = "";
+
+  function visible() {
+    var out = [];
+    for (var i = 0; i < items.length; i++) if (!items[i].hidden) out.push(items[i]);
+    return out;
+  }
+  function vyber(id, noSave) {
+    var found = false;
+    for (var i = 0; i < items.length; i++) {
+      var on = items[i].getAttribute("data-hra") === id && !items[i].hidden;
+      if (on) found = true;
+      items[i].setAttribute("aria-pressed", String(on));
+    }
+    if (!found) return;
+    selected = id;
+    for (var j = 0; j < details.length; j++) {
+      details[j].hidden = details[j].getAttribute("data-hra") !== id;
+    }
+    if (!noSave) { try { localStorage.setItem(KEY, id); } catch (e) {} }
+  }
+  function odeber(id) {
+    if (removed[id]) return;
+    removed[id] = true;
+    var i;
+    for (i = 0; i < items.length; i++) if (items[i].getAttribute("data-hra") === id) items[i].hidden = true;
+    for (i = 0; i < details.length; i++) if (details[i].getAttribute("data-hra") === id) details[i].hidden = true;
+    var vis = visible();
+    if (!vis.length) {
+      var tab = document.getElementById("tabHra");
+      if (tab) {
+        if (tab.getAttribute("aria-selected") === "true") {
+          var svet = document.getElementById("tabSvet");
+          if (svet) svet.click();
+        }
+        tab.hidden = true;
+      }
+      return;
+    }
+    if (selected === id) vyber(vis[0].getAttribute("data-hra"), true);
+  }
+  function zobrazMenu() {
+    menu.hidden = false;
+    if (slot) slot.hidden = true;
+  }
+  function skryjMenu() {
+    menu.hidden = true;
+    if (slot) slot.hidden = false;
+  }
+
+  list.addEventListener("click", function (e) {
+    var el = e.target;
+    while (el && el !== list && !(el.className && /\bhry-polozka\b/.test(el.className))) el = el.parentNode;
+    if (el && el !== list) vyber(el.getAttribute("data-hra"));
+  });
+  list.addEventListener("keydown", function (e) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    var vis = visible(), idx = -1;
+    for (var i = 0; i < vis.length; i++) if (vis[i] === document.activeElement) idx = i;
+    if (idx < 0) return;
+    e.preventDefault();
+    var n = vis[(idx + (e.key === "ArrowDown" ? 1 : vis.length - 1)) % vis.length];
+    n.focus();
+    vyber(n.getAttribute("data-hra"));
+  });
+
+  var saved = "";
+  try { saved = localStorage.getItem(KEY) || ""; } catch (e) {}
+  var first = items.length ? items[0].getAttribute("data-hra") : "";
+  vyber(saved || first, true);
+  if (!selected) vyber(first, true);
+
+  window.HrySeznam = {
+    zobrazMenu: zobrazMenu,
+    skryjMenu: skryjMenu,
+    odeber: odeber,
+    vyber: vyber,
+    vybrana: function () { return selected; }
+  };
+
+  // Gomoku registers from its own UI later; without its logic the entry goes away.
+  if (!window.PiskLogika) odeber("piskvorky");
+})();
+</script>
 <script id="hra-ui">
 (function () {
   var hrajBtn = document.getElementById("hrajBtn");
-  // Without a working game, drop its entry points: the button and the "Hra" tab.
+  // Without a working game, drop its entry from the list (or the whole tab).
   function hideEntry() {
+    if (window.HrySeznam) { window.HrySeznam.odeber("rulicka"); return; }
     if (hrajBtn) hrajBtn.style.display = "none";
     var tab = document.getElementById("tabHra");
     if (!tab) return;
@@ -2964,7 +3113,14 @@ body.detail-open { overflow: hidden; }
     // The game lives in the "Hra" tab (#hraSlot). Fullscreen moves the same element
     // to <body> and opens it as a Vrstvy layer; closing the layer (x, Esc, Back)
     // brings it back into the tab, still running.
-    var uvod = $("hraUvod"), slot = $("hraSlot"), cela = $("hraCela");
+    var slot = $("hraSlot"), cela = $("hraCela");
+    var HS = window.HrySeznam;
+    function rekordText() {
+      var el = document.getElementById("rulickaRekord");
+      if (el) el.textContent = "Rekord: " + penize(storedBest);
+    }
+    readCurrency();
+    rekordText();
     var full = false, endAfterFull = false;
     function setMode(isFull) {
       full = isFull;
@@ -2992,8 +3148,9 @@ body.detail-open { overflow: hidden; }
       if (ro) ro.disconnect();
       else window.removeEventListener("resize", resize);
       hraEl.hidden = true;
-      slot.hidden = true;
-      uvod.hidden = false;
+      if (HS) HS.zobrazMenu(); else slot.hidden = true;
+      readCurrency();
+      rekordText();
       hrajBtn.focus();
     }
     function openGame() {
@@ -3006,8 +3163,7 @@ body.detail-open { overflow: hidden; }
       open = true;
       setMode(false);
       slot.appendChild(hraEl);
-      uvod.hidden = true;
-      slot.hidden = false;
+      if (HS) HS.skryjMenu(); else slot.hidden = false;
       hraEl.hidden = false;
       // header content first, so the board is sized for the final header height
       hud();
