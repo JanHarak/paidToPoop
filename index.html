@@ -591,7 +591,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   font-size: 1.15rem;
 }
 .hra-panel-text { margin: 0; color: var(--muted); max-width: 52ch; }
-.hry-menu[hidden], .hry-detail[hidden], .hra-slot[hidden] { display: none; }
+.hry-menu[hidden], .hry-polozka[hidden], .hry-detail[hidden], .hra-slot[hidden] { display: none; }
 .hry-seznam { display: flex; flex-direction: column; gap: .4rem; }
 .hry-polozka {
   display: flex;
@@ -2459,9 +2459,15 @@ body.detail-open { overflow: hidden; }
   function odeber(id) {
     if (removed[id]) return;
     removed[id] = true;
-    var i;
-    for (i = 0; i < items.length; i++) if (items[i].getAttribute("data-hra") === id) items[i].hidden = true;
-    for (i = 0; i < details.length; i++) if (details[i].getAttribute("data-hra") === id) details[i].hidden = true;
+    var i, hadFocus = false, act = document.activeElement;
+    for (i = 0; i < items.length; i++) if (items[i].getAttribute("data-hra") === id) {
+      if (items[i] === act) hadFocus = true;
+      items[i].hidden = true;
+    }
+    for (i = 0; i < details.length; i++) if (details[i].getAttribute("data-hra") === id) {
+      if (details[i].contains(act)) hadFocus = true;
+      details[i].hidden = true;
+    }
     var vis = visible();
     if (!vis.length) {
       var tab = document.getElementById("tabHra");
@@ -2475,6 +2481,10 @@ body.detail-open { overflow: hidden; }
       return;
     }
     if (selected === id) vyber(vis[0].getAttribute("data-hra"), true);
+    if (hadFocus && !menu.hidden) {
+      var btn = menu.querySelector('.hry-detail[data-hra="' + selected + '"] .hra-btn');
+      try { (btn || vis[0]).focus(); } catch (e) {}
+    }
   }
   function zobrazMenu() {
     menu.hidden = false;
