@@ -23,6 +23,7 @@
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -3752,6 +3753,15 @@ body.detail-open { overflow: hidden; }
     window.Pisk = { isOpen: function () { return open; } };
   }
 })();
+</script>
+<script>
+window.addEventListener("load", function () {
+  try {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function (err) { console.warn("SW:", err); });
+    }
+  } catch (err) { console.warn("SW:", err); }
+});
 </script>
 </body>
 </html>
