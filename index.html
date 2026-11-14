@@ -665,6 +665,46 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   aspect-ratio: 19 / 21;
   max-height: 72vh;
 }
+/* Direction pad under the board, touch devices only (keyboard elsewhere). */
+.hra-ovladani { display: none; }
+@media (pointer: coarse) {
+  .hra-ovladani {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .3rem;
+    padding: .3rem .5rem calc(.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .vrstva.hra-inline .hra-ovladani { padding-bottom: .5rem; }
+  .hra-inline .hra-pole { max-height: calc(100vh - 290px); min-height: 240px; }
+}
+.hra-kriz {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 44px);
+  grid-template-areas: ". up ." "left . right" ". down .";
+  gap: 4px;
+}
+.hra-smer {
+  font: inherit;
+  font-size: 1.2rem;
+  color: var(--ink);
+  background: var(--porcelain);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+.hra-smer:active { background: var(--brass-soft); border-color: var(--brass); }
+.hra-smer:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.hra-smer[data-smer="up"] { grid-area: up; }
+.hra-smer[data-smer="left"] { grid-area: left; }
+.hra-smer[data-smer="right"] { grid-area: right; }
+.hra-smer[data-smer="down"] { grid-area: down; }
+.hra-ovladani-tip { margin: 0; font-size: .8rem; color: var(--muted); text-align: center; }
 .hra-inline .pisk-pole {
   flex: none;
   height: min(72vh, 520px);
@@ -1023,7 +1063,7 @@ body.detail-open { overflow: hidden; }
         <div class="hry-detaily">
           <div class="hry-detail" data-hra="rulicka">
             <p class="hra-panel-title">Rulička na útěku</p>
-            <p class="hra-panel-text">Kutálej se kanceláří, sbírej mince a uteč šéfovi, PM, kolegovi s „máš chvilku?“ i HR. Stopky sezení běží dál.</p>
+            <p class="hra-panel-text">Kutálej se kanceláří, sbírej mince a uteč šéfovi, PM, kolegovi s „máš chvilku?“ i HR. Na telefonu hraješ tlačítky pod hrou, nebo tahem prstu po hrací ploše. Stopky sezení běží dál.</p>
             <p class="hry-stat" id="rulickaRekord">Rekord: 0 Kč</p>
             <button class="hra-btn" id="hrajBtn" type="button">Zahraj si</button>
           </div>
@@ -1090,6 +1130,15 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
     </div>
+  </div>
+  <div class="hra-ovladani" id="hraOvladani">
+    <div class="hra-kriz" role="group" aria-label="Ovládání směru">
+      <button type="button" class="hra-smer" data-smer="up" aria-label="Nahoru">▲</button>
+      <button type="button" class="hra-smer" data-smer="left" aria-label="Doleva">◀</button>
+      <button type="button" class="hra-smer" data-smer="right" aria-label="Doprava">▶</button>
+      <button type="button" class="hra-smer" data-smer="down" aria-label="Dolů">▼</button>
+    </div>
+    <p class="hra-ovladani-tip">Šipkami, nebo táhni prstem po ploše</p>
   </div>
 </div>
 
@@ -3432,6 +3481,24 @@ body.detail-open { overflow: hidden; }
     function endTouch(e) { if (touch && touch.id === e.pointerId) touch = null; }
     pole.addEventListener("pointerup", endTouch);
     pole.addEventListener("pointercancel", endTouch);
+
+    // direction pad under the board: reacts on touch-down, like an arrow key
+    var kriz = $("hraOvladani");
+    function smerTlacitka(e) {
+      var b = e.target && e.target.closest ? e.target.closest(".hra-smer") : null;
+      return b && kriz.contains(b) ? b.getAttribute("data-smer") : null;
+    }
+    kriz.addEventListener("pointerdown", function (e) {
+      var dir = smerTlacitka(e);
+      if (!dir || !open) return;
+      e.preventDefault(); // no focus change, no double-tap zoom
+      input = dir;
+    });
+    kriz.addEventListener("click", function (e) {
+      if (e.detail !== 0) return; // pointer taps were handled on pointerdown
+      var dir = smerTlacitka(e);
+      if (dir && open) input = dir;
+    });
 
     // ---- pausing from outside ----
     document.addEventListener("visibilitychange", function () {
