@@ -610,7 +610,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   text-align: left;
   cursor: pointer;
 }
-.hry-polozka[aria-pressed="true"] { border-left-color: var(--brass); background: var(--porcelain); }
+.hry-polozka[aria-pressed="true"] { border-left-color: var(--brass); background: var(--brass-soft); }
 .hry-nazev { font-weight: 700; }
 .hry-pod { color: var(--muted); font-size: .9rem; }
 .hry-detaily { margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed var(--line); }
@@ -717,10 +717,10 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 .pisk-bunka.x { font-size: 1.8rem; }
 .pisk-bunka.o { color: var(--brass); }
 .pisk-bunka.posledni { outline: 2px solid var(--brass); outline-offset: -4px; }
-.pisk-bunka.vyhra { background: var(--porcelain); font-weight: 800; }
+.pisk-bunka.vyhra { background: var(--brass-soft); box-shadow: inset 0 0 0 2px var(--brass); font-weight: 800; }
 .pisk-bunka:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
 @media (hover: hover) {
-  .pisk-bunka:empty:hover { background: var(--brass-soft); }
+  .pisk-bunka:empty:hover { background: var(--grout); }
 }
 .seg-btn { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -3491,7 +3491,10 @@ body.detail-open { overflow: hidden; }
       }
       var t = state.over
         ? (state.winner === 1 ? "Vyhrál jsi!" : state.winner === 2 ? "Prohrál jsi" : "Remíza")
-        : (state.turn === 1 ? "Jsi na tahu" : "Počítač přemýšlí…");
+        : (state.turn === 2 ? "Počítač přemýšlí…"
+          : lastPc >= 0 && state.last === lastPc
+            ? "Počítač: řádek " + (Math.floor(lastPc / N) + 1) + ", sloupec " + (lastPc % N + 1) + ". Jsi na tahu"
+            : "Jsi na tahu");
       if (stav.textContent !== t) stav.textContent = t;
       nova.hidden = !state.over;
     }
@@ -3633,7 +3636,18 @@ body.detail-open { overflow: hidden; }
       piskEl.hidden = true;
       HS.zobrazMenu();
       statText();
-      hrajBtn.focus();
+      focusMenu();
+    }
+    function focusMenu() {
+      // after a failure the entry may already be gone, so fall back to what is visible
+      var t = hrajBtn.offsetParent ? hrajBtn : null;
+      var menu = document.getElementById("hryMenu");
+      var sels = [".hry-detail .hra-btn", ".hry-polozka"];
+      for (var s = 0; s < sels.length && !t && menu; s++) {
+        var list = menu.querySelectorAll(sels[s]);
+        for (var k = 0; k < list.length && !t; k++) if (list[k].offsetParent) t = list[k];
+      }
+      if (t) t.focus();
     }
     function openGame() {
       if (open) return;
