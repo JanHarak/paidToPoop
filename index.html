@@ -877,6 +877,27 @@ body.detail-open { overflow: hidden; }
     box-shadow: 0 20px 60px -20px rgba(0, 0, 0, .6);
   }
 }
+#instalace {
+  position: fixed;
+  left: .75rem;
+  right: .75rem;
+  bottom: .75rem;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: .9rem 1rem calc(.9rem + env(safe-area-inset-bottom));
+  background: var(--porcelain);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+  z-index: 40;
+}
+#instalace[hidden] { display: none; }
+.instalace-titul { margin: 0; font-weight: 700; }
+.instalace-text { margin: .3rem 0 0; color: var(--muted); }
+.instalace-akce { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .7rem; }
+.instalace-akce .hra-btn { margin-top: 0; padding: .5rem 1.2rem; }
+.instalace-akce .hra-btn[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -1089,6 +1110,15 @@ body.detail-open { overflow: hidden; }
   </div>
 </div>
 
+<div id="instalace" role="dialog" aria-labelledby="instalaceTitle" hidden>
+  <p class="instalace-titul" id="instalaceTitle">Přidej si kalkulačku na plochu</p>
+  <p class="instalace-text" id="instalaceText"></p>
+  <div class="instalace-akce">
+    <button class="hra-btn" id="instalaceOk" type="button" hidden>Nainstalovat</button>
+    <button class="hra-btn instalace-ne" id="instalaceNe" type="button">Teď ne</button>
+  </div>
+</div>
+
 <div id="warnLayer">
   <div class="warn-tint" id="warnTint" aria-hidden="true" hidden></div>
   <div class="warn-modal" id="warnModal" role="alertdialog" aria-modal="true" aria-labelledby="warnTitle" aria-describedby="warnText" hidden>
@@ -1275,6 +1305,32 @@ body.detail-open { overflow: hidden; }
   });
   skipStale();
   window.Vrstvy = { open: open, close: close, top: top };
+})();
+</script>
+<script id="instalace-logika">
+(function () {
+  var ODKLAD_MS = 86400000;
+  function platforma(ua) {
+    ua = String(ua || "");
+    if (!/iPhone|iPad|iPod/.test(ua)) return "jiny";
+    if (/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram|Line/.test(ua)) return "ios-safari";
+    return "ios-jiny";
+  }
+  function parse(raw) {
+    var out = { odlozenoDo: 0, nainstalovano: false };
+    try {
+      var o = JSON.parse(raw);
+      if (o && typeof o === "object") {
+        if (typeof o.odlozenoDo === "number" && isFinite(o.odlozenoDo)) out.odlozenoDo = o.odlozenoDo;
+        if (o.nainstalovano === true) out.nainstalovano = true;
+      }
+    } catch (e) {}
+    return out;
+  }
+  function maZobrazit(o) {
+    return !!o.mobil && !o.standalone && !o.nainstalovano && o.ted >= o.odlozenoDo && o.rezim !== null;
+  }
+  window.InstalaceLogika = { ODKLAD_MS: ODKLAD_MS, platforma: platforma, parse: parse, maZobrazit: maZobrazit };
 })();
 </script>
 <script id="stopky-logika">
@@ -3752,6 +3808,83 @@ body.detail-open { overflow: hidden; }
     obtUI();
     window.Pisk = { isOpen: function () { return open; } };
   }
+})();
+</script>
+<script id="instalace-ui">
+(function () {
+  var L = window.InstalaceLogika;
+  var KEY = "instalace";
+  var box = document.getElementById("instalace");
+  var txt = document.getElementById("instalaceText");
+  var okBtn = document.getElementById("instalaceOk");
+  var neBtn = document.getElementById("instalaceNe");
+  var warnModal = document.getElementById("warnModal");
+  var rezim = null, deferred = null, tick = null;
+
+  function mm(q) { try { return window.matchMedia(q).matches; } catch (e) { return false; } }
+  function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
+  function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  function blokovano() {
+    return document.documentElement.classList.contains("zamceno") || (warnModal && !warnModal.hidden);
+  }
+  function eligible() {
+    var s = nacti();
+    return L.maZobrazit({
+      mobil: mm("(pointer: coarse)") && window.innerWidth <= 820,
+      standalone: mm("(display-mode: standalone)") || navigator.standalone === true,
+      nainstalovano: s.nainstalovano, odlozenoDo: s.odlozenoDo, ted: Date.now(), rezim: rezim
+    });
+  }
+  function skryj() { box.hidden = true; }
+  function vyhodnot() {
+    if (!eligible()) {
+      skryj();
+      if (tick) { clearInterval(tick); tick = null; }
+      return;
+    }
+    if (blokovano()) box.hidden = true;
+    else if (box.hidden) {
+      txt.textContent = rezim === "ios" ? "Klepni na Sdílet a pak Přidat na plochu." : "Otevřeš ji jedním klepnutím jako aplikaci.";
+      okBtn.hidden = rezim !== "prompt";
+      box.hidden = false;
+    }
+    if (!tick) tick = setInterval(vyhodnot, 1000);
+  }
+  function odloz() {
+    var s = nacti();
+    s.odlozenoDo = Date.now() + L.ODKLAD_MS;
+    uloz(s);
+    vyhodnot();
+  }
+
+  neBtn.addEventListener("click", odloz);
+  okBtn.addEventListener("click", function () {
+    if (!deferred) { odloz(); return; }
+    var d = deferred;
+    deferred = null;
+    try {
+      d.prompt();
+      Promise.resolve(d.userChoice).then(function (c) {
+        if (c && c.outcome === "accepted") skryj(); else odloz();
+      }, odloz);
+    } catch (e) { odloz(); }
+  });
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferred = e;
+    rezim = "prompt";
+    vyhodnot();
+  });
+  window.addEventListener("appinstalled", function () {
+    var s = nacti();
+    s.nainstalovano = true;
+    uloz(s);
+    vyhodnot();
+  });
+  if (L.platforma(navigator.userAgent) === "ios-safari") rezim = "ios";
+
+  window.addEventListener("load", function () { setTimeout(vyhodnot, 4000); });
+  window.Instalace = { vyhodnot: function (r) { if (r !== undefined) rezim = r; vyhodnot(); } };
 })();
 </script>
 <script>
