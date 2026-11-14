@@ -1110,7 +1110,7 @@ body.detail-open { overflow: hidden; }
   </div>
 </div>
 
-<div id="instalace" role="dialog" aria-labelledby="instalaceTitle" hidden>
+<div id="instalace" role="region" aria-labelledby="instalaceTitle" hidden>
   <p class="instalace-titul" id="instalaceTitle">Přidej si kalkulačku na plochu</p>
   <p class="instalace-text" id="instalaceText"></p>
   <div class="instalace-akce">
@@ -1313,7 +1313,7 @@ body.detail-open { overflow: hidden; }
   function platforma(ua) {
     ua = String(ua || "");
     if (!/iPhone|iPad|iPod/.test(ua)) return "jiny";
-    if (/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram|Line/.test(ua)) return "ios-safari";
+    if (/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram|Line|GSA|Ddg/.test(ua)) return "ios-safari";
     return "ios-jiny";
   }
   function parse(raw) {
@@ -3825,7 +3825,7 @@ body.detail-open { overflow: hidden; }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
   function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function blokovano() {
-    return document.documentElement.classList.contains("zamceno") || (warnModal && !warnModal.hidden);
+    return document.documentElement.classList.contains("zamceno") || document.body.classList.contains("detail-open") || (warnModal && !warnModal.hidden);
   }
   function eligible() {
     var s = nacti();
@@ -3888,7 +3888,25 @@ body.detail-open { overflow: hidden; }
   if (L.platforma(navigator.userAgent) === "ios-safari") rezim = "ios";
 
   window.addEventListener("load", function () { setTimeout(function () { pripraven = true; vyhodnot(); }, 4000); });
-  window.Instalace = { vyhodnot: function (r) { pripraven = true; if (r !== undefined) rezim = r; vyhodnot(); } };
+  window.Instalace = { vyhodnot: function (r) {
+    if (r !== undefined && r !== "ios" && r !== "prompt") return;
+    pripraven = true; if (r !== undefined) rezim = r; vyhodnot();
+  } };
+
+  // browser bar colour follows a manual theme override (data-theme on <html>)
+  var metas = document.querySelectorAll('meta[name="theme-color"]');
+  var puvodni = [];
+  for (var i = 0; i < metas.length; i++) puvodni.push(metas[i].getAttribute("content"));
+  function barva() {
+    var t = document.documentElement.getAttribute("data-theme");
+    for (var j = 0; j < metas.length; j++) {
+      metas[j].setAttribute("content", t === "light" ? "#e6f1f2" : t === "dark" ? "#0f2226" : puvodni[j]);
+    }
+  }
+  barva();
+  if (window.MutationObserver) {
+    new MutationObserver(barva).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
 })();
 </script>
 <script>

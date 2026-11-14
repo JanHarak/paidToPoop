@@ -1,4 +1,5 @@
-var CACHE = "zachodova-v1";
+// Bump CACHE whenever the manifest or icons change (they are cache-first and never refreshed otherwise).
+var CACHE = "zachodova-v2";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", function (e) {
@@ -16,7 +17,7 @@ self.addEventListener("activate", function (e) {
 function put(req, res) {
   if (res && res.ok) {
     var copy = res.clone();
-    caches.open(CACHE).then(function (c) { c.put(req, copy); });
+    caches.open(CACHE).then(function (c) { c.put(req, copy); }).catch(function () {});
   }
   return res;
 }
@@ -36,6 +37,9 @@ self.addEventListener("fetch", function (e) {
   }
 
   if (url.origin === self.location.origin) {
+    var path = url.pathname;
+    var shell = SHELL.some(function (f) { return new URL(f, self.location.href).pathname === path; }) || path.indexOf("/icons/") !== -1;
+    if (!shell) return;
     e.respondWith(
       caches.match(req).then(function (hit) {
         return hit || fetch(req).then(function (res) { return put(req, res); });
@@ -47,7 +51,7 @@ self.addEventListener("fetch", function (e) {
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
     e.respondWith(
       caches.match(req).then(function (hit) {
-        var net = fetch(req).then(function (res) { return put(req, res); }).catch(function () { return hit; });
+        var net = fetch(req).then(function (res) { return put(req, res); }).catch(function () { return hit || Response.error(); });
         return hit || net;
       })
     );

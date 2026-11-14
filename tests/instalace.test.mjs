@@ -15,6 +15,8 @@ test("platforma", () => {
   assert.equal(I.platforma(IOS_CHROME), "ios-jiny");
   assert.equal(I.platforma(IOS_FB), "ios-jiny");
   assert.equal(I.platforma(ANDROID), "jiny");
+  assert.equal(I.platforma(IOS_SAFARI + " GSA/300.0"), "ios-jiny");
+  assert.equal(I.platforma(IOS_SAFARI + " Ddg/17.0"), "ios-jiny");
 });
 
 test("parse", () => {
