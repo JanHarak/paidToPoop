@@ -581,10 +581,49 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 
 /* Feed */
 .feed { margin-top: 1.25rem; }
-.seg.tabs { max-width: 320px; margin-bottom: 1rem; }
+.seg.tabs { max-width: 400px; margin-bottom: 1rem; }
+.hra-panel { padding: .2rem .2rem .4rem; }
+.hra-panel[hidden] { display: none; }
+.hra-panel-title {
+  margin: 0 0 .3rem;
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.hra-panel-text { margin: 0; color: var(--muted); max-width: 52ch; }
+.hra-uvod {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.2rem 0 .8rem;
+}
+.hra-uvod[hidden], .hra-slot[hidden] { display: none; }
+.hra-uvod .hra-btn { margin-top: 1rem; padding: .7rem 2rem; font-size: 1.05rem; }
+/* The game shown inside the "Hra" tab; fullscreen moves it back to <body> as a layer. */
+.vrstva.hra-inline {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.hra-inline .hra-pole {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 19 / 21;
+  max-height: 72vh;
+}
+#hraCela svg { display: block; margin: 0 auto; }
+#hraCela .ikona-zmensit { display: none; }
+#hraCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
+#hraCela[aria-pressed="true"] .ikona-zmensit { display: block; }
 .seg-btn { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .news-list { display: flex; flex-direction: column; }
+.news-list[hidden] { display: none; }
 .news-card {
   display: flex;
   align-items: flex-start;
@@ -726,7 +765,6 @@ body.detail-open { overflow: hidden; }
   <header>
     <h1>Záchodová kalkulačka</h1>
     <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
-    <button class="hra-btn" id="hrajBtn" type="button">Zahraj si: Rulička na útěku</button>
   </header>
 
   <div class="grid">
@@ -824,8 +862,17 @@ body.detail-open { overflow: hidden; }
     <div class="seg tabs" role="tablist" aria-label="Téma zpráv">
       <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" tabindex="0" aria-controls="newsList">Svět</button>
       <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="newsList">Peníze</button>
+      <button class="seg-btn" id="tabHra" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="hraPanel">Hra</button>
     </div>
     <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet"></div>
+    <div class="hra-panel" id="hraPanel" role="tabpanel" aria-labelledby="tabHra" hidden>
+      <div class="hra-uvod" id="hraUvod">
+        <p class="hra-panel-title">Rulička na útěku</p>
+        <p class="hra-panel-text">Kutálej se kanceláří, sbírej mince a uteč šéfovi, PM, kolegovi s „máš chvilku?“ i HR. Stopky sezení běží dál.</p>
+        <button class="hra-btn" id="hrajBtn" type="button">Zahraj si</button>
+      </div>
+      <div class="hra-slot" id="hraSlot" hidden></div>
+    </div>
     <div class="sr-only" id="feedStatus" role="status"></div>
     <button class="more" id="feedMore" type="button" hidden>Načíst další</button>
     <p class="news-end" id="feedEnd" hidden>To je všechno, spláchni a jdi pracovat.</p>
@@ -859,7 +906,8 @@ body.detail-open { overflow: hidden; }
     </div>
     <span id="hraStopky" hidden>0:00</span>
     <button id="hraPauza" type="button">Pauza</button>
-    <button id="hraZavrit" type="button" aria-label="Zavřít hru">×</button>
+    <button id="hraCela" type="button" aria-label="Celá obrazovka" title="Celá obrazovka" aria-pressed="false"><svg class="ikona-roztahnout" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 7V2h5M11 2h5v5M16 11v5h-5M7 16H2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ikona-zmensit" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M7 2v5H2M16 7h-5V2M11 16v-5h5M2 11h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="hraZavrit" type="button" aria-label="Ukončit hru" title="Ukončit hru">×</button>
   </div>
   <div class="hra-pole" id="hraPole">
     <canvas id="hraPlocha" tabindex="0" aria-label="Hrací plocha, ovládání šipkami, WASD nebo tažením prstem"></canvas>
@@ -870,7 +918,7 @@ body.detail-open { overflow: hidden; }
         <div class="hra-hlaska-tlacitka" id="hraHlaskaTlacitka" hidden>
           <button type="button" id="hraZnovu">Hrát znovu</button>
           <button type="button" id="hraPokracovat">Pokračovat</button>
-          <button type="button" id="hraZpet" class="vedlejsi">Zpět ke kalkulačce</button>
+          <button type="button" id="hraZpet" class="vedlejsi">Ukončit hru</button>
         </div>
       </div>
     </div>
@@ -1434,6 +1482,7 @@ body.detail-open { overflow: hidden; }
   }
 
   function renderFeed() {
+    if (activeTab === "hra") return; // a late fetch must not draw over the game tab
     var st = feedState[feedTab];
     var now = Date.now();
     feedList.textContent = "";
@@ -1481,13 +1530,27 @@ body.detail-open { overflow: hidden; }
     else feedMore.hidden = false;
   }
 
+  // activeTab is one of TAB_ORDER; feedTab stays on the last news tab (svet/penize).
+  var activeTab = "svet";
+  var TAB_IDS = { svet: "tabSvet", penize: "tabPenize", hra: "tabHra" };
+  var hraPanel = $("hraPanel");
   function showTab(tab) {
+    activeTab = tab;
+    Object.keys(TAB_IDS).forEach(function (k) {
+      $(TAB_IDS[k]).setAttribute("aria-selected", String(tab === k));
+      $(TAB_IDS[k]).tabIndex = tab === k ? 0 : -1;
+    });
+    var isHra = tab === "hra";
+    if (!isHra && window.Hra) window.Hra.pause(); // the game in the tab is no longer visible
+    feedList.hidden = isHra;
+    hraPanel.hidden = !isHra;
+    if (isHra) {
+      feedMore.hidden = true;
+      feedEnd.hidden = true;
+      return;
+    }
     feedTab = tab;
-    $("tabSvet").setAttribute("aria-selected", String(tab === "svet"));
-    $("tabPenize").setAttribute("aria-selected", String(tab === "penize"));
-    $("tabSvet").tabIndex = tab === "svet" ? 0 : -1;
-    $("tabPenize").tabIndex = tab === "penize" ? 0 : -1;
-    feedList.setAttribute("aria-labelledby", tab === "svet" ? "tabSvet" : "tabPenize");
+    feedList.setAttribute("aria-labelledby", TAB_IDS[tab]);
     if (feedState[tab].status === "idle") loadTab(tab);
     else renderFeed();
   }
@@ -1603,17 +1666,19 @@ body.detail-open { overflow: hidden; }
   });
   $("tabSvet").addEventListener("click", function () { showTab("svet"); });
   $("tabPenize").addEventListener("click", function () { showTab("penize"); });
-  var TAB_ORDER = ["svet", "penize"];
+  $("tabHra").addEventListener("click", function () { showTab("hra"); });
+  var TAB_ORDER = ["svet", "penize", "hra"];
   document.querySelector(".tabs").addEventListener("keydown", function (e) {
-    var i = TAB_ORDER.indexOf(feedTab), n = TAB_ORDER.length, j;
+    var visible = TAB_ORDER.filter(function (k) { return !$(TAB_IDS[k]).hidden; });
+    var i = visible.indexOf(activeTab), n = visible.length, j;
     if (e.key === "ArrowRight") j = (i + 1) % n;
     else if (e.key === "ArrowLeft") j = (i + n - 1) % n;
     else if (e.key === "Home") j = 0;
     else if (e.key === "End") j = n - 1;
     else return;
     e.preventDefault();
-    showTab(TAB_ORDER[j]);
-    $(j === 0 ? "tabSvet" : "tabPenize").focus();
+    showTab(visible[j]);
+    $(TAB_IDS[visible[j]]).focus();
   });
 
   renderFeed();
@@ -2142,10 +2207,18 @@ body.detail-open { overflow: hidden; }
 <script id="hra-ui">
 (function () {
   var hrajBtn = document.getElementById("hrajBtn");
+  // Without a working game, drop its entry points: the button and the "Hra" tab.
+  function hideEntry() {
+    if (hrajBtn) hrajBtn.style.display = "none";
+    var tab = document.getElementById("tabHra");
+    if (!tab) return;
+    if (tab.getAttribute("aria-selected") === "true") document.getElementById("tabSvet").click();
+    tab.hidden = true;
+  }
   try {
     init();
   } catch (err) {
-    if (hrajBtn) hrajBtn.style.display = "none";
+    hideEntry();
     if (window.console) console.error("Hra se nenacetla", err);
   }
 
@@ -2703,8 +2776,8 @@ body.detail-open { overflow: hidden; }
     function fail(err) {
       cancelLoop();
       if (window.console) console.error("Hra spadla", err);
-      try { if (open) V.close(hraEl); } catch (e) {}
-      hrajBtn.style.display = "none";
+      try { if (open) closeGame(); } catch (e) {}
+      hideEntry();
     }
 
     function refresh() {
@@ -2721,7 +2794,28 @@ body.detail-open { overflow: hidden; }
     function pause() { if (open) setPaused(true); }
 
     // ---- open / close ----
-    function onClose() {
+    // The game lives in the "Hra" tab (#hraSlot). Fullscreen moves the same element
+    // to <body> and opens it as a Vrstvy layer; closing the layer (x, Esc, Back)
+    // brings it back into the tab, still running.
+    var uvod = $("hraUvod"), slot = $("hraSlot"), cela = $("hraCela");
+    var full = false, endAfterFull = false;
+    function setMode(isFull) {
+      full = isFull;
+      hraEl.classList.toggle("hra-inline", !isFull);
+      if (isFull) {
+        hraEl.setAttribute("role", "dialog");
+        hraEl.setAttribute("aria-modal", "true");
+      } else {
+        hraEl.removeAttribute("role");
+        hraEl.removeAttribute("aria-modal");
+      }
+      cela.setAttribute("aria-pressed", String(isFull));
+      cela.setAttribute("aria-label", isFull ? "Zmenšit hru" : "Celá obrazovka");
+      cela.title = cela.getAttribute("aria-label");
+    }
+    function closeGame() {
+      if (!open) return;
+      if (full) { endAfterFull = true; V.close(hraEl); return; }
       open = false;
       if (state && state.phase !== "over") paused = true;
       cancelLoop();
@@ -2730,6 +2824,10 @@ body.detail-open { overflow: hidden; }
       saveBest();
       if (ro) ro.disconnect();
       else window.removeEventListener("resize", resize);
+      hraEl.hidden = true;
+      slot.hidden = true;
+      uvod.hidden = false;
+      hrajBtn.focus();
     }
     function openGame() {
       if (open) return;
@@ -2739,7 +2837,11 @@ body.detail-open { overflow: hidden; }
       hudCache = {};
       hlaskaKey = "";
       open = true;
-      V.open(hraEl, { onClose: onClose, returnFocus: hrajBtn, initialFocus: canvas });
+      setMode(false);
+      slot.appendChild(hraEl);
+      uvod.hidden = true;
+      slot.hidden = false;
+      hraEl.hidden = false;
       // header content first, so the board is sized for the final header height
       hud();
       tickStopky();
@@ -2747,12 +2849,35 @@ body.detail-open { overflow: hidden; }
       if (ro) ro.observe(pole);
       else window.addEventListener("resize", resize);
       stopkyId = setInterval(tickStopky, 1000);
+      try { canvas.focus({ preventScroll: true }); } catch (e) { canvas.focus(); }
+      if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
       startLoop();
+    }
+    function onFullClose() {
+      // Vrstvy hid the element; put it back into the tab.
+      setMode(false);
+      slot.appendChild(hraEl);
+      hraEl.hidden = false;
+      if (endAfterFull) {
+        endAfterFull = false;
+        closeGame();
+      } else {
+        try { canvas.focus({ preventScroll: true }); } catch (e) { canvas.focus(); }
+        if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function toggleFull() {
+      if (!open) return;
+      if (full) { V.close(hraEl); return; }
+      setMode(true);
+      document.body.appendChild(hraEl);
+      V.open(hraEl, { onClose: onFullClose, initialFocus: canvas });
     }
 
     hrajBtn.addEventListener("click", openGame);
-    ui.zavrit.addEventListener("click", function () { V.close(hraEl); });
-    ui.zpet.addEventListener("click", function () { V.close(hraEl); });
+    cela.addEventListener("click", toggleFull);
+    ui.zavrit.addEventListener("click", closeGame);
+    ui.zpet.addEventListener("click", closeGame);
     ui.pauza.addEventListener("click", function () { setPaused(!paused); });
     ui.pokracovat.addEventListener("click", function () {
       canvas.focus();
@@ -2768,7 +2893,10 @@ body.detail-open { overflow: hidden; }
 
     // ---- controls ----
     document.addEventListener("keydown", function (e) {
-      if (!open || V.top() !== hraEl || hraEl.hasAttribute("inert") || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (hraEl.closest("[inert]")) return;
+      // fullscreen: the game owns the keyboard; in the tab only while focus is inside it
+      if (full ? V.top() !== hraEl : !hraEl.contains(document.activeElement)) return;
       var dir = KEYS[e.key];
       if (dir) {
         e.preventDefault();
