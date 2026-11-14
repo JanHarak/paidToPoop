@@ -511,7 +511,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 @media (max-width: 480px) {
   .hra-hlava { gap: .3rem .5rem; padding: .4rem .5rem; }
   .hra-hlava h2 { font-size: 1rem; flex: 1 1 0; min-width: 0; }
-  .hra-hlava .hra-info { order: 5; flex-basis: 100%; gap: 0 .6rem; }
+  .hra-hlava .hra-info, .hra-hlava #piskSkore { order: 5; flex-basis: 100%; gap: 0 .6rem; }
   .hra-hlava span { font-size: .85rem; }
 }
 /* Money rain */
@@ -645,10 +645,82 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   aspect-ratio: 19 / 21;
   max-height: 72vh;
 }
-#hraCela svg { display: block; margin: 0 auto; }
-#hraCela .ikona-zmensit { display: none; }
-#hraCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
-#hraCela[aria-pressed="true"] .ikona-zmensit { display: block; }
+.hra-inline .pisk-pole {
+  flex: none;
+  height: min(72vh, 520px);
+}
+#hraCela svg, #piskCela svg { display: block; margin: 0 auto; }
+#hraCela .ikona-zmensit, #piskCela .ikona-zmensit { display: none; }
+#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
+#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit { display: block; }
+/* Gomoku: a scrollable grid of buttons */
+.hra-hlava #piskSkore { color: var(--ink); font-weight: 700; }
+.hra-hlava #piskStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.pisk-lista {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  min-height: 56px;
+  padding: .3rem .75rem;
+  border-bottom: 2px solid var(--line);
+}
+#piskStav { margin: 0; font-weight: 700; }
+.pisk-nova {
+  min-height: 44px;
+  padding: .4rem 1rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pisk-nova[hidden] { display: none; }
+.pisk-pole {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+  background: var(--grout);
+}
+.pisk-mrizka {
+  display: grid;
+  grid-template-columns: repeat(25, 34px);
+  grid-auto-rows: 34px;
+  width: max-content;
+  margin: 0 auto;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.pisk-bunka {
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--tile);
+  color: var(--ink);
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.pisk-bunka.x { font-size: 1.8rem; }
+.pisk-bunka.o { color: var(--brass); }
+.pisk-bunka.posledni { outline: 2px solid var(--brass); outline-offset: -4px; }
+.pisk-bunka.vyhra { background: var(--porcelain); font-weight: 800; }
+.pisk-bunka:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+@media (hover: hover) {
+  .pisk-bunka:empty:hover { background: var(--brass-soft); }
+}
 .seg-btn { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .news-list { display: flex; flex-direction: column; }
@@ -976,6 +1048,23 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="pisk" class="vrstva pisk" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="piskTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="piskTitul">Piškvorky</h2>
+    <span id="piskSkore">Výhry 0 · Prohry 0</span>
+    <span id="piskStopky" hidden>0:00</span>
+    <button id="piskCela" type="button" aria-label="Celá obrazovka" title="Celá obrazovka" aria-pressed="false"><svg class="ikona-roztahnout" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 7V2h5M11 2h5v5M16 11v5h-5M7 16H2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ikona-zmensit" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M7 2v5H2M16 7h-5V2M11 16v-5h5M2 11h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="piskZavrit" type="button" aria-label="Ukončit hru" title="Ukončit hru">×</button>
+  </div>
+  <div class="pisk-lista">
+    <p id="piskStav" role="status">Jsi na tahu</p>
+    <button id="piskNova" class="pisk-nova" type="button" hidden>Nová hra</button>
+  </div>
+  <div class="pisk-pole" id="piskPole">
+    <div class="pisk-mrizka" id="piskMrizka" role="grid" aria-label="Hrací pole 25 × 25"></div>
   </div>
 </div>
 
@@ -2524,9 +2613,6 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
-
-  // Gomoku registers from its own UI later; without its logic the entry goes away.
-  if (!window.PiskLogika) odeber("piskvorky");
 })();
 </script>
 <script id="hra-ui">
@@ -3297,6 +3383,333 @@ body.detail-open { overflow: hidden; }
     }
 
     window.Hra = { pause: pause, isOpen: function () { return open; } };
+  }
+})();
+</script>
+<script id="pisk-ui">
+(function () {
+  var HS = window.HrySeznam;
+  var failed = false;
+  function hideEntry(err, msg) {
+    if (failed) return;
+    failed = true;
+    if (HS) HS.odeber("piskvorky");
+    if (window.console) console.error(msg, err);
+  }
+  try {
+    init();
+  } catch (err) {
+    hideEntry(err, "Piskvorky se nenacetly");
+  }
+
+  function init() {
+    var L = window.PiskLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!L || !V || !Z || !S || !HS) throw new Error("chybi zavislosti piskvorek");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi #" + id);
+      return el;
+    };
+    var KEY = "zachodova-piskvorky-v1";
+    var piskEl = $("pisk"), pole = $("piskPole"), mrizka = $("piskMrizka"), stav = $("piskStav");
+    var nova = $("piskNova"), skore = $("piskSkore"), stopky = $("piskStopky");
+    var cela = $("piskCela"), zavrit = $("piskZavrit"), hrajBtn = $("piskHrajBtn"), statEl = $("piskStat");
+    var slot = $("hraSlot");
+    var obtBtns = document.querySelectorAll(".pisk-obt[data-obt]");
+    var N = L.SIZE, CENTER = Math.floor(N / 2) * N + Math.floor(N / 2);
+    var NAZVY = ["prázdné", "křížek", "kolečko"], ZNAKY = ["", "×", "○"];
+
+    // ---- stats ----
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    var stats = L.parseStats(raw);
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(stats)); } catch (e) {}
+    }
+    function statText() {
+      statEl.textContent = "Výhry " + stats.vyhry + " · Prohry " + stats.prohry + " · Remízy " + stats.remizy;
+    }
+    function skoreText() {
+      skore.textContent = "Výhry " + stats.vyhry + " · Prohry " + stats.prohry;
+    }
+    function obtUI() {
+      for (var i = 0; i < obtBtns.length; i++) {
+        obtBtns[i].setAttribute("aria-pressed", String(obtBtns[i].getAttribute("data-obt") === stats.obtiznost));
+      }
+    }
+    for (var b = 0; b < obtBtns.length; b++) {
+      obtBtns[b].addEventListener("click", function () {
+        stats.obtiznost = this.getAttribute("data-obt") === "tezsi" ? "tezsi" : "lehka";
+        save();
+        obtUI();
+      });
+    }
+
+    // ---- board cells, built once ----
+    var cells = [], shown = [], frag = document.createDocumentFragment();
+    for (var i = 0; i < N * N; i++) {
+      var c = document.createElement("button");
+      c.type = "button";
+      c.className = "pisk-bunka";
+      c.setAttribute("role", "gridcell");
+      c.setAttribute("data-i", String(i));
+      c.tabIndex = i === CENTER ? 0 : -1;
+      c.setAttribute("aria-label", label(i, 0));
+      cells.push(c);
+      shown.push(0);
+      frag.appendChild(c);
+    }
+    mrizka.appendChild(frag);
+    function label(i, v) {
+      return "Řádek " + (Math.floor(i / N) + 1) + ", sloupec " + (i % N + 1) + ", " + NAZVY[v];
+    }
+
+    // ---- game state ----
+    var state = null, level = stats.obtiznost, nextStarter = 1, lastPc = -1, pending = 0;
+    var focusIdx = CENTER, open = false, full = false, endAfterFull = false, stopkyId = 0;
+
+    function render() {
+      var board = state.board, win = {}, j;
+      if (state.line) for (j = 0; j < state.line.length; j++) win[state.line[j]] = true;
+      for (j = 0; j < board.length; j++) {
+        var v = board[j], cell = cells[j];
+        if (shown[j] !== v) {
+          shown[j] = v;
+          cell.textContent = ZNAKY[v];
+          cell.setAttribute("aria-label", label(j, v));
+        }
+        var cls = "pisk-bunka" + (v === 1 ? " x" : v === 2 ? " o" : "") +
+          (j === lastPc ? " posledni" : "") + (win[j] ? " vyhra" : "");
+        if (cell.className !== cls) cell.className = cls;
+      }
+      var t = state.over
+        ? (state.winner === 1 ? "Vyhrál jsi!" : state.winner === 2 ? "Prohrál jsi" : "Remíza")
+        : (state.turn === 1 ? "Jsi na tahu" : "Počítač přemýšlí…");
+      if (stav.textContent !== t) stav.textContent = t;
+      nova.hidden = !state.over;
+    }
+    function setRoving(i) {
+      if (cells[focusIdx]) cells[focusIdx].tabIndex = -1;
+      focusIdx = i;
+      cells[i].tabIndex = 0;
+    }
+    function focusCell() {
+      try { cells[focusIdx].focus({ preventScroll: true }); } catch (e) { cells[focusIdx].focus(); }
+    }
+
+    // ---- scrolling inside the board box ----
+    // Moving or hiding the box resets its scroll, so the centre of the view is kept
+    // here and put back after every mode switch.
+    var view = null;
+    function keepView() {
+      view = { x: pole.scrollLeft + (pole.clientWidth >> 1), y: pole.scrollTop + (pole.clientHeight >> 1) };
+    }
+    pole.addEventListener("scroll", function () {
+      if (pole.clientWidth) keepView();
+    });
+    function scrollToPoint(x, y) {
+      pole.scrollLeft = x - (pole.clientWidth >> 1);
+      pole.scrollTop = y - (pole.clientHeight >> 1);
+    }
+    function restoreView() {
+      if (view) scrollToPoint(view.x, view.y);
+    }
+    function centerView() {
+      var c0 = cells[CENTER];
+      scrollToPoint(c0.offsetLeft + (c0.offsetWidth >> 1), c0.offsetTop + (c0.offsetHeight >> 1));
+      keepView();
+    }
+    function reveal(i) {
+      // like scrollIntoView({block/inline: "nearest"}), but only the board box scrolls
+      var c0 = cells[i], x = c0.offsetLeft, y = c0.offsetTop, w = c0.offsetWidth, h = c0.offsetHeight;
+      if (x < pole.scrollLeft) pole.scrollLeft = x;
+      else if (x + w > pole.scrollLeft + pole.clientWidth) pole.scrollLeft = x + w - pole.clientWidth;
+      if (y < pole.scrollTop) pole.scrollTop = y;
+      else if (y + h > pole.scrollTop + pole.clientHeight) pole.scrollTop = y + h - pole.clientHeight;
+    }
+
+    // ---- turns ----
+    function clearPending() {
+      if (pending) clearTimeout(pending);
+      pending = 0;
+    }
+    function schedule() {
+      clearPending();
+      pending = setTimeout(computerMove, 300);
+    }
+    function startNew() {
+      clearPending();
+      state = L.newGame(nextStarter);
+      nextStarter = nextStarter === 1 ? 2 : 1;
+      level = stats.obtiznost; // a difficulty change applies from the next game
+      lastPc = -1;
+      render();
+      setRoving(CENTER);
+      centerView();
+      if (state.turn === 2) schedule();
+    }
+    function finish() {
+      if (state.winner === 1) stats.vyhry++;
+      else if (state.winner === 2) stats.prohry++;
+      else stats.remizy++;
+      save();
+      skoreText();
+      try { nova.focus({ preventScroll: true }); } catch (e) { nova.focus(); }
+    }
+    function play(i) {
+      if (!open || !state || state.turn !== 1 || state.over || pending) return;
+      try {
+        setRoving(i);
+        if (!L.place(state, i, 1)) return;
+        render();
+        if (state.over) finish();
+        else pending = setTimeout(computerMove, 300);
+      } catch (err) {
+        fail(err);
+      }
+    }
+    function computerMove() {
+      try {
+        if (!open || !state || state.over || state.turn !== 2) { pending = 0; return; }
+        var i = L.bestMove(state, level, Math.random);
+        if (typeof i !== "number" || !L.place(state, i, 2)) throw new Error("pocitac nema tah");
+        lastPc = i;
+        render();
+        pending = 0;
+        reveal(i);
+        if (state.over) finish();
+      } catch (err) {
+        pending = 0;
+        fail(err);
+      }
+    }
+    function fail(err) {
+      clearPending();
+      try { if (open) closeGame(); } catch (e) {}
+      hideEntry(err, "Piskvorky spadly");
+    }
+
+    // ---- stopwatch line ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      stopky.hidden = false;
+    }
+
+    // ---- open / close, mirroring #hra-ui ----
+    function setMode(isFull) {
+      full = isFull;
+      piskEl.classList.toggle("hra-inline", !isFull);
+      if (isFull) {
+        piskEl.setAttribute("role", "dialog");
+        piskEl.setAttribute("aria-modal", "true");
+      } else {
+        piskEl.removeAttribute("role");
+        piskEl.removeAttribute("aria-modal");
+      }
+      cela.setAttribute("aria-pressed", String(isFull));
+      cela.setAttribute("aria-label", isFull ? "Zmenšit hru" : "Celá obrazovka");
+      cela.title = cela.getAttribute("aria-label");
+    }
+    function closeGame() {
+      if (!open) return;
+      if (full) { endAfterFull = true; V.close(piskEl); return; }
+      open = false;
+      clearPending(); // the computer keeps its turn and moves after reopening
+      if (stopkyId) clearInterval(stopkyId);
+      stopkyId = 0;
+      piskEl.hidden = true;
+      HS.zobrazMenu();
+      statText();
+      hrajBtn.focus();
+    }
+    function openGame() {
+      if (open) return;
+      open = true;
+      setMode(false);
+      slot.appendChild(piskEl);
+      HS.skryjMenu();
+      piskEl.hidden = false;
+      skoreText();
+      tickStopky();
+      stopkyId = setInterval(tickStopky, 1000);
+      if (!state || state.over) {
+        startNew();
+      } else {
+        render();
+        restoreView();
+        if (state.turn === 2) schedule();
+      }
+      focusCell();
+      if (piskEl.scrollIntoView) piskEl.scrollIntoView({ block: "nearest" });
+    }
+    function onFullClose() {
+      // Vrstvy hid the element; put it back into the tab.
+      setMode(false);
+      slot.appendChild(piskEl);
+      piskEl.hidden = false;
+      restoreView();
+      if (endAfterFull) {
+        endAfterFull = false;
+        closeGame();
+      } else {
+        focusCell();
+        if (piskEl.scrollIntoView) piskEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function toggleFull() {
+      if (!open) return;
+      if (full) { V.close(piskEl); return; }
+      setMode(true);
+      document.body.appendChild(piskEl);
+      V.open(piskEl, { onClose: onFullClose, initialFocus: cells[focusIdx] });
+      restoreView();
+    }
+
+    hrajBtn.addEventListener("click", openGame);
+    cela.addEventListener("click", toggleFull);
+    zavrit.addEventListener("click", closeGame);
+    nova.addEventListener("click", function () {
+      startNew();
+      focusCell();
+    });
+
+    // ---- controls ----
+    mrizka.addEventListener("click", function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(".pisk-bunka") : null;
+      if (t) play(Number(t.getAttribute("data-i")));
+    });
+    var KROK = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    mrizka.addEventListener("keydown", function (e) {
+      if (!open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (piskEl.closest("[inert]")) return;
+      if (full && V.top() !== piskEl) return;
+      var d = KROK[e.key];
+      if (d) {
+        e.preventDefault();
+        var x = Math.min(N - 1, Math.max(0, focusIdx % N + d[0]));
+        var y = Math.min(N - 1, Math.max(0, Math.floor(focusIdx / N) + d[1]));
+        setRoving(y * N + x);
+        focusCell();
+        reveal(focusIdx);
+      } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault(); // instead of the button's own click, so it acts once
+        if (!e.repeat) play(focusIdx);
+      }
+    });
+    mrizka.addEventListener("focusin", function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(".pisk-bunka") : null;
+      if (t) setRoving(Number(t.getAttribute("data-i")));
+    });
+
+    statText();
+    obtUI();
+    window.Pisk = { isOpen: function () { return open; } };
   }
 })();
 </script>
