@@ -1,0 +1,17 @@
+{
+  "name": "Záchodová kalkulačka",
+  "short_name": "Záchodová kalkulačka",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "cs",
+  "background_color": "#e6f1f2",
+  "theme_color": "#e6f1f2",
+  "description": "Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas na porcelánu.",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
