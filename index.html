@@ -2204,6 +2204,173 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="pisk-logika">
+(function () {
+  var SIZE = 25;
+  var DX = [1, 0, 1, 1];
+  var DY = [0, 1, 1, -1];
+
+  function newGame(starter) {
+    var board = [];
+    for (var i = 0; i < SIZE * SIZE; i++) board.push(0);
+    return { size: SIZE, board: board, turn: starter, over: false, winner: 0, line: null, last: -1, moves: 0 };
+  }
+
+  function runInfo(board, size, idx, who, d) {
+    var x = idx % size, y = Math.floor(idx / size);
+    var count = 1, open = 0, k, cx, cy;
+    for (var s = -1; s <= 1; s += 2) {
+      k = 1;
+      for (;;) {
+        cx = x + DX[d] * s * k;
+        cy = y + DY[d] * s * k;
+        if (cx < 0 || cy < 0 || cx >= size || cy >= size) break;
+        if (board[cy * size + cx] !== who) break;
+        count++;
+        k++;
+      }
+      if (cx >= 0 && cy >= 0 && cx < size && cy < size && board[cy * size + cx] === 0) open++;
+    }
+    return { count: count, open: open };
+  }
+
+  function winLine(board, size, idx) {
+    var who = board[idx];
+    if (!who) return null;
+    var best = null, bestLen = 0;
+    for (var d = 0; d < 4; d++) {
+      var line = [idx], k, cx, cy;
+      var x = idx % size, y = Math.floor(idx / size);
+      for (var s = -1; s <= 1; s += 2) {
+        k = 1;
+        for (;;) {
+          cx = x + DX[d] * s * k;
+          cy = y + DY[d] * s * k;
+          if (cx < 0 || cy < 0 || cx >= size || cy >= size) break;
+          if (board[cy * size + cx] !== who) break;
+          line.push(cy * size + cx);
+          k++;
+        }
+      }
+      if (line.length > bestLen) { bestLen = line.length; best = line; }
+    }
+    return bestLen >= 5 ? best : null;
+  }
+
+  function place(state, idx, who) {
+    if (state.over || who !== state.turn) return false;
+    if (idx < 0 || idx >= state.size * state.size || state.board[idx] !== 0) return false;
+    state.board[idx] = who;
+    state.last = idx;
+    state.moves++;
+    var line = winLine(state.board, state.size, idx);
+    if (line) {
+      state.over = true;
+      state.winner = who;
+      state.line = line;
+    } else if (state.moves >= state.size * state.size || state.board.indexOf(0) === -1) {
+      state.over = true;
+      state.winner = 0;
+    } else {
+      state.turn = who === 1 ? 2 : 1;
+    }
+    return true;
+  }
+
+  function dirScore(r) {
+    if (r.count >= 5) return 1000000;
+    if (r.open === 0) return 0;
+    if (r.count === 4) return r.open === 2 ? 100000 : 10000;
+    if (r.count === 3) return r.open === 2 ? 5000 : 500;
+    if (r.count === 2) return r.open === 2 ? 200 : 50;
+    return 5;
+  }
+
+  function candidates(board, size) {
+    var mark = [], out = [], i, x, y, dx, dy, nx, ny;
+    for (i = 0; i < board.length; i++) mark.push(false);
+    var any = false;
+    for (i = 0; i < board.length; i++) {
+      if (!board[i]) continue;
+      any = true;
+      x = i % size; y = Math.floor(i / size);
+      for (dy = -2; dy <= 2; dy++) {
+        for (dx = -2; dx <= 2; dx++) {
+          nx = x + dx; ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+          if (board[ny * size + nx] === 0) mark[ny * size + nx] = true;
+        }
+      }
+    }
+    if (!any) return null;
+    for (i = 0; i < mark.length; i++) if (mark[i]) out.push(i);
+    return out;
+  }
+
+  function bestMove(state, level, rnd) {
+    var board = state.board, size = state.size;
+    var me = state.turn, opp = me === 1 ? 2 : 1;
+    var cands = candidates(board, size);
+    if (!cands) {
+      var c = Math.floor(size / 2);
+      return c * size + c;
+    }
+    var w = level === "tezsi" ? 0.9 : 0.6;
+    var i, d, idx, att, def, ra, rd, blockIdx = -1;
+    var scored = [];
+    for (i = 0; i < cands.length; i++) {
+      idx = cands[i];
+      att = 0; def = 0;
+      for (d = 0; d < 4; d++) {
+        ra = runInfo(board, size, idx, me, d);
+        if (ra.count >= 5) return idx;
+        rd = runInfo(board, size, idx, opp, d);
+        if (rd.count >= 5 && blockIdx < 0) blockIdx = idx;
+        att += dirScore(ra);
+        def += dirScore(rd);
+      }
+      scored.push({ idx: idx, total: att + w * def });
+    }
+    if (blockIdx >= 0) return blockIdx;
+    if (level === "tezsi") {
+      var max = -1, ties = [];
+      for (i = 0; i < scored.length; i++) {
+        if (scored[i].total > max) { max = scored[i].total; ties = [scored[i].idx]; }
+        else if (scored[i].total === max) ties.push(scored[i].idx);
+      }
+      return ties[Math.floor(rnd() * ties.length)];
+    }
+    scored.sort(function (a, b) { return b.total - a.total || a.idx - b.idx; });
+    var k = Math.min(4, scored.length);
+    return scored[Math.floor(rnd() * k)].idx;
+  }
+
+  function nonNeg(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+  }
+
+  function parseStats(raw) {
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!o || typeof o !== "object") o = {};
+    return {
+      vyhry: nonNeg(o.vyhry),
+      prohry: nonNeg(o.prohry),
+      remizy: nonNeg(o.remizy),
+      obtiznost: o.obtiznost === "tezsi" ? "tezsi" : "lehka"
+    };
+  }
+
+  window.PiskLogika = {
+    SIZE: SIZE,
+    newGame: newGame,
+    place: place,
+    winLine: winLine,
+    bestMove: bestMove,
+    parseStats: parseStats
+  };
+})();
+</script>
 <script id="hra-ui">
 (function () {
   var hrajBtn = document.getElementById("hrajBtn");
