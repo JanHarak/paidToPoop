@@ -479,6 +479,40 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   cursor: pointer;
 }
 .hra-btn:hover { background: var(--porcelain); }
+.denik-zapsat { margin: 1rem auto 0; }
+.step:disabled { opacity: .4; cursor: default; }
+.step:disabled:hover { border-color: var(--line); }
+.denik-lista {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  max-width: calc(100vw - 2rem);
+  padding: .6rem 1rem;
+  background: var(--ink);
+  color: var(--tile);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+  font-size: .95rem;
+}
+.denik-lista[hidden] { display: none; }
+.denik-vratit {
+  min-height: 36px;
+  padding: .3rem .9rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass);
+  color: #0f2226;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.denik-vratit[hidden] { display: none; }
+html.zamceno .denik-lista, body.warn .denik-lista, body.detail-open .denik-lista { display: none; }
 .zamceno { overflow: hidden; }
 html.zamceno, html.zamceno body { overscroll-behavior: none; }
 .vrstva {
@@ -1383,12 +1417,12 @@ body.detail-open { overflow: hidden; }
       <div class="field timer-block">
         <label id="cnt-l">Návštěvy záchodu za den</label>
         <div class="counter" role="group" aria-labelledby="cnt-l">
-          <button class="step" id="minus" type="button" aria-label="Ubrat návštěvu">−</button>
+          <button class="step" id="minus" type="button" aria-label="Smazat poslední dnešní zápis" disabled>−</button>
           <div class="count"><span id="count" aria-live="polite">3</span><small>návštěv dnes</small></div>
           <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
         </div>
         <button class="flush" id="flush" type="button">Jdu na záchod</button>
-        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se přičte.</div>
+        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku.</div>
       </div>
     </section>
 
@@ -1405,6 +1439,7 @@ body.detail-open { overflow: hidden; }
         <li><span class="k">Za měsíc</span><span class="v" id="rMonth"></span></li>
         <li><span class="k">Za rok</span><span class="v" id="rYear"></span></li>
       </ul>
+      <button class="hra-btn denik-zapsat" id="denikZapsat" type="button">Zapsat do deníku</button>
       <div class="facts">
         <p>Tvoje denní sazba je <strong id="fRate"></strong>.</p>
         <p>Na záchodě strávíš <strong id="fPct"></strong> pracovní doby.</p>
@@ -1706,6 +1741,11 @@ body.detail-open { overflow: hidden; }
     <button class="hra-btn" id="instalaceOk" type="button" hidden>Nainstalovat</button>
     <button class="hra-btn instalace-ne" id="instalaceNe" type="button">Teď ne</button>
   </div>
+</div>
+
+<div class="denik-lista" id="denikLista" role="status" aria-live="polite" hidden>
+  <span id="denikListaText"></span>
+  <button class="denik-vratit" id="denikVratit" type="button" hidden>Vrátit</button>
 </div>
 
 <div id="warnLayer">
@@ -2135,6 +2175,11 @@ body.detail-open { overflow: hidden; }
   var $ = function (id) { return document.getElementById(id); };
   var els = { md: $("md"), cur: $("cur"), hours: $("hours"), mins: $("mins"), dm: $("dm"), dy: $("dy") };
   var count = DEFAULTS.count;
+  var DL = window.DenikLogika;
+  var zapisy = [];
+  var denikPoskozen = false;
+  var lastDay = 0;
+  var posledniSmazany = null;
   var timerStart = null, timerTick = null;
   var mode = "md";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
@@ -2145,7 +2190,6 @@ body.detail-open { overflow: hidden; }
       if (!raw) return;
       var s = JSON.parse(raw);
       Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
-      if (typeof s.count === "number") count = s.count;
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
@@ -2168,13 +2212,13 @@ body.detail-open { overflow: hidden; }
     var v = parseFloat(String(el.value).replace(",", "."));
     return isFinite(v) && v >= 0 ? v : 0;
   }
-  function money(v) {
-    var cur = els.cur.value;
+  function fmtCur(v, cur) {
     var digits = v < 100 ? 2 : 0;
     try {
       return new Intl.NumberFormat("cs-CZ", { style: "currency", currency: cur, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
     } catch (e) { return v.toFixed(digits) + " " + cur; }
   }
+  function money(v) { return fmtCur(v, els.cur.value); }
   function n(v, d) {
     return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: d }).format(v);
   }
@@ -2194,7 +2238,97 @@ body.detail-open { overflow: hidden; }
     return hours > 0 ? dayRate() / (hours * 60) : 0;
   }
 
+  function nactiDenik() {
+    try {
+      var r = DL.parse(localStorage.getItem(DL.KEY));
+      zapisy = r.zapisy;
+      denikPoskozen = r.poskozeno;
+    } catch (e) { zapisy = []; }
+  }
+  // Writes the whole diary; called only after an add or delete (so damaged data survives until then).
+  function ulozDenik() {
+    try { localStorage.setItem(DL.KEY, DL.serializuj(zapisy)); denikPoskozen = false; } catch (e) {}
+  }
+  function noveId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function prepocitejPrumer() {
+    var p = DL.prumerStopek(zapisy);
+    if (p !== null) els.mins.value = Math.round(p * 10) / 10;
+  }
+
+  var listaEl = $("denikLista"), listaText = $("denikListaText"), vratitBtn = $("denikVratit");
+  var listaTimer = null;
+  function schovejListu() {
+    clearTimeout(listaTimer);
+    listaTimer = null;
+    listaEl.hidden = true;
+  }
+  function ukazListu(text, sVratit) {
+    listaText.textContent = text;
+    vratitBtn.hidden = !sVratit;
+    listaEl.hidden = false;
+    clearTimeout(listaTimer);
+    listaTimer = setTimeout(schovejListu, 6000);
+  }
+
+  function pridejZapis(min, zdroj, start) {
+    var cur = els.cur.value;
+    var z = DL.novyZapis(start, min, rateMin() * min, cur, zdroj, noveId());
+    if (!z) return null;
+    zapisy.push(z);
+    ulozDenik();
+    if (zdroj === "stopky") prepocitejPrumer();
+    bump();
+    render();
+    return z;
+  }
+
+  function smazZapis(id) {
+    var r = DL.odeber(zapisy, id);
+    if (!r.odebrany) return;
+    zapisy = r.zapisy;
+    posledniSmazany = r.odebrany;
+    ulozDenik();
+    prepocitejPrumer();
+    bump();
+    render();
+    ukazListu("Smazáno", true);
+  }
+
+  function vratZapis() {
+    var z = posledniSmazany;
+    posledniSmazany = null;
+    schovejListu();
+    if (!z) return;
+    zapisy.push(z);
+    ulozDenik();
+    prepocitejPrumer();
+    bump();
+    render();
+  }
+
+  function zapisRucne() {
+    var mins = num(els.mins);
+    if (mins <= 0) { ukazListu("Nejdřív vyplň průměr na návštěvu.", false); return; }
+    var z = pridejZapis(mins, "rucne", Date.now());
+    if (z) ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
+  }
+
+  function smazPosledniDnes() {
+    var dnes = DL.dnesni(zapisy, Date.now());
+    if (dnes.length) smazZapis(dnes[dnes.length - 1].id);
+  }
+
+  // Task 3 replaces this with the diary redraw; render() calls it every time.
+  var renderDenik = function () {};
+
   function render() {
+    var now = Date.now();
+    lastDay = DL.zacatekDne(now);
+    var dnes = DL.dnesni(zapisy, now);
+    var dnesSouhrn = DL.souhrn(dnes, -Infinity, Infinity);
+    count = dnes.length;
     var md = num(els.md), hours = num(els.hours), mins = num(els.mins);
     var dm = num(els.dm), dy = num(els.dy);
     var perMin = rateMin();
@@ -2203,8 +2337,9 @@ body.detail-open { overflow: hidden; }
     var perDay = perVisit * count;
 
     $("count").textContent = count;
-    $("rDay").textContent = money(perDay);
-    $("rDaySub").textContent = count + " " + visitsWord(count) + " × " + n(mins, 1) + " min = " + n(dayMins, 1) + " min placeného trůnu";
+    $("minus").disabled = count === 0;
+    $("rDay").textContent = DL.formatCastky(dnesSouhrn.castky, fmtCur, els.cur.value);
+    $("rDaySub").textContent = count + " " + visitsWord(count) + " · " + DL.fmtMin(dnesSouhrn.min) + " placeného trůnu";
     $("rMin").textContent = money(perMin);
     $("rVisit").textContent = money(perVisit);
     $("rMonth").textContent = money(perDay * dm);
@@ -2217,7 +2352,16 @@ body.detail-open { overflow: hidden; }
     $("fMd").textContent = hours > 0 ? n(yearHours / hours, 1) : "0";
     $("fRate").textContent = money(dayRate());
     save();
+    renderDenik();
   }
+
+  function zkontrolujDen() {
+    if (DL.zacatekDne(Date.now()) !== lastDay) render();
+  }
+  setInterval(zkontrolujDen, 60000);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") zkontrolujDen();
+  });
 
   function bump() {
     var c = $("count");
@@ -2230,8 +2374,10 @@ body.detail-open { overflow: hidden; }
     els[k].addEventListener("input", render);
     els[k].addEventListener("change", render);
   });
-  $("plus").addEventListener("click", function () { count++; bump(); render(); });
-  $("minus").addEventListener("click", function () { if (count > 0) count--; bump(); render(); });
+  $("plus").addEventListener("click", zapisRucne);
+  $("denikZapsat").addEventListener("click", zapisRucne);
+  $("minus").addEventListener("click", smazPosledniDnes);
+  vratitBtn.addEventListener("click", vratZapis);
 
   var rainTimer = null;
   var reduceMotion = false;
@@ -2359,32 +2505,32 @@ body.detail-open { overflow: hidden; }
       try { localStorage.setItem(Stopky.KEY, String(start)); } catch (e) {}
       startTimer(start);
     } else {
-      var elapsedMin = Stopky.elapsedMs(timerStart, Date.now()) / 60000;
+      var startMs = timerStart;
+      var elapsedMs = Stopky.elapsedMs(startMs, Date.now());
+      var elapsedMin = elapsedMs / 60000;
       clearInterval(timerTick);
       stopRain();
       timerStart = null;
       hideWarning();
       warned = false;
       try { localStorage.removeItem(Stopky.KEY); } catch (e) {}
-      // Update running average of visit length with the measured visit
-      var oldAvg = num(els.mins);
-      var newAvg = count > 0 ? (oldAvg * count + elapsedMin) / (count + 1) : elapsedMin;
-      els.mins.value = Math.round(newAvg * 10) / 10;
-      count++;
       btn.textContent = "Jdu na záchod";
       btn.classList.remove("timing");
-      note.textContent = "Návštěva trvala " + n(elapsedMin, 1) + " min. Započteno a průměr upraven.";
-      bump();
-      render();
+      if (elapsedMs < DL.MIN_MS) {
+        note.textContent = "Moc krátké, do deníku nezapsáno.";
+        render();
+      } else {
+        pridejZapis(elapsedMin, "stopky", startMs);
+        note.textContent = "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
+      }
     }
   });
 
   $("reset").addEventListener("click", function () {
     Object.keys(els).forEach(function (k) { els[k].value = DEFAULTS[k]; });
-    count = DEFAULTS.count;
     amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
     setMode("md", true);
-    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se přičte.";
+    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku.";
     render();
   });
 
@@ -2680,6 +2826,7 @@ body.detail-open { overflow: hidden; }
     loadTab("svet");
   }
 
+  nactiDenik();
   load();
   setMode(mode, true);
   render();
@@ -2697,7 +2844,8 @@ body.detail-open { overflow: hidden; }
   window.zachod = {
     timerStart: function () { return timerStart; },
     earned: function (ms) { return rateMin() * ms / 60000; },
-    money: money
+    money: money,
+    zapisy: function () { return zapisy; }
   };
 })();
 </script>
