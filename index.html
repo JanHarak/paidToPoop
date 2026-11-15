@@ -644,6 +644,9 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 .hry-stat { margin: .8rem 0 0; color: var(--muted); font-weight: 700; }
 .hry-detail .hra-btn { margin-top: 1rem; padding: .7rem 2rem; font-size: 1.05rem; }
 .pisk-obtiznost { width: auto; margin: 1rem 0 0; }
+.sachy-seg { width: auto; margin: .8rem 0 0; }
+.hry-detail .hra-btn-sek { margin-top: .6rem; background: transparent; color: var(--ink); border: 2px solid var(--line); }
+.hry-detail .hra-btn-sek[hidden] { display: none; }
 .seg-btn[aria-pressed="true"] {
   background: var(--porcelain);
   color: var(--ink);
@@ -1059,6 +1062,10 @@ body.detail-open { overflow: hidden; }
             <span class="hry-nazev">Piškvorky</span>
             <span class="hry-pod">Pět v řadě proti počítači</span>
           </button>
+          <button class="hry-polozka" type="button" data-hra="sachy" aria-pressed="false">
+            <span class="hry-nazev">Šachy</span>
+            <span class="hry-pod">Zahraj si proti počítači</span>
+          </button>
         </div>
         <div class="hry-detaily">
           <div class="hry-detail" data-hra="rulicka">
@@ -1076,6 +1083,21 @@ body.detail-open { overflow: hidden; }
             </div>
             <p class="hry-stat" id="piskStat">Výhry 0 · Prohry 0 · Remízy 0</p>
             <button class="hra-btn" id="piskHrajBtn" type="button">Zahraj si</button>
+          </div>
+          <div class="hry-detail" data-hra="sachy" hidden>
+            <p class="hra-panel-title">Šachy</p>
+            <p class="hra-panel-text">Zahraj si šachy proti počítači. Rozehranou partii si pamatuju, i když stránku zavřeš. Stopky sezení běží dál.</p>
+            <p class="hry-stat" id="sachyStat">Výhry 0 · Prohry 0 · Remízy 0</p>
+            <div class="seg sachy-seg" role="group" aria-label="Barva">
+              <button class="seg-btn sachy-barva" type="button" data-barva="b" aria-pressed="true">Bílé</button>
+              <button class="seg-btn sachy-barva" type="button" data-barva="c" aria-pressed="false">Černé</button>
+            </div>
+            <div class="seg sachy-seg" role="group" aria-label="Obtížnost">
+              <button class="seg-btn sachy-obt" type="button" data-obt="lehka" aria-pressed="true">Lehká</button>
+              <button class="seg-btn sachy-obt" type="button" data-obt="tezka" aria-pressed="false">Těžká</button>
+            </div>
+            <button class="hra-btn" id="sachyHrajBtn" type="button">Zahraj si</button>
+            <button class="hra-btn hra-btn-sek" id="sachyNovaBtn" type="button" hidden>Nová partie</button>
           </div>
         </div>
       </div>
@@ -3295,8 +3317,37 @@ body.detail-open { overflow: hidden; }
     };
   }
 
+  function nezapNum(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+  }
+
+  function parseUlozeni(raw) {
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!o || typeof o !== "object" || o instanceof Array) o = {};
+    var partie = null;
+    var p = o.partie;
+    if (p && typeof p === "object" && (p.barva === "b" || p.barva === "c") &&
+        (p.obtiznost === "lehka" || p.obtiznost === "tezka") && p.tahy instanceof Array) {
+      var ok = true;
+      for (var i = 0; i < p.tahy.length; i++) {
+        if (typeof p.tahy[i] !== "string" || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(p.tahy[i])) { ok = false; break; }
+      }
+      if (ok) partie = { barva: p.barva, obtiznost: p.obtiznost, tahy: p.tahy.slice() };
+    }
+    return {
+      vyhry: nezapNum(o.vyhry),
+      prohry: nezapNum(o.prohry),
+      remizy: nezapNum(o.remizy),
+      barva: o.barva === "c" ? "c" : "b",
+      obtiznost: o.obtiznost === "tezka" ? "tezka" : "lehka",
+      partie: partie
+    };
+  }
+
   window.SachyLogika = {
     START_FEN: START_FEN,
+    parseUlozeni: parseUlozeni,
     nejlepsiTah: nejlepsiTah,
     spustVWorkeru: spustVWorkeru,
     zFen: zFen,
@@ -3414,6 +3465,8 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
+  // Temporary: until the chess UI exists, hide the entry when its logic is missing.
+  if (!window.SachyLogika) odeber("sachy");
 })();
 </script>
 <script id="hra-ui">

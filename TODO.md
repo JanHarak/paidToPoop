@@ -6,3 +6,7 @@
   - Kandidáti: The Guardian Open Platform (celý text, ale anglicky, free klíč je nekomerční, ověřit podmínky), placené licencované API (World News API, NewsData.io, ověřit licenci k veřejnému zobrazení).
   - Proč ne stahování textu z českých webů: aplikace je veřejná a vydavatelé přebírání obsahu zakazují. iROZHLAS, ČT24, iDNES, Peníze.cz a Měšec.cz navíc blokují vložení do iframe.
 - [ ] **Víc finančních zdrojů.** Peníze.cz, Měšec.cz, E15, HN Byznys, Kurzy.cz, Finparáda, Roklen24 mají RSS, ale bez CORS. Načíst je půjde až přes malou serverovou funkci (proxy), například na Vercelu.
+
+## Hry
+
+- [ ] **Silný šachový soupeř.** Teď jsou úrovně Lehká a Těžká (střední síla, vlastní engine). Podle zpětné vazby přidat silnou úroveň, třeba Stockfish (WASM) načtený až při výběru této úrovně.
