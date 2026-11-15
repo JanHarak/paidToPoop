@@ -410,6 +410,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   white-space: nowrap;
   pointer-events: none;
 }
+/* With the stopwatch shown in the clock, keep it on screen on the narrowest phones. */
+@media (max-width: 360px) {
+  .clock { font-size: .72rem; padding: .3rem .6rem; }
+}
 /* Warning (20 min) */
 .warn-tint {
   position: fixed;
@@ -2768,7 +2772,13 @@ body.detail-open { overflow: hidden; }
 
   var clockEl = $("clock");
   function tickClock() {
-    var t = ZK.formatClock(new Date());
+    var now = Date.now();
+    var t = ZK.formatClock(new Date(now));
+    // While the stopwatch runs, the clock also shows its time and earnings.
+    if (timerStart !== null) {
+      var ms = Stopky.elapsedMs(timerStart, now);
+      t += " | " + Stopky.fmtTime(ms) + " | " + money(rateMin() * ms / 60000);
+    }
     if (clockEl.textContent !== t) clockEl.textContent = t;
   }
   tickClock();
@@ -2844,6 +2854,7 @@ body.detail-open { overflow: hidden; }
       var elapsed = Stopky.elapsedMs(timerStart, Date.now());
       var earned = rateMin() * (elapsed / 60000);
       note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + money(earned);
+      tickClock();
       checkWarning();
     };
     tick();
@@ -2864,6 +2875,7 @@ body.detail-open { overflow: hidden; }
       clearInterval(timerTick);
       stopRain();
       timerStart = null;
+      tickClock();
       hideWarning();
       warned = false;
       try { localStorage.removeItem(Stopky.KEY); } catch (e) {}
