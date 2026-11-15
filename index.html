@@ -43,6 +43,12 @@
   --hra-dutinka: #d9b77e;
   --hra-stul-hrana: #bcd3d6;
   --hra-stul-deska: #ffffff;
+  --splachni-k0: #e1e5ef;
+  --splachni-k1: #f2dcc3;
+  --splachni-k2: #d2e7f8;
+  --splachni-k3: #d7eed0;
+  --splachni-k4: #f6d5dc;
+  --splachni-k5: #f3edbf;
   --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
   color-scheme: light;
   box-sizing: border-box;
@@ -65,6 +71,12 @@
     --hra-dutinka: #c9a46a;
     --hra-stul-hrana: #5f8a91;
     --hra-stul-deska: #1f3b42;
+    --splachni-k0: #39405a;
+    --splachni-k1: #4f3a26;
+    --splachni-k2: #20455f;
+    --splachni-k3: #2b4c2e;
+    --splachni-k4: #57303b;
+    --splachni-k5: #4c4720;
     --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -84,6 +96,12 @@
   --hra-dutinka: #c9a46a;
   --hra-stul-hrana: #5f8a91;
   --hra-stul-deska: #1f3b42;
+  --splachni-k0: #39405a;
+  --splachni-k1: #4f3a26;
+  --splachni-k2: #20455f;
+  --splachni-k3: #2b4c2e;
+  --splachni-k4: #57303b;
+  --splachni-k5: #4c4720;
   --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -714,10 +732,10 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   flex: none;
   height: min(72vh, 520px);
 }
-#hraCela svg, #piskCela svg, #sachyCela svg { display: block; margin: 0 auto; }
-#hraCela .ikona-zmensit, #piskCela .ikona-zmensit, #sachyCela .ikona-zmensit { display: none; }
-#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout, #sachyCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
-#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit, #sachyCela[aria-pressed="true"] .ikona-zmensit { display: block; }
+#hraCela svg, #piskCela svg, #sachyCela svg, #splachniCela svg { display: block; margin: 0 auto; }
+#hraCela .ikona-zmensit, #piskCela .ikona-zmensit, #sachyCela .ikona-zmensit, #splachniCela .ikona-zmensit { display: none; }
+#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout, #sachyCela[aria-pressed="true"] .ikona-roztahnout, #splachniCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
+#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit, #sachyCela[aria-pressed="true"] .ikona-zmensit, #splachniCela[aria-pressed="true"] .ikona-zmensit { display: block; }
 /* Gomoku: a scrollable grid of buttons */
 .hra-hlava #piskSkore { color: var(--ink); font-weight: 700; }
 .hra-hlava #piskStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
@@ -933,6 +951,117 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   cursor: pointer;
 }
 .sachy-volba button.vedlejsi { border-color: var(--line); background: var(--porcelain); }
+/* Splachni to: 64 tile buttons in fixed cells; animations only move them with transform. */
+.hra-hlava #splachniBody { color: var(--ink); font-weight: 700; }
+.hra-hlava #splachniZbyva[hidden] { display: none; }
+.hra-hlava #splachniStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.hra-hlava #splachniPauza { font-size: .9rem; padding: 0 .8rem; }
+.hra-hlava #splachniPauza[hidden] { display: none; }
+#splachniStav { margin: 0; font-weight: 700; }
+.splachni-plocha {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  container-type: size;
+}
+.hra-inline .splachni-plocha { flex: none; container-type: normal; }
+.splachni-deska {
+  position: relative;
+  width: min(100%, 72vh);
+  aspect-ratio: 1 / 1;
+  container-type: inline-size;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--grout);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.splachni:not(.hra-inline) .splachni-deska { width: min(100cqw, 100cqh); }
+.splachni-deska.pauza::after { content: ""; position: absolute; inset: 0; z-index: 2; background: var(--grout); opacity: .85; }
+.splachni-radek { display: contents; }
+.splachni-dlazdice {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12.5%;
+  height: 12.5%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-size: 7.5cqw;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.splachni-dlazdice::before {
+  content: "";
+  position: absolute;
+  inset: 5%;
+  z-index: -1;
+  border-radius: 22%;
+  background: var(--splachni-tint, var(--porcelain));
+}
+.splachni-dlazdice.k0 { --splachni-tint: var(--splachni-k0); }
+.splachni-dlazdice.k1 { --splachni-tint: var(--splachni-k1); }
+.splachni-dlazdice.k2 { --splachni-tint: var(--splachni-k2); }
+.splachni-dlazdice.k3 { --splachni-tint: var(--splachni-k3); }
+.splachni-dlazdice.k4 { --splachni-tint: var(--splachni-k4); }
+.splachni-dlazdice.k5 { --splachni-tint: var(--splachni-k5); }
+.splachni-dlazdice.houba { --splachni-tint: var(--brass-soft); }
+.splachni-dlazdice.houba::before, .splachni-dlazdice.zachod::before { box-shadow: inset 0 0 0 2px var(--brass); }
+.splachni-dlazdice.hybe { z-index: 1; }
+.splachni-smer {
+  position: absolute;
+  right: 9%;
+  bottom: 6%;
+  font-family: system-ui, sans-serif;
+  font-size: .7rem;
+  font-size: 3cqw;
+  font-weight: 700;
+  color: var(--ink);
+}
+.splachni-smer:empty { display: none; }
+.splachni-dlazdice.vyber::after {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 24%;
+  box-shadow: inset 0 0 0 4px var(--brass);
+  pointer-events: none;
+}
+.splachni-dlazdice:focus { outline: none; }
+.splachni-dlazdice:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 1%;
+  border-radius: 24%;
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+  pointer-events: none;
+}
+.splachni-dlazdice.vyber:focus-visible::after { box-shadow: inset 0 0 0 4px var(--brass); }
+#splachniKonec { background: rgba(8, 24, 28, .25); }
+@media (prefers-reduced-motion: reduce) {
+  .splachni-dlazdice { transition: none !important; }
+}
 .seg-btn { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .news-list { display: flex; flex-direction: column; }
@@ -1391,6 +1520,36 @@ body.detail-open { overflow: hidden; }
       <div class="sachy-volba-tlacitka">
         <button type="button" id="sachyVzdatAno">Vzdát</button>
         <button type="button" class="vedlejsi" id="sachyVzdatNe">Hrát dál</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="splachni" class="vrstva splachni" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="splachniTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="splachniTitul">Spláchni to!</h2>
+    <div class="hra-info">
+      <span id="splachniBody">Spláchnuto: 0</span>
+      <span id="splachniZbyva">Tahů: 25</span>
+      <button id="splachniPauza" type="button" hidden>Pauza</button>
+    </div>
+    <span id="splachniStopky" hidden>0:00</span>
+    <button id="splachniCela" type="button" aria-label="Celá obrazovka" title="Celá obrazovka" aria-pressed="false"><svg class="ikona-roztahnout" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 7V2h5M11 2h5v5M16 11v5h-5M7 16H2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ikona-zmensit" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M7 2v5H2M16 7h-5V2M11 16v-5h5M2 11h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="splachniZavrit" type="button" aria-label="Ukončit hru" title="Ukončit hru">×</button>
+  </div>
+  <div class="pisk-lista">
+    <p id="splachniStav" role="status">Prohoď dvě sousední věci.</p>
+  </div>
+  <div class="splachni-plocha" id="splachniPlocha">
+    <div class="splachni-deska" id="splachniDeska" role="grid" aria-label="Hrací plocha 8 × 8"></div>
+    <div class="hra-hlaska" id="splachniKonec" hidden>
+      <div class="hra-hlaska-box">
+        <p id="splachniKonecText">Spláchnuto: 0</p>
+        <p id="splachniKonecRekord" hidden>Nový rekord!</p>
+        <div class="hra-hlaska-tlacitka">
+          <button type="button" id="splachniZnovu">Hrát znovu</button>
+          <button type="button" id="splachniKonecZavrit" class="vedlejsi">Ukončit hru</button>
+        </div>
       </div>
     </div>
   </div>
@@ -4061,8 +4220,6 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
-  // Temporary: Task 3 wires the game and removes this rule.
-  if (!window.SplachniLogika) window.HrySeznam.odeber("splachni");
 })();
 </script>
 <script id="hra-ui">
@@ -5805,6 +5962,676 @@ body.detail-open { overflow: hidden; }
   }
 })();
 </script>
+<script id="splachni-ui">
+(function () {
+  var HS = window.HrySeznam;
+  var failed = false;
+  function hideEntry(err, msg) {
+    if (failed) return;
+    failed = true;
+    if (HS) HS.odeber("splachni");
+    if (window.console) console.error(msg, err);
+  }
+  try {
+    init();
+  } catch (err) {
+    hideEntry(err, "Splachni se nenacetlo");
+  }
+
+  function init() {
+    var L = window.SplachniLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!L || !V || !Z || !S || !HS) throw new Error("chybi zavislosti splachni");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi #" + id);
+      return el;
+    };
+    var KEY = "zachodova-splachni-v1";
+    var N = L.N, TAHU = 25, CAS_MS = 90000;
+    var hraEl = $("splachni"), deska = $("splachniDeska"), stav = $("splachniStav");
+    var bodyEl = $("splachniBody"), zbyvaEl = $("splachniZbyva"), stopky = $("splachniStopky");
+    var pauzaBtn = $("splachniPauza"), cela = $("splachniCela"), zavrit = $("splachniZavrit");
+    var konecEl = $("splachniKonec"), konecText = $("splachniKonecText"), konecRekord = $("splachniKonecRekord");
+    var znovuBtn = $("splachniZnovu"), konecZavrit = $("splachniKonecZavrit");
+    var hrajBtn = $("splachniHrajBtn"), novaBtn = $("splachniNovaBtn"), popisEl = $("splachniRezimPopis");
+    var rekordEl = $("splachniRekord"), potvrzeni = $("splachniPotvrzeni");
+    var novaAno = $("splachniNovaAno"), novaNe = $("splachniNovaNe");
+    var slot = $("hraSlot"), hraPanel = $("hraPanel"), warnModal = $("warnModal");
+    var rezimBtns = document.querySelectorAll(".splachni-rezim[data-rezim]");
+    var NAZVY = ["sponka", "káva", "mail", "graf", "porada", "tiskárna"];
+    var POPIS = {
+      tahy: "25 tahů na co nejvíc bodů.",
+      cas: "90 sekund, spláchni, co stihneš.",
+      nekonecna: "Hraj bez konce, hru si pamatuju."
+    };
+    var VYCHOZI_STAV = "Prohoď dvě sousední věci.";
+
+    function cislo(n) {
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+    function trvani(ms) {
+      var reduce = false;
+      try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+      return reduce ? 1 : ms;
+    }
+
+    // ---- saved data ----
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    var ulozeni = L.parseUlozeni(raw);
+    // hra: {rezim, deska, body, tahu, zbyvaMs, konec, novyRekord}
+    // tahy and cas live only in memory; nekonecna is also saved
+    var hry = { tahy: null, cas: null, nekonecna: null };
+    function novaHra(rezim) {
+      return { rezim: rezim, deska: L.novaDeska(Math.random), body: 0, tahu: TAHU, zbyvaMs: CAS_MS, konec: false, novyRekord: false };
+    }
+    if (ulozeni.nekonecna) {
+      hry.nekonecna = {
+        rezim: "nekonecna", deska: ulozeni.nekonecna.deska.slice(), body: ulozeni.nekonecna.body,
+        tahu: 0, zbyvaMs: 0, konec: false, novyRekord: false
+      };
+    }
+    function save() {
+      var n = hry.nekonecna && !hry.nekonecna.konec ? { deska: hry.nekonecna.deska.slice(), body: hry.nekonecna.body } : null;
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ rezim: ulozeni.rezim, rekordy: ulozeni.rekordy, nekonecna: n }));
+      } catch (e) {}
+    }
+    function rozehrana(rezim) {
+      var h = hry[rezim];
+      return !!(h && !h.konec);
+    }
+
+    // ---- detail ----
+    function detailUI() {
+      var r = ulozeni.rezim;
+      for (var i = 0; i < rezimBtns.length; i++) {
+        rezimBtns[i].setAttribute("aria-pressed", String(rezimBtns[i].getAttribute("data-rezim") === r));
+      }
+      popisEl.textContent = POPIS[r];
+      rekordEl.textContent = "Rekord: " + cislo(ulozeni.rekordy[r]);
+      hrajBtn.textContent = rozehrana(r) ? "Pokračovat" : "Zahraj si";
+      if (!rozehrana(r)) potvrzeni.hidden = true;
+      novaBtn.hidden = !rozehrana(r) || !potvrzeni.hidden;
+    }
+    for (var rb = 0; rb < rezimBtns.length; rb++) {
+      rezimBtns[rb].addEventListener("click", function () {
+        var r = this.getAttribute("data-rezim");
+        if (!POPIS[r]) return;
+        ulozeni.rezim = r;
+        potvrzeni.hidden = true;
+        save();
+        detailUI();
+      });
+    }
+
+    // ---- board cells, built once; a cell never moves in the DOM ----
+    var cells = [], glyphs = [], smery = [], shownKod = [], shownLabel = [], shownCls = [];
+    for (var r = 0; r < N; r++) {
+      var row = document.createElement("div");
+      row.className = "splachni-radek";
+      row.setAttribute("role", "row");
+      deska.appendChild(row);
+      for (var c = 0; c < N; c++) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "splachni-dlazdice";
+        b.setAttribute("role", "gridcell");
+        b.setAttribute("data-i", String(r * N + c));
+        b.tabIndex = -1;
+        var g = document.createElement("span");
+        g.setAttribute("aria-hidden", "true");
+        var sm = document.createElement("span");
+        sm.className = "splachni-smer";
+        sm.setAttribute("aria-hidden", "true");
+        b.appendChild(g);
+        b.appendChild(sm);
+        row.appendChild(b);
+        cells.push(b);
+        glyphs.push(g);
+        smery.push(sm);
+        shownKod.push(undefined);
+        shownLabel.push(null);
+        shownCls.push(null);
+      }
+    }
+    function poz(i, dy, skryt) {
+      var x = i % N, y = Math.floor(i / N) + (dy || 0);
+      return "translate(" + (x * 100) + "%," + (y * 100) + "%)" + (skryt ? " scale(0)" : "");
+    }
+
+    // ---- game state ----
+    var hra = null, zobr = [], bodyZobr = 0;
+    var vybrano = -1, focusIdx = 27, open = false, full = false, endAfterFull = false, pauza = false;
+    var bezi = false, animTok = 0, casovace = [], stopkyId = 0, casId = 0, posledni = 0;
+
+    function popisek(i, kod) {
+      var t = "Řádek " + (Math.floor(i / N) + 1) + ", sloupec " + (i % N + 1) + ", ";
+      if (kod == null) t += "prázdné";
+      else if (kod === 30) t += "houbička";
+      else if (kod >= 10) t += "záchod, " + NAZVY[kod % 10] + (kod < 20 ? ", spláchne řádek" : ", spláchne sloupec");
+      else t += NAZVY[kod];
+      return t + (i === vybrano ? ", vybráno" : "");
+    }
+    // Shows code kod in cell i (content, tint, label); position is set separately.
+    function nastav(i, kod) {
+      var cell = cells[i];
+      if (shownKod[i] !== kod) {
+        shownKod[i] = kod;
+        glyphs[i].textContent = kod == null ? "" : kod === 30 ? L.HOUBA : kod >= 10 ? L.ZACHOD : L.EMOJI[kod];
+        smery[i].textContent = kod >= 10 && kod < 20 ? "↔" : kod >= 20 && kod < 30 ? "↕" : "";
+        cell.setAttribute("data-kod", kod == null ? "" : String(kod));
+      }
+      var cls = "splachni-dlazdice" + (kod == null ? "" : kod === 30 ? " houba" : " k" + (kod % 10) + (kod >= 10 ? " zachod" : "")) +
+        (i === vybrano ? " vyber" : "");
+      if (shownCls[i] !== cls) {
+        shownCls[i] = cls;
+        cell.className = cls;
+      }
+      var lbl = popisek(i, kod);
+      if (shownLabel[i] !== lbl) {
+        shownLabel[i] = lbl;
+        cell.setAttribute("aria-label", lbl);
+      }
+      var sel = i === vybrano ? "true" : "false";
+      if (cell.getAttribute("aria-selected") !== sel) cell.setAttribute("aria-selected", sel);
+    }
+    function umisti(i, dy, skryt, ms) {
+      var st = cells[i].style;
+      st.transition = ms ? "transform " + ms + "ms ease, opacity " + ms + "ms ease" : "none";
+      st.transform = poz(i, dy, skryt);
+      st.opacity = skryt ? "0" : "1";
+    }
+    // Draws the board d with no animation.
+    function vykresli(d) {
+      zobr = d.slice();
+      for (var i = 0; i < N * N; i++) {
+        cells[i].classList.remove("hybe");
+        nastav(i, zobr[i]);
+        umisti(i, 0, false, 0);
+      }
+    }
+    function oznaceni() {
+      for (var i = 0; i < N * N; i++) nastav(i, zobr[i]);
+    }
+    function info() {
+      if (!hra) return;
+      bodyEl.textContent = "Spláchnuto: " + cislo(bodyZobr);
+      if (hra.rezim === "tahy") {
+        zbyvaEl.textContent = "Tahů: " + hra.tahu;
+        zbyvaEl.hidden = false;
+      } else if (hra.rezim === "cas") {
+        zbyvaEl.textContent = S.fmtTime(Math.ceil(hra.zbyvaMs / 1000) * 1000);
+        zbyvaEl.hidden = false;
+      } else {
+        zbyvaEl.hidden = true;
+      }
+      pauzaBtn.hidden = hra.rezim !== "cas" || hra.konec;
+      pauzaBtn.textContent = pauza ? "Pokračovat" : "Pauza";
+      deska.classList.toggle("pauza", pauza && !hra.konec);
+      konecEl.hidden = !hra.konec;
+      if (hra.konec) {
+        konecText.textContent = "Spláchnuto: " + cislo(hra.body);
+        konecRekord.hidden = !hra.novyRekord;
+      }
+    }
+    function setStav(t) {
+      if (stav.textContent !== t) stav.textContent = t;
+    }
+    function klidovyStav() {
+      if (!hra) return;
+      setStav(hra.konec ? "Konec hry" : pauza ? "Pauza" : VYCHOZI_STAV);
+    }
+    function setRoving(i) {
+      if (cells[focusIdx]) cells[focusIdx].tabIndex = -1;
+      focusIdx = i;
+      cells[i].tabIndex = 0;
+    }
+    function focusEl(el) {
+      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    }
+    function focusCell() {
+      focusEl(cells[focusIdx]);
+    }
+    function zrusVyber() {
+      if (vybrano < 0) return;
+      vybrano = -1;
+      oznaceni();
+    }
+
+    // ---- animation sequencing ----
+    function pozdeji(tok, ms, fn) {
+      var id = setTimeout(function () {
+        if (tok !== animTok) return;
+        try { fn(); } catch (err) { fail(err); }
+      }, ms);
+      casovace.push(id);
+    }
+    // Stops any animation. The move itself was already applied to hra when it was played.
+    function zrusAnimaci() {
+      animTok++;
+      for (var i = 0; i < casovace.length; i++) clearTimeout(casovace[i]);
+      casovace = [];
+      if (bezi) {
+        bezi = false;
+        bodyZobr = hra ? hra.body : 0;
+        if (hra) vykresli(hra.deska);
+      }
+    }
+    function animujProhozeni(a, bb, ms) {
+      var ay = Math.floor(a / N), by = Math.floor(bb / N), ax = a % N, bx = bb % N;
+      cells[a].classList.add("hybe");
+      cells[bb].classList.add("hybe");
+      var sa = cells[a].style, sb = cells[bb].style;
+      sa.transition = sb.transition = ms ? "transform " + ms + "ms ease" : "none";
+      sa.transform = "translate(" + (bx * 100) + "%," + (by * 100) + "%)";
+      sb.transform = "translate(" + (ax * 100) + "%," + (ay * 100) + "%)";
+    }
+    function dokonci() {
+      bezi = false;
+      vykresli(hra.deska);
+      bodyZobr = hra.body;
+      klidovyStav();
+      info();
+      zkontrolujKonec(true);
+    }
+    function prehrajKrok(tok, kroky, k) {
+      if (k >= kroky.length) { dokonci(); return; }
+      var krok = kroky[k], i, d1 = trvani(180), d2 = trvani(220);
+      if (krok.retez > 1) setStav("Řetěz ×" + krok.retez);
+      for (i = 0; i < krok.splach.length; i++) umisti(krok.splach[i], 0, true, d1);
+      pozdeji(tok, d1, function () {
+        var posun = {}, sl, novych = [0, 0, 0, 0, 0, 0, 0, 0], j, p;
+        for (j = 0; j < krok.splach.length; j++) { zobr[krok.splach[j]] = null; posun[krok.splach[j]] = 0; }
+        for (j = 0; j < krok.vznik.length; j++) { zobr[krok.vznik[j].i] = krok.vznik[j].kod; posun[krok.vznik[j].i] = 0; }
+        for (j = 0; j < krok.pady.length; j++) {
+          p = krok.pady[j];
+          zobr[p.na] = p.kod;
+          zobr[p.z] = null;
+          posun[p.na] = Math.floor(p.z / N) - Math.floor(p.na / N);
+          if (!(p.z in posun)) posun[p.z] = 0;
+        }
+        for (j = 0; j < krok.nove.length; j++) novych[krok.nove[j].i % N]++;
+        for (j = 0; j < krok.nove.length; j++) {
+          zobr[krok.nove[j].i] = krok.nove[j].kod;
+          posun[krok.nove[j].i] = -novych[krok.nove[j].i % N];
+        }
+        for (sl in posun) {
+          j = Number(sl);
+          nastav(j, zobr[j]);
+          umisti(j, posun[j], false, 0);
+        }
+        void deska.offsetWidth; // start positions take effect before the transition
+        for (sl in posun) {
+          j = Number(sl);
+          if (posun[j]) umisti(j, 0, false, d2);
+        }
+        bodyZobr += krok.body;
+        info();
+        pozdeji(tok, d2, function () {
+          if (krok.zamichano && krok.deska) {
+            setStav("Žádný tah, míchám…");
+            pozdeji(tok, trvani(700), function () {
+              vykresli(krok.deska);
+              prehrajKrok(tok, kroky, k + 1);
+            });
+          } else {
+            prehrajKrok(tok, kroky, k + 1);
+          }
+        });
+      });
+    }
+
+    // ---- moves ----
+    function muzeHrat() {
+      return open && !!hra && !hra.konec && !bezi && !pauza && !(hra.rezim === "cas" && hra.zbyvaMs <= 0);
+    }
+    function soused(a, bb) {
+      if (a < 0 || bb < 0 || a >= N * N || bb >= N * N) return false;
+      if (Math.abs(a - bb) === N) return true;
+      return Math.abs(a - bb) === 1 && Math.floor(a / N) === Math.floor(bb / N);
+    }
+    function prohod(a, bb) {
+      if (!muzeHrat() || !soused(a, bb)) return;
+      vybrano = -1;
+      oznaceni();
+      var res = L.tah(hra.deska, a, bb, Math.random);
+      var tok = ++animTok, d = trvani(180);
+      bezi = true;
+      animujProhozeni(a, bb, d);
+      if (!res.platny) {
+        setStav("Tady nic nevznikne.");
+        pozdeji(tok, d, function () {
+          umisti(a, 0, false, d);
+          umisti(bb, 0, false, d);
+          pozdeji(tok, d, function () {
+            bezi = false;
+            cells[a].classList.remove("hybe");
+            cells[bb].classList.remove("hybe");
+          });
+        });
+        return;
+      }
+      // Apply the whole move now; the animation only shows it.
+      hra.deska = res.deska;
+      hra.body += res.body;
+      if (hra.rezim === "tahy") hra.tahu = Math.max(0, hra.tahu - 1);
+      if (hra.rezim === "nekonecna") {
+        if (hra.body > ulozeni.rekordy.nekonecna) ulozeni.rekordy.nekonecna = hra.body;
+        save();
+      }
+      setStav(VYCHOZI_STAV);
+      info();
+      pozdeji(tok, d, function () {
+        var t = zobr[a];
+        zobr[a] = zobr[bb];
+        zobr[bb] = t;
+        cells[a].classList.remove("hybe");
+        cells[bb].classList.remove("hybe");
+        nastav(a, zobr[a]);
+        nastav(bb, zobr[bb]);
+        umisti(a, 0, false, 0);
+        umisti(bb, 0, false, 0);
+        prehrajKrok(tok, res.kroky, 0);
+      });
+    }
+    function zkontrolujKonec(fokus) {
+      if (!hra || hra.konec || bezi) return;
+      if (hra.rezim === "tahy" && hra.tahu <= 0) ukonci(fokus);
+      else if (hra.rezim === "cas" && hra.zbyvaMs <= 0) ukonci(fokus);
+    }
+    function ukonci(fokus) {
+      hra.konec = true;
+      vybrano = -1;
+      pauza = false;
+      hra.novyRekord = hra.body > ulozeni.rekordy[hra.rezim];
+      if (hra.novyRekord) ulozeni.rekordy[hra.rezim] = hra.body;
+      save();
+      oznaceni();
+      klidovyStav();
+      info();
+      if (fokus && open) focusEl(znovuBtn);
+    }
+    function fail(err) {
+      zrusAnimaci();
+      try { if (open) closeGame(); } catch (e) {}
+      hideEntry(err, "Splachni spadlo");
+    }
+
+    // ---- timers ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      stopky.hidden = false;
+    }
+    function casBezi() {
+      return open && !!hra && hra.rezim === "cas" && !hra.konec && !pauza && hra.zbyvaMs > 0 &&
+        !document.hidden && !hraPanel.hidden && warnModal.hidden;
+    }
+    function tickCas() {
+      var ted = performance.now(), delta = Math.min(1000, Math.max(0, ted - posledni));
+      posledni = ted;
+      if (!casBezi()) return;
+      try {
+        hra.zbyvaMs = Math.max(0, hra.zbyvaMs - delta);
+        info();
+        if (hra.zbyvaMs <= 0) zkontrolujKonec(true);
+      } catch (err) {
+        fail(err);
+      }
+    }
+    document.addEventListener("visibilitychange", function () { posledni = performance.now(); });
+
+    // ---- open / close, mirroring #sachy-ui ----
+    function setMode(isFull) {
+      full = isFull;
+      hraEl.classList.toggle("hra-inline", !isFull);
+      if (isFull) {
+        hraEl.setAttribute("role", "dialog");
+        hraEl.setAttribute("aria-modal", "true");
+      } else {
+        hraEl.removeAttribute("role");
+        hraEl.removeAttribute("aria-modal");
+      }
+      cela.setAttribute("aria-pressed", String(isFull));
+      cela.setAttribute("aria-label", isFull ? "Zmenšit hru" : "Celá obrazovka");
+      cela.title = cela.getAttribute("aria-label");
+    }
+    function closeGame() {
+      if (!open) return;
+      if (full) { endAfterFull = true; V.close(hraEl); return; }
+      zrusAnimaci();
+      zkontrolujKonec(false);
+      open = false;
+      vybrano = -1;
+      if (stopkyId) clearInterval(stopkyId);
+      if (casId) clearInterval(casId);
+      stopkyId = 0;
+      casId = 0;
+      hraEl.hidden = true;
+      HS.zobrazMenu();
+      detailUI();
+      focusMenu();
+    }
+    function focusMenu() {
+      // after a failure the entry may already be gone, so fall back to what is visible
+      var t = hrajBtn.offsetParent ? hrajBtn : null;
+      var menu = document.getElementById("hryMenu");
+      var sels = [".hry-detail .hra-btn", ".hry-polozka"];
+      for (var s = 0; s < sels.length && !t && menu; s++) {
+        var list = menu.querySelectorAll(sels[s]);
+        for (var k = 0; k < list.length && !t; k++) if (list[k].offsetParent) t = list[k];
+      }
+      if (t) t.focus();
+    }
+    function zacni(rezim) {
+      zrusAnimaci();
+      hry[rezim] = novaHra(rezim);
+      hra = hry[rezim];
+      if (rezim === "nekonecna") save();
+      vybrano = -1;
+      pauza = false;
+      bodyZobr = 0;
+      setRoving(27);
+      vykresli(hra.deska);
+    }
+    function openGame(znovu) {
+      if (open) return;
+      potvrzeni.hidden = true;
+      var rezim = ulozeni.rezim;
+      if (znovu || !rozehrana(rezim)) {
+        zacni(rezim);
+      } else {
+        hra = hry[rezim];
+        bodyZobr = hra.body;
+        vybrano = -1;
+        vykresli(hra.deska);
+      }
+      pauza = false;
+      open = true;
+      setMode(false);
+      slot.appendChild(hraEl);
+      HS.skryjMenu();
+      hraEl.hidden = false;
+      klidovyStav();
+      info();
+      tickStopky();
+      stopkyId = setInterval(tickStopky, 1000);
+      posledni = performance.now();
+      casId = setInterval(tickCas, 250);
+      zkontrolujKonec(true);
+      if (!hra.konec) focusCell();
+      if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
+    }
+    function onFullClose() {
+      // Vrstvy hid the element; put it back into the tab.
+      setMode(false);
+      slot.appendChild(hraEl);
+      hraEl.hidden = false;
+      if (endAfterFull) {
+        endAfterFull = false;
+        closeGame();
+      } else {
+        if (hra && hra.konec) focusEl(znovuBtn); else focusCell();
+        if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function toggleFull() {
+      if (!open) return;
+      if (full) { V.close(hraEl); return; }
+      setMode(true);
+      document.body.appendChild(hraEl);
+      V.open(hraEl, { onClose: onFullClose, initialFocus: hra && hra.konec ? znovuBtn : cells[focusIdx] });
+    }
+
+    hrajBtn.addEventListener("click", function () { openGame(false); });
+    // A game in progress is discarded only after confirming, as in the chess detail.
+    novaBtn.addEventListener("click", function () {
+      if (!rozehrana(ulozeni.rezim)) { openGame(true); return; }
+      potvrzeni.hidden = false;
+      detailUI();
+      novaNe.focus();
+    });
+    novaAno.addEventListener("click", function () { openGame(true); });
+    function zpetZPotvrzeni() {
+      potvrzeni.hidden = true;
+      detailUI();
+      novaBtn.focus();
+    }
+    novaNe.addEventListener("click", zpetZPotvrzeni);
+    potvrzeni.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); zpetZPotvrzeni(); }
+    });
+    cela.addEventListener("click", toggleFull);
+    zavrit.addEventListener("click", closeGame);
+    konecZavrit.addEventListener("click", closeGame);
+    znovuBtn.addEventListener("click", function () {
+      if (!open || !hra) return;
+      try {
+        zacni(hra.rezim);
+        klidovyStav();
+        info();
+        posledni = performance.now();
+        focusCell();
+      } catch (err) {
+        fail(err);
+      }
+    });
+    pauzaBtn.addEventListener("click", function () {
+      if (!open || !hra || hra.rezim !== "cas" || hra.konec) return;
+      pauza = !pauza;
+      vybrano = -1;
+      oznaceni();
+      posledni = performance.now();
+      if (!bezi) klidovyStav();
+      info();
+    });
+
+    // ---- input: tap, drag, keyboard ----
+    function klik(i) {
+      if (!muzeHrat()) return;
+      setRoving(i);
+      if (vybrano >= 0 && soused(vybrano, i)) {
+        prohod(vybrano, i);
+        return;
+      }
+      vybrano = vybrano === i ? -1 : i;
+      oznaceni();
+    }
+    var tah = null, potlacKlik = false;
+    function bunka(e) {
+      var t = e.target && e.target.closest ? e.target.closest(".splachni-dlazdice") : null;
+      return t && deska.contains(t) ? Number(t.getAttribute("data-i")) : -1;
+    }
+    deska.addEventListener("pointerdown", function (e) {
+      potlacKlik = false;
+      if (e.button !== undefined && e.button !== 0) return;
+      var i = bunka(e);
+      if (i < 0 || !muzeHrat()) { tah = null; return; }
+      tah = { id: e.pointerId, i: i, x: e.clientX, y: e.clientY };
+    });
+    deska.addEventListener("pointermove", function (e) {
+      if (!tah || e.pointerId !== tah.id) return;
+      var dx = e.clientX - tah.x, dy = e.clientY - tah.y, prah = deska.clientWidth / N / 3;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < prah) return;
+      var i = tah.i, cil;
+      if (Math.abs(dx) >= Math.abs(dy)) cil = dx > 0 ? (i % N < N - 1 ? i + 1 : -1) : (i % N > 0 ? i - 1 : -1);
+      else cil = dy > 0 ? i + N : i - N;
+      tah = null;
+      potlacKlik = true;
+      if (cil < 0 || cil >= N * N) return;
+      try {
+        setRoving(i);
+        prohod(i, cil);
+      } catch (err) {
+        fail(err);
+      }
+    });
+    function konecTahu(e) {
+      if (tah && e.pointerId === tah.id) tah = null;
+    }
+    deska.addEventListener("pointerup", konecTahu);
+    deska.addEventListener("pointercancel", konecTahu);
+    deska.addEventListener("click", function (e) {
+      if (potlacKlik) { potlacKlik = false; return; }
+      var i = bunka(e);
+      if (i < 0) return;
+      try { klik(i); } catch (err) { fail(err); }
+    });
+    var KROK = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    deska.addEventListener("keydown", function (e) {
+      if (!open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (hraEl.closest("[inert]")) return;
+      if (full && V.top() !== hraEl) return;
+      try {
+        var d = KROK[e.key];
+        if (d) {
+          e.preventDefault();
+          var x = focusIdx % N, y = Math.floor(focusIdx / N);
+          var nx = Math.min(N - 1, Math.max(0, x + d[0])), ny = Math.min(N - 1, Math.max(0, y + d[1]));
+          var cil = ny * N + nx;
+          if (vybrano >= 0) {
+            var od = vybrano;
+            var vx = od % N, vy = Math.floor(od / N);
+            var sx = vx + d[0], sy = vy + d[1];
+            if (sx < 0 || sy < 0 || sx >= N || sy >= N) return;
+            setRoving(sy * N + sx);
+            focusCell();
+            prohod(od, sy * N + sx);
+            return;
+          }
+          setRoving(cil);
+          focusCell();
+        } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault(); // instead of the button's own click, so it acts once
+          if (!e.repeat) klik(focusIdx);
+        }
+      } catch (err) {
+        fail(err);
+      }
+    });
+    deska.addEventListener("focusin", function (e) {
+      var i = bunka(e);
+      if (i >= 0) setRoving(i);
+    });
+    hraEl.addEventListener("keydown", function (e) {
+      // Escape clears the selection inline; in fullscreen Vrstvy leaves fullscreen instead
+      if (e.key !== "Escape" || full || !open) return;
+      if (hraEl.closest("[inert]")) return;
+      if (vybrano >= 0) { e.preventDefault(); zrusVyber(); }
+    });
+
+    setRoving(27);
+    detailUI();
+    window.Splachni = { isOpen: function () { return open; } };
+  }
+})();
+</script>
 <script id="instalace-ui">
 (function () {
   var L = window.InstalaceLogika;
@@ -5820,10 +6647,11 @@ body.detail-open { overflow: hidden; }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
   function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function blokovano() {
-    // An open game (chess, gomoku, Rulicka) blocks too, so the banner never covers the board or its controls.
+    // An open game (chess, gomoku, Rulicka, Splachni) blocks too, so the banner never covers the board or its controls.
     if (window.Hra && window.Hra.isOpen && window.Hra.isOpen()) return true;
     if (window.Sachy && window.Sachy.isOpen && window.Sachy.isOpen()) return true;
     if (window.Pisk && window.Pisk.isOpen && window.Pisk.isOpen()) return true;
+    if (window.Splachni && window.Splachni.isOpen && window.Splachni.isOpen()) return true;
     return document.documentElement.classList.contains("zamceno") || document.body.classList.contains("detail-open") || (warnModal && !warnModal.hidden);
   }
   function eligible() {
