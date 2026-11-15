@@ -6026,6 +6026,7 @@ body.detail-open { overflow: hidden; }
       return { rezim: rezim, deska: L.novaDeska(Math.random), body: 0, tahu: TAHU, zbyvaMs: CAS_MS, konec: false, novyRekord: false };
     }
     if (ulozeni.nekonecna) {
+      if (ulozeni.nekonecna.body > ulozeni.rekordy.nekonecna) ulozeni.rekordy.nekonecna = ulozeni.nekonecna.body;
       hry.nekonecna = {
         rezim: "nekonecna", deska: ulozeni.nekonecna.deska.slice(), body: ulozeni.nekonecna.body,
         tahu: 0, zbyvaMs: 0, konec: false, novyRekord: false
@@ -6050,7 +6051,8 @@ body.detail-open { overflow: hidden; }
       }
       popisEl.textContent = POPIS[r];
       rekordEl.textContent = "Rekord: " + cislo(ulozeni.rekordy[r]);
-      hrajBtn.textContent = rozehrana(r) ? "Pokračovat" : "Zahraj si";
+      var neviden = !!(hry[r] && hry[r].konec && !hry[r].videno);
+      hrajBtn.textContent = rozehrana(r) || neviden ? "Pokračovat" : "Zahraj si";
       if (!rozehrana(r)) potvrzeni.hidden = true;
       novaBtn.hidden = !rozehrana(r) || !potvrzeni.hidden;
     }
@@ -6344,6 +6346,7 @@ body.detail-open { overflow: hidden; }
       hra.konec = true;
       vybrano = -1;
       pauza = false;
+      hra.videno = !!(fokus && open);
       hra.novyRekord = hra.body > ulozeni.rekordy[hra.rezim];
       if (hra.novyRekord) ulozeni.rekordy[hra.rezim] = hra.body;
       save();
@@ -6444,7 +6447,15 @@ body.detail-open { overflow: hidden; }
       if (open) return;
       potvrzeni.hidden = true;
       var rezim = ulozeni.rezim;
-      if (znovu || !rozehrana(rezim)) {
+      var neviden = hry[rezim] && hry[rezim].konec && !hry[rezim].videno;
+      if (neviden && !znovu) {
+        // the game ended while closed (last chain cut short); show its result first
+        hra = hry[rezim];
+        hra.videno = true;
+        bodyZobr = hra.body;
+        vybrano = -1;
+        vykresli(hra.deska);
+      } else if (znovu || !rozehrana(rezim)) {
         zacni(rezim);
       } else {
         hra = hry[rezim];
@@ -6465,7 +6476,7 @@ body.detail-open { overflow: hidden; }
       posledni = performance.now();
       casId = setInterval(tickCas, 250);
       zkontrolujKonec(true);
-      if (!hra.konec) focusCell();
+      if (hra.konec) focusEl(znovuBtn); else focusCell();
       if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
     }
     function onFullClose() {
@@ -6554,9 +6565,12 @@ body.detail-open { overflow: hidden; }
       var i = bunka(e);
       if (i < 0 || !muzeHrat()) { tah = null; return; }
       tah = { id: e.pointerId, i: i, x: e.clientX, y: e.clientY };
+      // Capture, so a release outside the board still ends the drag.
+      try { deska.setPointerCapture(e.pointerId); } catch (x) {}
     });
     deska.addEventListener("pointermove", function (e) {
       if (!tah || e.pointerId !== tah.id) return;
+      if (e.pointerType === "mouse" && e.buttons === 0) { tah = null; return; }
       var dx = e.clientX - tah.x, dy = e.clientY - tah.y, prah = deska.clientWidth / N / 3;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < prah) return;
       var i = tah.i, cil;
@@ -6575,8 +6589,18 @@ body.detail-open { overflow: hidden; }
     function konecTahu(e) {
       if (tah && e.pointerId === tah.id) tah = null;
     }
-    deska.addEventListener("pointerup", konecTahu);
+    // With capture the click may target the board, not the tile, so a tap is handled here
+    // (only when released over the tile it started on) and the click that follows is ignored.
+    deska.addEventListener("pointerup", function (e) {
+      if (!tah || e.pointerId !== tah.id) return;
+      var i = tah.i, r = cells[i].getBoundingClientRect();
+      tah = null;
+      potlacKlik = true;
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      try { klik(i); } catch (err) { fail(err); }
+    });
     deska.addEventListener("pointercancel", konecTahu);
+    deska.addEventListener("lostpointercapture", konecTahu);
     deska.addEventListener("click", function (e) {
       if (potlacKlik) { potlacKlik = false; return; }
       var i = bunka(e);
