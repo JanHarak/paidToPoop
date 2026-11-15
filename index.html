@@ -2640,6 +2640,448 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="sachy-logika">
+(function () {
+  "use strict";
+  // Pole: rank*8 + file, a1 = 0, h8 = 63. Figury: bile kladne, cerne zaporne.
+  var P = 1, N = 2, B = 3, R = 4, Q = 5, K = 6;
+  var START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  var FEN_ZNAK = { p: P, n: N, b: B, r: R, q: Q, k: K };
+  var ZNAK = ["", "p", "n", "b", "r", "q", "k"];
+  var CESKY = ["", "", "J", "S", "V", "D", "K"];
+  // Priznaky tahu (bity 16+): braní mimochodem, rosada, dvojkrok pesce.
+  var F_EP = 1, F_ROS = 2, F_DVA = 4;
+
+  var JEZDEC = [], KRAL = [], PAPRSKY = [];
+  var SMERY = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  var ROS_MASKA = [];
+  (function () {
+    var sq, i, r, f, rr, ff, ray;
+    var jz = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+    for (sq = 0; sq < 64; sq++) {
+      r = sq >> 3; f = sq & 7;
+      JEZDEC[sq] = []; KRAL[sq] = []; PAPRSKY[sq] = [];
+      for (i = 0; i < 8; i++) {
+        rr = r + jz[i][0]; ff = f + jz[i][1];
+        if (rr >= 0 && rr < 8 && ff >= 0 && ff < 8) JEZDEC[sq].push(rr * 8 + ff);
+        rr = r + SMERY[i][0]; ff = f + SMERY[i][1];
+        if (rr >= 0 && rr < 8 && ff >= 0 && ff < 8) KRAL[sq].push(rr * 8 + ff);
+        ray = [];
+        rr = r + SMERY[i][0]; ff = f + SMERY[i][1];
+        while (rr >= 0 && rr < 8 && ff >= 0 && ff < 8) {
+          ray.push(rr * 8 + ff);
+          rr += SMERY[i][0]; ff += SMERY[i][1];
+        }
+        PAPRSKY[sq].push(ray);
+      }
+      ROS_MASKA[sq] = 15;
+    }
+    // Prava rosady: 1 = K, 2 = Q, 4 = k, 8 = q.
+    ROS_MASKA[4] = 15 & ~3; ROS_MASKA[7] = 15 & ~1; ROS_MASKA[0] = 15 & ~2;
+    ROS_MASKA[60] = 15 & ~12; ROS_MASKA[63] = 15 & ~4; ROS_MASKA[56] = 15 & ~8;
+  })();
+
+  function nazev(sq) {
+    return "abcdefgh".charAt(sq & 7) + ((sq >> 3) + 1);
+  }
+  function zNazvu(s) {
+    if (typeof s !== "string" || s.length !== 2) return -1;
+    var f = s.charCodeAt(0) - 97, r = s.charCodeAt(1) - 49;
+    if (f < 0 || f > 7 || r < 0 || r > 7) return -1;
+    return r * 8 + f;
+  }
+
+  // Je pole sq napadene stranou se znamenkem sg (1 bila, -1 cerna)?
+  function napadeno(d, sq, sg) {
+    var f = sq & 7, i, t, ray, j, p, a;
+    if (sg > 0) {
+      if (sq >= 8) {
+        if (f > 0 && d[sq - 9] === P) return true;
+        if (f < 7 && d[sq - 7] === P) return true;
+      }
+    } else if (sq < 56) {
+      if (f > 0 && d[sq + 7] === -P) return true;
+      if (f < 7 && d[sq + 9] === -P) return true;
+    }
+    a = JEZDEC[sq];
+    for (i = 0; i < a.length; i++) if (d[a[i]] === N * sg) return true;
+    a = KRAL[sq];
+    for (i = 0; i < a.length; i++) if (d[a[i]] === K * sg) return true;
+    for (i = 0; i < 8; i++) {
+      ray = PAPRSKY[sq][i];
+      for (j = 0; j < ray.length; j++) {
+        p = d[ray[j]];
+        if (p === 0) continue;
+        if (p * sg > 0) {
+          t = p * sg;
+          if (t === Q || (i < 4 ? t === R : t === B)) return true;
+        }
+        break;
+      }
+    }
+    return false;
+  }
+
+  function kodTahu(z, na, prom, fl) {
+    return z | (na << 6) | (prom << 12) | (fl << 16);
+  }
+
+  function pridejPesce(out, z, na, fl, promRada) {
+    if ((na >> 3) === promRada) {
+      out.push(kodTahu(z, na, Q, fl), kodTahu(z, na, R, fl), kodTahu(z, na, B, fl), kodTahu(z, na, N, fl));
+    } else {
+      out.push(kodTahu(z, na, 0, fl));
+    }
+  }
+
+  // Pseudolegalni tahy (bez kontroly vlastniho krale), rosada uz overena.
+  function generuj(pos, out) {
+    var d = pos.deska, sg = pos.tah === "b" ? 1 : -1;
+    var sq, p, t, f, i, j, a, na, ray, q;
+    var smer = 8 * sg, startRada = sg > 0 ? 1 : 6, promRada = sg > 0 ? 7 : 0;
+    for (sq = 0; sq < 64; sq++) {
+      p = d[sq] * sg;
+      if (p <= 0) continue;
+      if (p === P) {
+        f = sq & 7;
+        na = sq + smer;
+        if (d[na] === 0) {
+          pridejPesce(out, sq, na, 0, promRada);
+          if ((sq >> 3) === startRada && d[na + smer] === 0) out.push(kodTahu(sq, na + smer, 0, F_DVA));
+        }
+        if (f > 0) {
+          t = na - 1;
+          if (d[t] * sg < 0) pridejPesce(out, sq, t, 0, promRada);
+          else if (t === pos.ep) out.push(kodTahu(sq, t, 0, F_EP));
+        }
+        if (f < 7) {
+          t = na + 1;
+          if (d[t] * sg < 0) pridejPesce(out, sq, t, 0, promRada);
+          else if (t === pos.ep) out.push(kodTahu(sq, t, 0, F_EP));
+        }
+      } else if (p === N || p === K) {
+        a = p === N ? JEZDEC[sq] : KRAL[sq];
+        for (i = 0; i < a.length; i++) if (d[a[i]] * sg <= 0) out.push(kodTahu(sq, a[i], 0, 0));
+      } else {
+        for (i = p === B ? 4 : 0; i < (p === R ? 4 : 8); i++) {
+          ray = PAPRSKY[sq][i];
+          for (j = 0; j < ray.length; j++) {
+            q = d[ray[j]] * sg;
+            if (q > 0) break;
+            out.push(kodTahu(sq, ray[j], 0, 0));
+            if (q < 0) break;
+          }
+        }
+      }
+    }
+    // Rosada: ne ze sachu, ne pres napadene pole, ne do sachu.
+    var ros = pos.rosady;
+    if (sg > 0) {
+      if ((ros & 1) && d[4] === K && d[7] === R && d[5] === 0 && d[6] === 0 &&
+          !napadeno(d, 4, -1) && !napadeno(d, 5, -1) && !napadeno(d, 6, -1)) out.push(kodTahu(4, 6, 0, F_ROS));
+      if ((ros & 2) && d[4] === K && d[0] === R && d[3] === 0 && d[2] === 0 && d[1] === 0 &&
+          !napadeno(d, 4, -1) && !napadeno(d, 3, -1) && !napadeno(d, 2, -1)) out.push(kodTahu(4, 2, 0, F_ROS));
+    } else {
+      if ((ros & 4) && d[60] === -K && d[63] === -R && d[61] === 0 && d[62] === 0 &&
+          !napadeno(d, 60, 1) && !napadeno(d, 61, 1) && !napadeno(d, 62, 1)) out.push(kodTahu(60, 62, 0, F_ROS));
+      if ((ros & 8) && d[60] === -K && d[56] === -R && d[59] === 0 && d[58] === 0 && d[57] === 0 &&
+          !napadeno(d, 60, 1) && !napadeno(d, 59, 1) && !napadeno(d, 58, 1)) out.push(kodTahu(60, 58, 0, F_ROS));
+    }
+    return out;
+  }
+
+  // Provede tah na miste, vrati zaznam pro vraceni.
+  function udelej(pos, m) {
+    var d = pos.deska, z = m & 63, na = (m >> 6) & 63, prom = (m >> 12) & 7, fl = m >> 16;
+    var p = d[z], sg = p > 0 ? 1 : -1, sebrano = d[na], zpet;
+    zpet = { m: m, sebrano: sebrano, rosady: pos.rosady, ep: pos.ep, pul: pos.pul };
+    d[na] = prom ? prom * sg : p;
+    d[z] = 0;
+    if (fl & F_EP) {
+      zpet.sebrano = d[na - 8 * sg];
+      d[na - 8 * sg] = 0;
+    } else if (fl & F_ROS) {
+      if (na === 6) { d[5] = d[7]; d[7] = 0; }
+      else if (na === 2) { d[3] = d[0]; d[0] = 0; }
+      else if (na === 62) { d[61] = d[63]; d[63] = 0; }
+      else { d[59] = d[56]; d[56] = 0; }
+    }
+    if (p === K) pos.kb = na;
+    else if (p === -K) pos.kc = na;
+    pos.rosady &= ROS_MASKA[z] & ROS_MASKA[na];
+    pos.ep = (fl & F_DVA) ? (z + na) >> 1 : -1;
+    pos.pul = (p === P || p === -P || zpet.sebrano) ? 0 : pos.pul + 1;
+    if (sg < 0) pos.cislo++;
+    pos.tah = sg > 0 ? "c" : "b";
+    return zpet;
+  }
+
+  function vrat(pos, zpet) {
+    var d = pos.deska, m = zpet.m, z = m & 63, na = (m >> 6) & 63, prom = (m >> 12) & 7, fl = m >> 16;
+    var p = d[na], sg = p > 0 ? 1 : -1;
+    d[z] = prom ? P * sg : p;
+    if (fl & F_EP) {
+      d[na] = 0;
+      d[na - 8 * sg] = zpet.sebrano;
+    } else {
+      d[na] = zpet.sebrano;
+      if (fl & F_ROS) {
+        if (na === 6) { d[7] = d[5]; d[5] = 0; }
+        else if (na === 2) { d[0] = d[3]; d[3] = 0; }
+        else if (na === 62) { d[63] = d[61]; d[61] = 0; }
+        else { d[56] = d[59]; d[59] = 0; }
+      }
+    }
+    if (p === K) pos.kb = z;
+    else if (p === -K) pos.kc = z;
+    pos.rosady = zpet.rosady;
+    pos.ep = zpet.ep;
+    pos.pul = zpet.pul;
+    if (sg < 0) pos.cislo--;
+    pos.tah = sg > 0 ? "b" : "c";
+  }
+
+  // Po udelej: zustal kral strany, ktera tahla, v sachu?
+  function nechalKraleVSachu(pos) {
+    return pos.tah === "c" ? napadeno(pos.deska, pos.kb, -1) : napadeno(pos.deska, pos.kc, 1);
+  }
+
+  function legalni(pos) {
+    var pseudo = generuj(pos, []), out = [], i, z;
+    for (i = 0; i < pseudo.length; i++) {
+      z = udelej(pos, pseudo[i]);
+      if (!nechalKraleVSachu(pos)) out.push(pseudo[i]);
+      vrat(pos, z);
+    }
+    return out;
+  }
+
+  function uci(m) {
+    var prom = (m >> 12) & 7;
+    return nazev(m & 63) + nazev((m >> 6) & 63) + (prom ? ZNAK[prom] : "");
+  }
+
+  function kopie(pos) {
+    return {
+      deska: pos.deska.slice(), tah: pos.tah, rosady: pos.rosady, ep: pos.ep,
+      pul: pos.pul, cislo: pos.cislo, kb: pos.kb, kc: pos.kc
+    };
+  }
+
+  function zFen(fen) {
+    if (typeof fen !== "string") return null;
+    var c = fen.replace(/^\s+|\s+$/g, "").split(/\s+/);
+    if (c.length < 4) return null;
+    var rady = c[0].split("/");
+    if (rady.length !== 8) return null;
+    var d = [], r, i, ch, f, typ, kb = -1, kc = -1, n;
+    for (i = 0; i < 64; i++) d.push(0);
+    for (r = 0; r < 8; r++) {
+      f = 0;
+      for (i = 0; i < rady[r].length; i++) {
+        ch = rady[r].charAt(i);
+        if (ch >= "1" && ch <= "8") { f += +ch; continue; }
+        typ = FEN_ZNAK[ch.toLowerCase()];
+        if (!typ || f > 7) return null;
+        n = (7 - r) * 8 + f;
+        d[n] = ch === ch.toLowerCase() ? -typ : typ;
+        if (d[n] === K) { if (kb >= 0) return null; kb = n; }
+        if (d[n] === -K) { if (kc >= 0) return null; kc = n; }
+        f++;
+      }
+      if (f !== 8) return null;
+    }
+    if (kb < 0 || kc < 0) return null;
+    if (c[1] !== "w" && c[1] !== "b") return null;
+    var ros = 0;
+    if (c[2] !== "-") {
+      if (!/^[KQkq]+$/.test(c[2])) return null;
+      if (c[2].indexOf("K") >= 0) ros |= 1;
+      if (c[2].indexOf("Q") >= 0) ros |= 2;
+      if (c[2].indexOf("k") >= 0) ros |= 4;
+      if (c[2].indexOf("q") >= 0) ros |= 8;
+    }
+    var ep = c[3] === "-" ? -1 : zNazvu(c[3]);
+    if (c[3] !== "-" && ep < 0) return null;
+    var pul = c.length > 4 ? parseInt(c[4], 10) : 0;
+    var cislo = c.length > 5 ? parseInt(c[5], 10) : 1;
+    if (!(pul >= 0)) pul = 0;
+    if (!(cislo >= 1)) cislo = 1;
+    return { deska: d, tah: c[1] === "w" ? "b" : "c", rosady: ros, ep: ep, pul: pul, cislo: cislo, kb: kb, kc: kc };
+  }
+
+  function rozmisteni(pos) {
+    var s = "", r, f, p, prazdne;
+    for (r = 7; r >= 0; r--) {
+      prazdne = 0;
+      for (f = 0; f < 8; f++) {
+        p = pos.deska[r * 8 + f];
+        if (p === 0) { prazdne++; continue; }
+        if (prazdne) { s += prazdne; prazdne = 0; }
+        s += p > 0 ? ZNAK[p].toUpperCase() : ZNAK[-p];
+      }
+      if (prazdne) s += prazdne;
+      if (r > 0) s += "/";
+    }
+    return s;
+  }
+
+  function rosadyText(ros) {
+    var s = (ros & 1 ? "K" : "") + (ros & 2 ? "Q" : "") + (ros & 4 ? "k" : "") + (ros & 8 ? "q" : "");
+    return s || "-";
+  }
+
+  function doFen(pos) {
+    return rozmisteni(pos) + " " + (pos.tah === "b" ? "w" : "b") + " " + rosadyText(pos.rosady) + " " +
+      (pos.ep >= 0 ? nazev(pos.ep) : "-") + " " + pos.pul + " " + pos.cislo;
+  }
+
+  // Pole pro braní mimochodem do klice jen tehdy, kdyz ho nejaky pesec muze vzit.
+  function klic(pos) {
+    var ep = "-", d = pos.deska, sg = pos.tah === "b" ? 1 : -1, z, f;
+    if (pos.ep >= 0) {
+      f = pos.ep & 7;
+      z = pos.ep - 8 * sg;
+      if ((f > 0 && d[z - 1] === P * sg) || (f < 7 && d[z + 1] === P * sg)) {
+        var tahy = legalni(pos), i;
+        for (i = 0; i < tahy.length; i++) {
+          if ((tahy[i] >> 16) & F_EP) { ep = nazev(pos.ep); break; }
+        }
+      }
+    }
+    return rozmisteni(pos) + " " + pos.tah + " " + rosadyText(pos.rosady) + " " + ep;
+  }
+
+  function kusNa(pos, i) {
+    var p = pos.deska[i];
+    if (!p) return null;
+    return { barva: p > 0 ? "b" : "c", typ: ZNAK[p > 0 ? p : -p] };
+  }
+
+  function najdi(pos, tah) {
+    if (typeof tah !== "string") return -1;
+    var t = legalni(pos), i;
+    for (i = 0; i < t.length; i++) if (uci(t[i]) === tah) return t[i];
+    return -1;
+  }
+
+  function tahy(pos) {
+    var t = legalni(pos), out = [], i;
+    for (i = 0; i < t.length; i++) out.push(uci(t[i]));
+    return out;
+  }
+
+  function zahraj(pos, tah) {
+    var m = najdi(pos, tah);
+    if (m < 0) return null;
+    var nova = kopie(pos);
+    udelej(nova, m);
+    return nova;
+  }
+
+  function vSachu(pos) {
+    return pos.tah === "b" ? napadeno(pos.deska, pos.kb, -1) : napadeno(pos.deska, pos.kc, 1);
+  }
+
+  function perftRek(pos, h) {
+    var pseudo = generuj(pos, []), n = 0, i, z;
+    for (i = 0; i < pseudo.length; i++) {
+      z = udelej(pos, pseudo[i]);
+      if (!nechalKraleVSachu(pos)) n += h > 1 ? perftRek(pos, h - 1) : 1;
+      vrat(pos, z);
+    }
+    return n;
+  }
+
+  function perft(pos, hloubka) {
+    if (hloubka < 1) return 1;
+    return perftRek(kopie(pos), hloubka);
+  }
+
+  function nedostatekMaterialu(pos) {
+    var d = pos.deska, i, t, lehkych = 0, jezdcu = 0, barvyStrelcu = 0;
+    for (i = 0; i < 64; i++) {
+      t = d[i] > 0 ? d[i] : -d[i];
+      if (t === 0 || t === K) continue;
+      if (t === N) { jezdcu++; lehkych++; }
+      else if (t === B) { lehkych++; barvyStrelcu |= (((i >> 3) + (i & 7)) & 1) ? 2 : 1; }
+      else return false;
+    }
+    if (lehkych <= 1) return true;
+    // Jen strelci, vsichni na polich stejne barvy.
+    return jezdcu === 0 && barvyStrelcu !== 3;
+  }
+
+  function novaPartie() {
+    var pos = zFen(START_FEN);
+    return { pos: pos, tahy: [], klice: [klic(pos)], posledni: null };
+  }
+
+  function stav(partie) {
+    var pos = partie.pos;
+    if (legalni(pos).length === 0) {
+      if (vSachu(pos)) return { konec: true, vitez: pos.tah === "b" ? "c" : "b", duvod: "mat" };
+      return { konec: true, vitez: null, duvod: "pat" };
+    }
+    if (nedostatekMaterialu(pos)) return { konec: true, vitez: null, duvod: "material" };
+    var k = klic(pos), klice = partie.klice || [], n = 0, i;
+    for (i = 0; i < klice.length; i++) if (klice[i] === k) n++;
+    if (n >= 3) return { konec: true, vitez: null, duvod: "opakovani" };
+    if (pos.pul >= 100) return { konec: true, vitez: null, duvod: "50tahu" };
+    return { konec: false, vitez: null, duvod: null };
+  }
+
+  function partieTah(partie, tah) {
+    if (stav(partie).konec) return false;
+    var m = najdi(partie.pos, tah);
+    if (m < 0) return false;
+    var nova = kopie(partie.pos);
+    udelej(nova, m);
+    partie.pos = nova;
+    partie.tahy.push(tah);
+    if (!partie.klice) partie.klice = [];
+    partie.klice.push(klic(nova));
+    partie.posledni = { z: m & 63, na: (m >> 6) & 63 };
+    return true;
+  }
+
+  function zTahu(seznam) {
+    if (!seznam || typeof seznam.length !== "number" || typeof seznam === "string") return null;
+    var partie = novaPartie(), i;
+    for (i = 0; i < seznam.length; i++) {
+      if (typeof seznam[i] !== "string" || !partieTah(partie, seznam[i])) return null;
+    }
+    return partie;
+  }
+
+  // Cesky zapis z pozice pred tahem, napriklad "Jg1-f3", "e7-e8D", "O-O".
+  function zapis(pos, tah) {
+    var m = najdi(pos, tah);
+    if (m < 0) return null;
+    var z = m & 63, na = (m >> 6) & 63, prom = (m >> 12) & 7, fl = m >> 16;
+    if (fl & F_ROS) return (na & 7) === 6 ? "O-O" : "O-O-O";
+    var p = pos.deska[z], bere = (fl & F_EP) || pos.deska[na] !== 0;
+    return CESKY[p > 0 ? p : -p] + nazev(z) + (bere ? "x" : "-") + nazev(na) + (prom ? CESKY[prom] : "");
+  }
+
+  window.SachyLogika = {
+    START_FEN: START_FEN,
+    zFen: zFen,
+    doFen: doFen,
+    kusNa: kusNa,
+    tahy: tahy,
+    zahraj: zahraj,
+    vSachu: vSachu,
+    perft: perft,
+    klic: klic,
+    novaPartie: novaPartie,
+    zTahu: zTahu,
+    partieTah: partieTah,
+    stav: stav,
+    zapis: zapis
+  };
+})();
+</script>
 <script id="hry-seznam">
 (function () {
   var KEY = "zachodova-hry-vyber-v1";
