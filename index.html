@@ -187,6 +187,8 @@ header p {
 @media (min-width: 820px) {
   .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
   .results { position: sticky; top: calc(1rem + env(safe-area-inset-top, 0px)); }
+  /* Calculator view: "Tvoje údaje" and "Výdělek na záchodě" share the row height. */
+  #vstupPanel, #vysledkyPanel { align-self: stretch; }
 }
 .panel {
   background: var(--porcelain);
