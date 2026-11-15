@@ -3276,16 +3276,22 @@ body.detail-open { overflow: hidden; }
 
   function spustVWorkeru() {
     window.onmessage = function (e) {
-      var d = e && e.data ? e.data : {}, tah = null, partie = zTahu(d.tahy);
-      if (partie) {
-        tah = nejlepsiTah(partie.pos, {
-          uroven: d.uroven === "lehka" ? "lehka" : "tezka",
-          casMs: 1500,
-          rnd: Math.random,
-          klice: partie.klice
-        });
+      var d = e && e.data ? e.data : {}, id = d.id, tah = null, partie;
+      // Odpoved musi prijit vzdy, jinak by UI cekalo navzdy.
+      try {
+        partie = zTahu(d.tahy);
+        if (partie) {
+          tah = nejlepsiTah(partie.pos, {
+            uroven: d.uroven === "lehka" ? "lehka" : "tezka",
+            casMs: 1500,
+            rnd: Math.random,
+            klice: partie.klice
+          });
+        }
+      } catch (chyba) {
+        tah = null;
       }
-      window.postMessage({ id: d.id, tah: tah });
+      window.postMessage({ id: id, tah: tah });
     };
   }
 

@@ -89,3 +89,13 @@ test("engine: spustVWorkeru odpovida na zpravu", () => {
   W.onmessage({ data: { id: 8, tahy: ["e2e5"], uroven: "lehka" } });
   assert.deepEqual(JSON.parse(JSON.stringify(zpravy[1])), { id: 8, tah: null });
 });
+
+test("engine: worker odpovi tah null i pri vyjimce", () => {
+  const zpravy = [];
+  W.postMessage = (m) => zpravy.push(m);
+  S.spustVWorkeru("");
+  const data = { id: 9, uroven: "tezka" };
+  Object.defineProperty(data, "tahy", { get() { throw new Error("chyba"); } });
+  W.onmessage({ data });
+  assert.deepEqual(JSON.parse(JSON.stringify(zpravy)), [{ id: 9, tah: null }]);
+});
