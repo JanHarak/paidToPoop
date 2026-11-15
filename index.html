@@ -3064,8 +3064,235 @@ body.detail-open { overflow: hidden; }
     return CESKY[p > 0 ? p : -p] + nazev(z) + (bere ? "x" : "-") + nazev(na) + (prom ? CESKY[prom] : "");
   }
 
+  // ---- Pocitac: negamax alfa-beta s klidovym dohledanim ----
+  var HODNOTA = [0, 100, 320, 330, 500, 900, 0];
+  var MAT = 100000;
+  // Zjednodusene tabulky poli z pohledu bileho, psane od 8. rady k 1. rade.
+  var PST_TEXT = [
+    null,
+    [0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10,
+      5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5,
+      5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0],
+    [-50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
+      -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30,
+      -40, -20, 0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50],
+    [-20, -10, -10, -10, -10, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10,
+      -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 10, 10, 10, 10, 0, -10, -10, 10, 10, 10, 10, 10, 10, -10,
+      -10, 5, 0, 0, 0, 0, 5, -10, -20, -10, -10, -10, -10, -10, -10, -20],
+    [0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5,
+      -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5,
+      -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0],
+    [-20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10,
+      -5, 0, 5, 5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10,
+      -10, 0, 5, 0, 0, 0, 0, -10, -20, -10, -10, -5, -5, -10, -10, -20],
+    [-30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30,
+      -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20, -10, -20, -20, -20, -20, -20, -20, -10,
+      20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20]
+  ];
+  // PST_B[typ][sq] pro bile figury, PST_C[typ][sq] pro cerne (zrcadlene).
+  var PST_B = [null], PST_C = [null];
+  (function () {
+    var t, sq;
+    for (t = 1; t <= 6; t++) {
+      PST_B[t] = []; PST_C[t] = [];
+      for (sq = 0; sq < 64; sq++) {
+        PST_B[t][sq] = HODNOTA[t] + PST_TEXT[t][(7 - (sq >> 3)) * 8 + (sq & 7)];
+        PST_C[t][sq] = HODNOTA[t] + PST_TEXT[t][sq];
+      }
+    }
+  })();
+
+  // Ohodnoceni z pohledu strany na tahu.
+  function ohodnot(pos) {
+    var d = pos.deska, s = 0, i, p;
+    for (i = 0; i < 64; i++) {
+      p = d[i];
+      if (p > 0) s += PST_B[p][i];
+      else if (p < 0) s -= PST_C[-p][i];
+    }
+    return pos.tah === "b" ? s : -s;
+  }
+
+  function jeBrani(pos, m) {
+    return pos.deska[(m >> 6) & 63] !== 0 || ((m >> 16) & F_EP) || ((m >> 12) & 7);
+  }
+
+  // Seradi tahy: nejdriv tah z predchozi iterace, pak braní podle MVV-LVA, pak ostatni.
+  function serad(pos, tahy, prvni) {
+    var d = pos.deska, skore = [], i, j, m, s, obet, utok, sm;
+    for (i = 0; i < tahy.length; i++) {
+      m = tahy[i];
+      s = 0;
+      if (m === prvni) s = 1000000;
+      else {
+        obet = d[(m >> 6) & 63];
+        if (obet) {
+          utok = d[m & 63];
+          s = 10000 + (obet > 0 ? obet : -obet) * 10 - (utok > 0 ? utok : -utok);
+        } else if ((m >> 16) & F_EP) s = 10000 + P * 10 - P;
+        if ((m >> 12) & 7) s += 5000 + ((m >> 12) & 7);
+      }
+      skore.push(s);
+    }
+    // Stabilni razeni vkladanim (sestupne).
+    for (i = 1; i < tahy.length; i++) {
+      m = tahy[i]; sm = skore[i]; j = i - 1;
+      while (j >= 0 && skore[j] < sm) { tahy[j + 1] = tahy[j]; skore[j + 1] = skore[j]; j--; }
+      tahy[j + 1] = m; skore[j + 1] = sm;
+    }
+    return tahy;
+  }
+
+  function Hledani(pos, volby, klidove) {
+    this.pos = pos;
+    this.klidove = klidove;
+    this.konec = volby.konec || 0;
+    this.uzly = 0;
+    this.preruseno = false;
+    this.historie = {};
+    var k = volby.klice || [], i;
+    for (i = 0; i < k.length; i++) this.historie[k[i]] = (this.historie[k[i]] || 0) + 1;
+    this.maHistorii = k.length > 0;
+  }
+
+  Hledani.prototype.cas = function () {
+    if (this.konec && (++this.uzly & 1023) === 0 && Date.now() > this.konec) this.preruseno = true;
+    return this.preruseno;
+  };
+
+  Hledani.prototype.klid = function (alfa, beta, ply) {
+    if (this.cas()) return 0;
+    var pos = this.pos, stoj = ohodnot(pos), tahy, i, m, z, v;
+    if (stoj >= beta) return stoj;
+    if (stoj > alfa) alfa = stoj;
+    tahy = generuj(pos, []);
+    var brani = [];
+    for (i = 0; i < tahy.length; i++) if (jeBrani(pos, tahy[i])) brani.push(tahy[i]);
+    serad(pos, brani, -1);
+    for (i = 0; i < brani.length; i++) {
+      m = brani[i];
+      z = udelej(pos, m);
+      if (nechalKraleVSachu(pos)) { vrat(pos, z); continue; }
+      v = -this.klid(-beta, -alfa, ply + 1);
+      vrat(pos, z);
+      if (this.preruseno) return 0;
+      if (v >= beta) return v;
+      if (v > alfa) alfa = v;
+    }
+    return alfa;
+  };
+
+  Hledani.prototype.uzel = function (hloubka, alfa, beta, ply) {
+    var pos = this.pos, k = null, i, m, z, v, legal = 0, nejlepsi = -MAT - 1, tahy;
+    // Treti vyskyt pozice (v partii nebo na ceste hledani) je remiza.
+    if (this.maHistorii && ply <= 3 && pos.pul >= 4) {
+      k = klic(pos);
+      if ((this.historie[k] || 0) >= 2) return 0;
+    }
+    if (hloubka <= 0) {
+      if (!this.klidove) return ohodnot(pos);
+      // Klidove hledani mat nepozna, proto ho v sachu overime zvlast.
+      if (vSachu(pos) && legalni(pos).length === 0) return -MAT + ply;
+      return this.klid(alfa, beta, ply);
+    }
+    if (this.cas()) return 0;
+    tahy = serad(pos, generuj(pos, []), -1);
+    if (k !== null) this.historie[k] = (this.historie[k] || 0) + 1;
+    for (i = 0; i < tahy.length; i++) {
+      m = tahy[i];
+      z = udelej(pos, m);
+      if (nechalKraleVSachu(pos)) { vrat(pos, z); continue; }
+      legal++;
+      v = -this.uzel(hloubka - 1, -beta, -alfa, ply + 1);
+      vrat(pos, z);
+      if (this.preruseno) break;
+      if (v > nejlepsi) nejlepsi = v;
+      if (v > alfa) alfa = v;
+      if (alfa >= beta) break;
+    }
+    if (k !== null) this.historie[k]--;
+    if (this.preruseno) return 0;
+    if (legal === 0) return vSachu(pos) ? -MAT + ply : 0;
+    return nejlepsi;
+  };
+
+  // Ohodnoti vsechny korenove tahy; s plnym oknem (presne hodnoty) nebo alfa-beta.
+  Hledani.prototype.koren = function (tahy, hloubka, presne) {
+    var pos = this.pos, alfa = -MAT - 1, i, z, v, vysl = [];
+    for (i = 0; i < tahy.length; i++) {
+      z = udelej(pos, tahy[i]);
+      v = -this.uzel(hloubka - 1, -MAT - 1, presne ? MAT + 1 : -alfa, 1);
+      vrat(pos, z);
+      if (this.preruseno) return null;
+      vysl.push(v);
+      if (v > alfa) alfa = v;
+    }
+    return vysl;
+  };
+
+  function nejlepsiTah(pos0, volby) {
+    volby = volby || {};
+    var pos = kopie(pos0), tahy = legalni(pos), i, j, vysl, poradi, nejlepsi;
+    if (tahy.length === 0) return null;
+    var rnd = typeof volby.rnd === "function" ? volby.rnd : Math.random;
+    if (volby.uroven === "lehka") {
+      var h = new Hledani(pos, { klice: volby.klice }, false);
+      vysl = h.koren(tahy, 2, true);
+      poradi = [];
+      for (i = 0; i < tahy.length; i++) poradi.push(i);
+      // Stabilni razeni indexu podle hodnoty sestupne.
+      for (i = 1; i < poradi.length; i++) {
+        var x = poradi[i];
+        j = i - 1;
+        while (j >= 0 && vysl[poradi[j]] < vysl[x]) { poradi[j + 1] = poradi[j]; j--; }
+        poradi[j + 1] = x;
+      }
+      if (vysl[poradi[0]] === MAT - 1) return uci(tahy[poradi[0]]);
+      var kk = Math.min(4, poradi.length), idx = Math.floor(rnd() * kk);
+      if (!(idx >= 0)) idx = 0;
+      if (idx >= kk) idx = kk - 1;
+      return uci(tahy[poradi[idx]]);
+    }
+    var casMs = typeof volby.casMs === "number" ? volby.casMs : 1500;
+    var hl = new Hledani(pos, { klice: volby.klice }, true), start = Date.now();
+    serad(pos, tahy, -1);
+    nejlepsi = tahy[0];
+    for (var hloubka = 1; hloubka <= 4; hloubka++) {
+      // Prvni iterace bez casoveho limitu, aby byl vzdy nejaky tah.
+      hl.konec = hloubka === 1 ? 0 : start + casMs;
+      vysl = hl.koren(tahy, hloubka, false);
+      if (!vysl) break;
+      var bi = 0;
+      for (i = 1; i < vysl.length; i++) if (vysl[i] > vysl[bi]) bi = i;
+      nejlepsi = tahy[bi];
+      if (volby.info) { volby.info.hloubka = hloubka; volby.info.skore = vysl[bi]; }
+      // Nejlepsi tah na zacatek pro dalsi iteraci.
+      tahy.splice(bi, 1);
+      tahy.unshift(nejlepsi);
+      if (vysl[bi] >= MAT - 10) break;
+    }
+    return uci(nejlepsi);
+  }
+
+  function spustVWorkeru() {
+    window.onmessage = function (e) {
+      var d = e && e.data ? e.data : {}, tah = null, partie = zTahu(d.tahy);
+      if (partie) {
+        tah = nejlepsiTah(partie.pos, {
+          uroven: d.uroven === "lehka" ? "lehka" : "tezka",
+          casMs: 1500,
+          rnd: Math.random,
+          klice: partie.klice
+        });
+      }
+      window.postMessage({ id: d.id, tah: tah });
+    };
+  }
+
   window.SachyLogika = {
     START_FEN: START_FEN,
+    nejlepsiTah: nejlepsiTah,
+    spustVWorkeru: spustVWorkeru,
     zFen: zFen,
     doFen: doFen,
     kusNa: kusNa,
