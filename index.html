@@ -49,6 +49,19 @@
   --splachni-k3: #d7eed0;
   --splachni-k4: #f6d5dc;
   --splachni-k5: #f3edbf;
+  --porada-podlaha: #f3eee3;
+  --porada-podlaha2: #e8e1d2;
+  --porada-zed: #6d858b;
+  --porada-zed-hrana: #8fa6ab;
+  --porada-krabice: #d9b47a;
+  --porada-krabice-hrana: #9a6a2a;
+  --porada-oblek: #1f2a44;
+  --porada-kravata: #e0332a;
+  --porada-kuze: #f2c9a3;
+  --porada-vlasy: #3b2a1e;
+  --porada-obrys: #0d1626;
+  --porada-vybuch: #ff7a1a;
+  --porada-vybuch2: #ffd23f;
   --shadow: 0 1px 0 #bcd3d6, 0 10px 30px -18px rgba(14, 59, 67, .35);
   color-scheme: light;
   box-sizing: border-box;
@@ -77,6 +90,19 @@
     --splachni-k3: #2b4c2e;
     --splachni-k4: #57303b;
     --splachni-k5: #4c4720;
+    --porada-podlaha: #3b5258;
+    --porada-podlaha2: #344a50;
+    --porada-zed: #0c1b1f;
+    --porada-zed-hrana: #25414a;
+    --porada-krabice: #b98d52;
+    --porada-krabice-hrana: #6e4a1c;
+    --porada-oblek: #172036;
+    --porada-kravata: #ff4a3d;
+    --porada-kuze: #f0c49c;
+    --porada-vlasy: #2a1d14;
+    --porada-obrys: #0a0f1a;
+    --porada-vybuch: #ff8a2a;
+    --porada-vybuch2: #ffe066;
     --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -102,6 +128,19 @@
   --splachni-k3: #2b4c2e;
   --splachni-k4: #57303b;
   --splachni-k5: #4c4720;
+  --porada-podlaha: #3b5258;
+  --porada-podlaha2: #344a50;
+  --porada-zed: #0c1b1f;
+  --porada-zed-hrana: #25414a;
+  --porada-krabice: #b98d52;
+  --porada-krabice-hrana: #6e4a1c;
+  --porada-oblek: #172036;
+  --porada-kravata: #ff4a3d;
+  --porada-kuze: #f0c49c;
+  --porada-vlasy: #2a1d14;
+  --porada-obrys: #0a0f1a;
+  --porada-vybuch: #ff8a2a;
+  --porada-vybuch2: #ffe066;
   --shadow: 0 1px 0 #2a4950, 0 10px 30px -18px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -732,10 +771,10 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   flex: none;
   height: min(72vh, 520px);
 }
-#hraCela svg, #piskCela svg, #sachyCela svg, #splachniCela svg { display: block; margin: 0 auto; }
-#hraCela .ikona-zmensit, #piskCela .ikona-zmensit, #sachyCela .ikona-zmensit, #splachniCela .ikona-zmensit { display: none; }
-#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout, #sachyCela[aria-pressed="true"] .ikona-roztahnout, #splachniCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
-#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit, #sachyCela[aria-pressed="true"] .ikona-zmensit, #splachniCela[aria-pressed="true"] .ikona-zmensit { display: block; }
+#hraCela svg, #piskCela svg, #sachyCela svg, #splachniCela svg, #poradaCela svg { display: block; margin: 0 auto; }
+#hraCela .ikona-zmensit, #piskCela .ikona-zmensit, #sachyCela .ikona-zmensit, #splachniCela .ikona-zmensit, #poradaCela .ikona-zmensit { display: none; }
+#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout, #sachyCela[aria-pressed="true"] .ikona-roztahnout, #splachniCela[aria-pressed="true"] .ikona-roztahnout, #poradaCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
+#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit, #sachyCela[aria-pressed="true"] .ikona-zmensit, #splachniCela[aria-pressed="true"] .ikona-zmensit, #poradaCela[aria-pressed="true"] .ikona-zmensit { display: block; }
 /* Gomoku: a scrollable grid of buttons */
 .hra-hlava #piskSkore { color: var(--ink); font-weight: 700; }
 .hra-hlava #piskStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
@@ -1059,6 +1098,61 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 }
 .splachni-dlazdice.vyber:focus-visible::after { box-shadow: inset 0 0 0 4px var(--brass); }
 #splachniKonec { background: rgba(8, 24, 28, .25); }
+/* Svolej poradu: a 13 x 11 canvas board, the pad and the meeting button under it on touch devices. */
+.hra-hlava #poradaBody { color: var(--ink); font-weight: 700; }
+.hra-hlava #poradaZivoty { color: var(--ink); white-space: nowrap; }
+.hra-hlava #poradaStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.hra-hlava #poradaPauza { font-size: .9rem; padding: 0 .8rem; }
+.hra-hlava #poradaPauza[hidden] { display: none; }
+.porada-lista { padding: .25rem .75rem; border-bottom: 2px solid var(--line); }
+#poradaStav { margin: 0; min-height: 1.5em; font-weight: 700; }
+.porada-pole {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .4rem;
+  overflow: hidden;
+  touch-action: none;
+}
+.hra-inline .porada-pole {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 13 / 11;
+  max-height: 72vh;
+}
+.hra-inline .porada-pole { padding: 0; }
+#poradaPlatno { display: block; touch-action: none; border-radius: 6px; }
+#poradaPlatno:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+#poradaKonec { background: rgba(8, 24, 28, .25); }
+@media (pointer: coarse) {
+  .porada-ovladani { flex-direction: row; justify-content: center; gap: .5rem; }
+  .porada-ovladani .hra-kriz { grid-template-columns: repeat(3, 52px); }
+  .hra-inline .porada-pole { max-height: calc(100vh - 300px); max-height: calc(100dvh - 300px); min-height: 200px; }
+}
+.porada-ovladani, .porada-ovladani button {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#poradaTlacitko {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border: 3px solid var(--brass);
+  border-radius: 50%;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+}
+#poradaTlacitko:active { background: var(--brass); color: var(--porcelain); }
+#poradaTlacitko:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .splachni-dlazdice { transition: none !important; }
 }
@@ -1347,6 +1441,10 @@ body.detail-open { overflow: hidden; }
             <span class="hry-nazev">Spláchni to!</span>
             <span class="hry-pod">Spoj tři stejné otravnosti</span>
           </button>
+          <button class="hry-polozka" type="button" data-hra="porada" aria-pressed="false">
+            <span class="hry-nazev">Svolej poradu!</span>
+            <span class="hry-pod">Zavři kolegy v poradě</span>
+          </button>
         </div>
         <div class="hry-detaily">
           <div class="hry-detail" data-hra="rulicka">
@@ -1407,6 +1505,12 @@ body.detail-open { overflow: hidden; }
                 <button type="button" class="vedlejsi" id="splachniNovaNe">Zpět</button>
               </div>
             </div>
+          </div>
+          <div class="hry-detail" data-hra="porada" hidden>
+            <p class="hra-panel-title">Svolej poradu!</p>
+            <p class="hra-panel-text">Jsi manažer. Pokládej porady, rozbíjej krabice a zavři všechny kolegy v poradě. Pak jeď výtahem o patro výš. Pozor, porada zasáhne i tebe. Stopky sezení běží dál.</p>
+            <p class="hry-stat" id="poradaRekord">Rekord: zatím žádný</p>
+            <button class="hra-btn" id="poradaHrajBtn" type="button">Zahraj si</button>
           </div>
         </div>
       </div>
@@ -1552,6 +1656,46 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="porada" class="vrstva porada" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="poradaTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="poradaTitul">Svolej poradu!</h2>
+    <div class="hra-info">
+      <span id="poradaPatro">Patro 1</span>
+      <span id="poradaZivoty" role="img" aria-label="Životy: 3">❤ 3</span>
+      <span id="poradaBody">0 bodů</span>
+    </div>
+    <span id="poradaStopky" hidden>0:00</span>
+    <button id="poradaPauza" type="button">Pauza</button>
+    <button id="poradaCela" type="button" aria-label="Celá obrazovka" title="Celá obrazovka" aria-pressed="false"><svg class="ikona-roztahnout" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 7V2h5M11 2h5v5M16 11v5h-5M7 16H2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ikona-zmensit" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M7 2v5H2M16 7h-5V2M11 16v-5h5M2 11h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="poradaZavrit" type="button" aria-label="Ukončit hru" title="Ukončit hru">×</button>
+  </div>
+  <div class="porada-lista">
+    <p id="poradaStav" role="status">Patro 1</p>
+  </div>
+  <div class="porada-pole" id="poradaPole">
+    <canvas id="poradaPlatno" tabindex="0" aria-label="Hrací plocha"></canvas>
+    <div class="hra-hlaska" id="poradaKonec" hidden>
+      <div class="hra-hlaska-box">
+        <p id="poradaKonecText">Dostal ses do 1. patra · 0 bodů</p>
+        <p id="poradaKonecRekord" hidden>Nový rekord!</p>
+        <div class="hra-hlaska-tlacitka">
+          <button type="button" id="poradaZnovu">Hrát znovu</button>
+          <button type="button" id="poradaKonecZavrit" class="vedlejsi">Ukončit hru</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hra-ovladani porada-ovladani" id="poradaOvladani">
+    <div class="hra-kriz" role="group" aria-label="Ovládání směru">
+      <button type="button" class="hra-smer" data-smer="up" aria-label="Nahoru">▲</button>
+      <button type="button" class="hra-smer" data-smer="left" aria-label="Doleva">◀</button>
+      <button type="button" class="hra-smer" data-smer="right" aria-label="Doprava">▶</button>
+      <button type="button" class="hra-smer" data-smer="down" aria-label="Dolů">▼</button>
+    </div>
+    <button type="button" id="poradaTlacitko">Svolat poradu</button>
   </div>
 </div>
 
@@ -4121,6 +4265,544 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="porada-logika">
+(function () {
+  var S = 13;
+  var R = 11;
+  var KROK_MS = 20;
+  var ROZBUSKA_MS = 2500;
+  var VYBUCH_MS = 500;
+  var NEZRANITELNOST_MS = 2000;
+  var ZIVOTU = 3;
+  var RYCHLOST = 3;
+  var RYCHLOST_MAX = 5.5;
+  var KAVA = 0.5;
+  var MAX_PORAD = 5;
+  var MAX_DOSAH = 6;
+  var HUSTOTA_MIN = 0.4;
+  var HUSTOTA_ROZPETI = 0.1;
+  var SANCE_BONUSU = 0.22;
+  var TYPY_BONUSU = ["kava", "porada", "dosah"];
+  var ROH = 0.45;
+  var ROH_NASOBEK = 2;
+  var START_X = 1;
+  var START_Y = 1;
+  var SMERY = {
+    up: { dx: 0, dy: -1 },
+    down: { dx: 0, dy: 1 },
+    left: { dx: -1, dy: 0 },
+    right: { dx: 1, dy: 0 }
+  };
+  var KLICE_SMERU = ["up", "down", "left", "right"];
+  var OPACNY = { up: "down", down: "up", left: "right", right: "left" };
+  var KOLEGU_MAX = 8;
+  var KOLEGA_RYCHLOST = 1.5;
+  var KOLEGA_RYCHLOST_PATRO = 0.1;
+  var KOLEGA_RYCHLOST_MAX = 2.9;
+  var MINUTKA_NAVIC = 0.2;
+  var MINUTKA_DOSAH = 5;
+  var ODSTUP_OD_STARTU = 5;
+  var NOUZOVE_ODSTUPY = [ODSTUP_OD_STARTU, 3, 1];
+  var SANCE_ODBOCENI = 0.3;
+  var DOTYK = 0.6;
+  var BODY_KOLEGA = 100;
+  var BODY_PATRO = 500;
+
+  function jeZed(r, c) {
+    return r === 0 || c === 0 || r === R - 1 || c === S - 1 || (r % 2 === 0 && c % 2 === 0);
+  }
+
+  function jeStart(r, c) {
+    return (r === 1 && c === 1) || (r === 1 && c === 2) || (r === 2 && c === 1);
+  }
+
+  function bunkaHrace(h) {
+    return Math.round(h.y) * S + Math.round(h.x);
+  }
+
+  function poradaNa(st, i) {
+    for (var k = 0; k < st.porady.length; k++) if (st.porady[k].i === i) return st.porady[k];
+    return null;
+  }
+
+  function veVybuchu(st, i) {
+    for (var k = 0; k < st.vybuchy.length; k++) if (st.vybuchy[k].bunky.indexOf(i) >= 0) return true;
+    return false;
+  }
+
+  // Walls, crates and meetings block the manager, except the meeting just laid.
+  function volnoProHrace(st, i) {
+    var kod = st.mrizka[i];
+    if (kod === 1 || kod === 2) return false;
+    var p = poradaNa(st, i);
+    return !p || p.hracUvnitr;
+  }
+
+  // Fills mrizka, bonusy and vytah. Uses rnd in a fixed order, so it is deterministic.
+  function generuj(st, rnd) {
+    var m = [], vhodne = [], r, c, i, j, t;
+    for (r = 0; r < R; r++) {
+      for (c = 0; c < S; c++) {
+        m.push(jeZed(r, c) ? 1 : 0);
+        if (!jeZed(r, c) && !jeStart(r, c)) vhodne.push(r * S + c);
+      }
+    }
+    for (i = vhodne.length - 1; i > 0; i--) {
+      j = Math.floor(rnd() * (i + 1));
+      t = vhodne[i]; vhodne[i] = vhodne[j]; vhodne[j] = t;
+    }
+    var pocet = Math.round(vhodne.length * (HUSTOTA_MIN + HUSTOTA_ROZPETI * rnd()));
+    var krabice = vhodne.slice(0, pocet);
+    for (i = 0; i < krabice.length; i++) m[krabice[i]] = 2;
+    var vytah = krabice[Math.floor(rnd() * krabice.length)];
+    var bonusy = [];
+    for (i = 0; i < krabice.length; i++) {
+      if (krabice[i] === vytah) continue;
+      if (rnd() < SANCE_BONUSU) {
+        bonusy.push({ i: krabice[i], typ: TYPY_BONUSU[Math.floor(rnd() * TYPY_BONUSU.length)], skryty: true });
+      }
+    }
+    st.mrizka = m;
+    st.bonusy = bonusy;
+    st.vytah = { i: vytah, odkryty: false, otevreny: false };
+  }
+
+  // Puts the given colleagues on random free cells (not crates, meetings or the
+  // elevator) at least ODSTUP_OD_STARTU path steps from start, crates ignored.
+  // Each lands on a different cell centre. When those cells run out it falls
+  // back to cells nearer the start (NOUZOVE_ODSTUPY); any that still do not fit
+  // are dropped.
+  function rozmisti(st, kolegove, rnd) {
+    var d = vzdalenosti(st, START_Y * S + START_X, true), i, j, t, k, p, mista, n;
+    var umisteno = 0, horni = Infinity;
+    for (p = 0; p < NOUZOVE_ODSTUPY.length && umisteno < kolegove.length; p++) {
+      mista = [];
+      for (i = 0; i < S * R; i++) {
+        if (st.mrizka[i] === 0 && i !== st.vytah.i && d[i] >= NOUZOVE_ODSTUPY[p] && d[i] < horni && !poradaNa(st, i)) mista.push(i);
+      }
+      horni = NOUZOVE_ODSTUPY[p];
+      n = Math.min(kolegove.length - umisteno, mista.length);
+      for (k = 0; k < n; k++) {
+        j = k + Math.floor(rnd() * (mista.length - k));
+        t = mista[k]; mista[k] = mista[j]; mista[j] = t;
+        kolegove[umisteno].x = mista[k] % S;
+        kolegove[umisteno].y = Math.floor(mista[k] / S);
+        kolegove[umisteno].smer = KLICE_SMERU[Math.floor(rnd() * 4)];
+        umisteno++;
+      }
+    }
+    kolegove.length = umisteno;
+    return kolegove;
+  }
+
+  // With no colleague left the elevator opens; true when it opened just now.
+  function otevriPrazdny(st) {
+    if (st.kolegove.length || st.vytah.otevreny) return false;
+    st.vytah.otevreny = true;
+    return true;
+  }
+
+  function noviKolegove(st, rnd) {
+    var pocet = Math.min(3 + (st.patro - 1), KOLEGU_MAX);
+    var minutek = Math.ceil(pocet * Math.min(0.1 * (st.patro - 1), 0.6));
+    var zaklad = Math.min(KOLEGA_RYCHLOST + KOLEGA_RYCHLOST_PATRO * (st.patro - 1), KOLEGA_RYCHLOST_MAX);
+    var kolegove = [];
+    for (var k = 0; k < pocet; k++) {
+      var minutka = k < minutek;
+      kolegove.push({
+        x: 0, y: 0, smer: "down",
+        typ: minutka ? "minutka" : "stazista",
+        rychlost: minutka ? Math.min(zaklad + MINUTKA_NAVIC, KOLEGA_RYCHLOST_MAX) : zaklad
+      });
+    }
+    return rozmisti(st, kolegove, rnd);
+  }
+
+  // The caller sets st.patro first; colleagues depend on it.
+  function novePatro(st, rnd) {
+    generuj(st, rnd);
+    st.porady = [];
+    st.vybuchy = [];
+    st.hrac.x = START_X;
+    st.hrac.y = START_Y;
+    st.hrac.smer = "down";
+    st.hrac.nezranitelny = 0;
+    st.kolegove = noviKolegove(st, rnd);
+    otevriPrazdny(st);
+  }
+
+  function novaHra(rnd) {
+    var st = {
+      mrizka: null,
+      patro: 1,
+      zivoty: ZIVOTU,
+      body: 0,
+      konec: false,
+      hrac: {
+        x: START_X, y: START_Y, smer: "down",
+        rychlost: RYCHLOST, maxPorad: 1, dosah: 1, nezranitelny: 0
+      },
+      porady: [],
+      vybuchy: [],
+      bonusy: [],
+      vytah: null,
+      kolegove: []
+    };
+    novePatro(st, rnd);
+    return st;
+  }
+
+  // BFS path distances over the grid from odkud; -1 when unreachable.
+  // blokuje(j) says whether a cell other than odkud is closed.
+  function bfs(odkud, blokuje) {
+    var d = [], fronta = [odkud], i, k, n;
+    var sousede = [-S, S, -1, 1];
+    for (i = 0; i < S * R; i++) d.push(-1);
+    d[odkud] = 0;
+    for (k = 0; k < fronta.length; k++) {
+      i = fronta[k];
+      for (n = 0; n < 4; n++) {
+        var j = i + sousede[n];
+        if (j < 0 || j >= S * R || d[j] >= 0) continue;
+        if ((n >= 2) && Math.floor(j / S) !== Math.floor(i / S)) continue;
+        if (blokuje(j)) continue;
+        d[j] = d[i] + 1;
+        fronta.push(j);
+      }
+    }
+    return d;
+  }
+
+  // Only walls and (unless ignorujKrabice) crates block.
+  function vzdalenosti(st, odkud, ignorujKrabice) {
+    return bfs(odkud, function (j) {
+      var kod = st.mrizka[j];
+      return kod === 1 || (kod === 2 && !ignorujKrabice);
+    });
+  }
+
+  // Colleagues cannot enter walls, crates, meetings or the elevator cell.
+  function volnoProKolegu(st, i) {
+    return st.mrizka[i] === 0 && i !== st.vytah.i && !poradaNa(st, i);
+  }
+
+  function soused(i, smer) {
+    return i + SMERY[smer].dy * S + SMERY[smer].dx;
+  }
+
+  // Wandering: keep going when possible, at an intersection turn with
+  // SANCE_ODBOCENI, when blocked pick a free side and turn back only if stuck.
+  function bloumej(st, kol, i, rnd) {
+    var volne = [], boky = [], k, s;
+    for (k = 0; k < 4; k++) {
+      s = KLICE_SMERU[k];
+      if (!volnoProKolegu(st, soused(i, s))) continue;
+      volne.push(s);
+      if (s !== kol.smer && s !== OPACNY[kol.smer]) boky.push(s);
+    }
+    if (!volne.length) return null;
+    if (volne.indexOf(kol.smer) >= 0) {
+      if (boky.length && rnd() < SANCE_ODBOCENI) return boky[Math.floor(rnd() * boky.length)];
+      return kol.smer;
+    }
+    if (boky.length) return boky[Math.floor(rnd() * boky.length)];
+    return volne[0];
+  }
+
+  // Direction chosen at a cell centre. cesta holds path distances to the
+  // manager (crates, meetings and the elevator block), or null.
+  function rozhodni(st, kol, cesta, rnd) {
+    var i = kol.y * S + kol.x, k, j;
+    if (kol.typ === "minutka" && cesta && cesta[i] > 0 && cesta[i] <= MINUTKA_DOSAH) {
+      for (k = 0; k < 4; k++) {
+        j = soused(i, KLICE_SMERU[k]);
+        if (cesta[j] === cesta[i] - 1 && volnoProKolegu(st, j)) return KLICE_SMERU[k];
+      }
+    }
+    return bloumej(st, kol, i, rnd);
+  }
+
+  // Moves a colleague by one step's distance, centre to centre. It decides only
+  // at centres; between cells, if the cell ahead got closed (a meeting), it
+  // turns back, and stays put when both ways are closed.
+  function pohniKolegu(st, kol, cesta, rnd) {
+    var zbyva = kol.rychlost * KROK_MS / 1000, s, k, poz, cil, i, smer;
+    for (var n = 0; n < 4 && zbyva > 1e-9; n++) {
+      if (kol.x === Math.round(kol.x) && kol.y === Math.round(kol.y)) {
+        smer = rozhodni(st, kol, cesta, rnd);
+        if (!smer) return;
+        kol.smer = smer;
+      }
+      s = SMERY[kol.smer];
+      k = s.dx || s.dy;
+      poz = s.dx ? kol.x : kol.y;
+      cil = k > 0 ? Math.floor(poz) + 1 : Math.ceil(poz) - 1;
+      i = s.dx ? kol.y * S + cil : cil * S + kol.x;
+      if (!volnoProKolegu(st, i)) {
+        // Only reachable between cells: the centre decision picks a free cell.
+        kol.smer = OPACNY[kol.smer];
+        k = -k;
+        cil = k > 0 ? Math.floor(poz) + 1 : Math.ceil(poz) - 1;
+        i = s.dx ? kol.y * S + cil : cil * S + kol.x;
+        if (!volnoProKolegu(st, i)) return;
+      }
+      if (zbyva >= Math.abs(cil - poz) - 1e-9) {
+        zbyva -= Math.abs(cil - poz);
+        poz = cil;
+      } else {
+        poz += k * zbyva;
+        zbyva = 0;
+      }
+      if (s.dx) kol.x = poz; else kol.y = poz;
+    }
+  }
+
+  function pohniKolegy(st, rnd) {
+    var h = st.hrac, cesta = null, k;
+    for (k = 0; k < st.kolegove.length; k++) {
+      if (st.kolegove[k].typ !== "minutka") continue;
+      cesta = bfs(bunkaHrace(h), function (j) { return !volnoProKolegu(st, j); });
+      break;
+    }
+    for (k = 0; k < st.kolegove.length; k++) pohniKolegu(st, st.kolegove[k], cesta, rnd);
+  }
+
+  // Moves the manager one step. One axis is always on a corridor line: moving
+  // along it needs the cross axis aligned; when it is not, corner assist snaps
+  // toward the nearest line if it is within ROH and the corridor ahead is open.
+  // The snap may use up to ROH_NASOBEK step distances; what is left of that
+  // after aligning goes forward, capped at one step distance.
+  function pohni(st, smer) {
+    var h = st.hrac;
+    var s = SMERY[smer];
+    var d = h.rychlost * KROK_MS / 1000;
+    var vodorovne = s.dx !== 0;
+    var k = vodorovne ? s.dx : s.dy;
+    var a = vodorovne ? h.x : h.y;
+    var b = vodorovne ? h.y : h.x;
+    var aR = Math.round(a);
+    var bR = Math.round(b);
+    var dalsi = vodorovne ? bR * S + aR + k : (aR + k) * S + bR;
+    var volno = volnoProHrace(st, dalsi);
+    var vpred = d;
+    if (b !== bR) {
+      var odchylka = Math.abs(b - bR);
+      if (odchylka > ROH + 1e-9 || !volno) return;
+      if (odchylka <= ROH_NASOBEK * d + 1e-9) {
+        b = bR;
+        vpred = Math.min(d, Math.max(0, ROH_NASOBEK * d - odchylka));
+      } else {
+        b += bR > b ? ROH_NASOBEK * d : -ROH_NASOBEK * d;
+        vpred = 0;
+      }
+    }
+    // Forward only once aligned: off the line the next cell would overlap a pillar.
+    if (b === bR && vpred > 0) {
+      var an = a + k * vpred;
+      if (!volno && (an - aR) * k > 0) an = (a - aR) * k > 0 ? a : aR;
+      a = an;
+    }
+    if (vodorovne) { h.x = a; h.y = b; } else { h.y = a; h.x = b; }
+  }
+
+  function pridejUdalost(ud, u) {
+    if (ud.indexOf(u) < 0) ud.push(u);
+  }
+
+  // Detonates the given meetings (already removed from st.porady) and every
+  // meeting their blasts reach, all in this step, each with its own range.
+  function odpal(st, fronta, ud) {
+    var zasazene = [], krabice = [], k, n, i, j, p, q, bunky, s;
+    var smery = [SMERY.up, SMERY.down, SMERY.left, SMERY.right];
+    for (k = 0; k < fronta.length; k++) {
+      p = fronta[k];
+      bunky = [p.i];
+      for (n = 0; n < 4; n++) {
+        s = smery[n];
+        for (j = 1; j <= p.dosah; j++) {
+          i = p.i + (s.dy * S + s.dx) * j;
+          if (st.mrizka[i] === 1) break;
+          bunky.push(i);
+          if (st.mrizka[i] === 2 || krabice.indexOf(i) >= 0) {
+            if (st.mrizka[i] === 2) { st.mrizka[i] = 0; krabice.push(i); }
+            break;
+          }
+          q = poradaNa(st, i);
+          if (q) {
+            st.porady.splice(st.porady.indexOf(q), 1);
+            fronta.push(q);
+          }
+        }
+      }
+      st.vybuchy.push({ bunky: bunky, zbyva: VYBUCH_MS });
+      zasazene = zasazene.concat(bunky);
+    }
+    // Open bonuses in the blast vanish; the ones under crates are revealed after.
+    st.bonusy = st.bonusy.filter(function (b) { return b.skryty || zasazene.indexOf(b.i) < 0; });
+    for (k = 0; k < krabice.length; k++) {
+      for (n = 0; n < st.bonusy.length; n++) if (st.bonusy[n].i === krabice[k]) st.bonusy[n].skryty = false;
+      if (st.vytah.i === krabice[k]) st.vytah.odkryty = true;
+    }
+    if (fronta.length) pridejUdalost(ud, "vybuch");
+    if (krabice.length) pridejUdalost(ud, "krabice");
+  }
+
+  function seber(st, ud) {
+    var h = st.hrac, i = bunkaHrace(h), k, b;
+    for (k = 0; k < st.bonusy.length; k++) {
+      b = st.bonusy[k];
+      if (b.i !== i || b.skryty) continue;
+      if (b.typ === "kava") h.rychlost = Math.min(RYCHLOST_MAX, h.rychlost + KAVA);
+      else if (b.typ === "porada") h.maxPorad = Math.min(MAX_PORAD, h.maxPorad + 1);
+      else if (b.typ === "dosah") h.dosah = Math.min(MAX_DOSAH, h.dosah + 1);
+      st.bonusy.splice(k, 1);
+      pridejUdalost(ud, "bonus");
+      return;
+    }
+  }
+
+  function krok(st, vstup, rnd) {
+    var ud = [], h = st.hrac, k, p, i, fronta;
+    if (st.konec) return ud;
+
+    // 1. Timers: invulnerability and blasts from earlier steps.
+    h.nezranitelny = Math.max(0, h.nezranitelny - KROK_MS);
+    for (k = st.vybuchy.length - 1; k >= 0; k--) {
+      st.vybuchy[k].zbyva -= KROK_MS;
+      if (st.vybuchy[k].zbyva <= 0) st.vybuchy.splice(k, 1);
+    }
+
+    // 2. Input: lay a meeting on the current cell, move the manager, then colleagues.
+    if (vstup && vstup.porada) {
+      i = bunkaHrace(h);
+      if (st.porady.length < h.maxPorad && !poradaNa(st, i) && i !== st.vytah.i) {
+        st.porady.push({ i: i, zbyva: ROZBUSKA_MS, dosah: h.dosah, hracUvnitr: true });
+        ud.push("porada");
+      }
+    }
+    if (vstup && SMERY[vstup.smer]) {
+      h.smer = vstup.smer;
+      pohni(st, vstup.smer);
+    }
+    i = bunkaHrace(h);
+    for (k = 0; k < st.porady.length; k++) if (st.porady[k].i !== i) st.porady[k].hracUvnitr = false;
+    pohniKolegy(st, rnd);
+
+    // 3. Fuses: a meeting whose fuse ran out or that sits in an active blast detonates.
+    fronta = [];
+    for (k = st.porady.length - 1; k >= 0; k--) {
+      p = st.porady[k];
+      p.zbyva -= KROK_MS;
+      if (p.zbyva <= 0 || veVybuchu(st, p.i)) {
+        st.porady.splice(k, 1);
+        fronta.unshift(p);
+      }
+    }
+
+    // 4. Blasts (with chains), crates and bonuses in them.
+    if (fronta.length) odpal(st, fronta, ud);
+
+    // 5. Pickups.
+    seber(st, ud);
+
+    // 6. Hits: colleagues in blasts leave (once each), then the manager.
+    zasahniKolegy(st, ud);
+    if (h.nezranitelny === 0 && (veVybuchu(st, bunkaHrace(h)) || dotyk(st))) {
+      ztratZivot(st, rnd, ud);
+      return ud;
+    }
+
+    // 7. Elevator: entering it open goes up a floor at once.
+    if (st.vytah.otevreny && bunkaHrace(h) === st.vytah.i) {
+      st.body += BODY_PATRO;
+      st.patro += 1;
+      novePatro(st, rnd);
+      ud.push("patro");
+      if (st.vytah.otevreny) ud.push("vytah");
+    }
+
+    return ud;
+  }
+
+  function zasahniKolegy(st, ud) {
+    var bylo = st.kolegove.length;
+    st.kolegove = st.kolegove.filter(function (kol) {
+      if (!veVybuchu(st, Math.round(kol.y) * S + Math.round(kol.x))) return true;
+      st.body += BODY_KOLEGA;
+      ud.push("kolega");
+      return false;
+    });
+    if (bylo > 0 && otevriPrazdny(st)) ud.push("vytah");
+  }
+
+  function dotyk(st) {
+    var h = st.hrac;
+    for (var k = 0; k < st.kolegove.length; k++) {
+      var dx = st.kolegove[k].x - h.x, dy = st.kolegove[k].y - h.y;
+      if (dx * dx + dy * dy <= DOTYK * DOTYK) return true;
+    }
+    return false;
+  }
+
+  // One life per step. The floor stays (crates, bonuses), the rest restarts.
+  function ztratZivot(st, rnd, ud) {
+    var h = st.hrac;
+    st.zivoty -= 1;
+    ud.push("zivot");
+    if (st.zivoty <= 0) {
+      st.zivoty = 0;
+      st.konec = true;
+      ud.push("konec");
+      return;
+    }
+    h.x = START_X;
+    h.y = START_Y;
+    h.smer = "down";
+    h.nezranitelny = NEZRANITELNOST_MS;
+    st.porady = [];
+    st.vybuchy = [];
+    rozmisti(st, st.kolegove, rnd);
+    if (otevriPrazdny(st)) ud.push("vytah");
+  }
+
+  function nezapCele(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 && Math.floor(v) === v ? v : 0;
+  }
+
+  function parseUlozeni(raw) {
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!o || typeof o !== "object" || o instanceof Array) o = {};
+    return { rekordPatro: nezapCele(o.rekordPatro), rekordBody: nezapCele(o.rekordBody) };
+  }
+
+  function lepsi(a, b) {
+    if (a.rekordPatro !== b.rekordPatro) return a.rekordPatro > b.rekordPatro;
+    return a.rekordBody > b.rekordBody;
+  }
+
+  window.PoradaLogika = {
+    S: S,
+    R: R,
+    KROK_MS: KROK_MS,
+    ROZBUSKA_MS: ROZBUSKA_MS,
+    VYBUCH_MS: VYBUCH_MS,
+    NEZRANITELNOST_MS: NEZRANITELNOST_MS,
+    ZIVOTU: ZIVOTU,
+    RYCHLOST: RYCHLOST,
+    RYCHLOST_MAX: RYCHLOST_MAX,
+    KAVA: KAVA,
+    MAX_PORAD: MAX_PORAD,
+    MAX_DOSAH: MAX_DOSAH,
+    novaHra: novaHra,
+    novePatro: novePatro,
+    krok: krok,
+    vzdalenosti: vzdalenosti,
+    parseUlozeni: parseUlozeni,
+    lepsi: lepsi
+  };
+})();
+</script>
 <script id="hry-seznam">
 (function () {
   var KEY = "zachodova-hry-vyber-v1";
@@ -6668,6 +7350,804 @@ body.detail-open { overflow: hidden; }
   }
 })();
 </script>
+<script id="porada-ui">
+(function () {
+  var HS = window.HrySeznam;
+  var failed = false;
+  function hideEntry(err, msg) {
+    if (failed) return;
+    failed = true;
+    if (HS) HS.odeber("porada");
+    if (window.console) console.error(msg, err);
+  }
+  try {
+    init();
+  } catch (err) {
+    hideEntry(err, "Porada se nenacetla");
+  }
+
+  function init() {
+    var L = window.PoradaLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!L || !V || !Z || !S || !HS) throw new Error("chybi zavislosti porady");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi #" + id);
+      return el;
+    };
+    var KEY = "zachodova-porada-v1";
+    var SL = L.S, RA = L.R, KROK = L.KROK_MS, MAX_DT = 250, ODCHOD_MS = 400;
+    var hraEl = $("porada"), canvas = $("poradaPlatno"), pole = $("poradaPole");
+    var ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas 2d neni k dispozici");
+    var patroEl = $("poradaPatro"), zivotyEl = $("poradaZivoty"), bodyEl = $("poradaBody");
+    var stopky = $("poradaStopky"), pauzaBtn = $("poradaPauza"), cela = $("poradaCela"), zavrit = $("poradaZavrit");
+    var stavEl = $("poradaStav"), konecEl = $("poradaKonec"), konecText = $("poradaKonecText");
+    var konecRekord = $("poradaKonecRekord"), znovuBtn = $("poradaZnovu"), konecZavrit = $("poradaKonecZavrit");
+    var ovladani = $("poradaOvladani"), tlacitko = $("poradaTlacitko");
+    var hrajBtn = $("poradaHrajBtn"), rekordEl = $("poradaRekord");
+    var slot = $("hraSlot"), hraPanel = $("hraPanel"), warnModal = $("warnModal");
+    var KLAVESY = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      KeyW: "up", KeyS: "down", KeyA: "left", KeyD: "right",
+      w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right"
+    };
+    var POHLED = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    var EMOJI_BONUS = { kava: "☕", porada: "📅", dosah: "📢" };
+    var EMOJI_FONT = "\"Apple Color Emoji\", \"Segoe UI Emoji\", \"Noto Color Emoji\", system-ui, sans-serif";
+
+    function cislo(n) {
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); // non-breaking space, never wraps
+    }
+
+    // ---- record ----
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    var ulozeni = L.parseUlozeni(raw);
+    function rekordText() {
+      rekordEl.textContent = ulozeni.rekordPatro > 0 ? "Rekord: " + ulozeni.rekordPatro + ". patro" : "Rekord: zatím žádný";
+    }
+    // Saves the current floor and points when they beat the stored record.
+    function ulozRekord() {
+      var kand = { rekordPatro: stav.patro, rekordBody: stav.body };
+      if (!L.lepsi(kand, ulozeni)) return;
+      ulozeni = kand;
+      try { localStorage.setItem(KEY, JSON.stringify(ulozeni)); } catch (e) {}
+      rekordText();
+    }
+
+    // ---- game state (kept in memory while closed, lost on reload) ----
+    var stav = null, rekordNaZacatku = null, novyRekord = false;
+    var open = false, full = false, endAfterFull = false, pauza = false;
+    var rafId = 0, lastT = 0, acc = 0, stopkyId = 0;
+    var drzene = [], padSmer = null, padId = null, chciPoradu = false;
+    var predHrac = null, predKolegove = [], odchody = [];
+    var tile = 24, dpr = 1, col = {};
+    var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    var ro = window.ResizeObserver ? new window.ResizeObserver(function () { bezpecnyResize(); }) : null;
+
+    function zacni() {
+      stav = L.novaHra(Math.random);
+      rekordNaZacatku = { rekordPatro: ulozeni.rekordPatro, rekordBody: ulozeni.rekordBody };
+      novyRekord = false;
+      pauza = false;
+      acc = 0;
+      lastT = 0;
+      chciPoradu = false;
+      odchody = [];
+      zapamatujPozice();
+      setStav("Patro 1");
+    }
+    // Positions before a step, for drawing between steps.
+    function zapamatujPozice() {
+      predHrac = { x: stav.hrac.x, y: stav.hrac.y };
+      predKolegove = [];
+      for (var k = 0; k < stav.kolegove.length; k++) {
+        var kol = stav.kolegove[k];
+        predKolegove.push({ kol: kol, x: kol.x, y: kol.y });
+      }
+    }
+
+    // ---- header and status ----
+    function setStav(t) {
+      stavEl.textContent = t;
+    }
+    function hud() {
+      if (!stav) return;
+      var t = "Patro " + stav.patro;
+      if (patroEl.textContent !== t) patroEl.textContent = t;
+      t = "❤ " + stav.zivoty;
+      if (zivotyEl.textContent !== t) {
+        zivotyEl.textContent = t;
+        zivotyEl.setAttribute("aria-label", "Životy: " + stav.zivoty);
+      }
+      t = cislo(stav.body) + " bodů";
+      if (bodyEl.textContent !== t) bodyEl.textContent = t;
+      pauzaBtn.hidden = stav.konec;
+      t = pauza ? "Pokračovat" : "Pauza";
+      if (pauzaBtn.textContent !== t) pauzaBtn.textContent = t;
+      konecEl.hidden = !stav.konec;
+      if (stav.konec) {
+        konecText.textContent = vysledek();
+        konecRekord.hidden = !novyRekord;
+      }
+    }
+    function vysledek() {
+      return "Dostal ses do " + stav.patro + ". patra · " + cislo(stav.body) + " bodů";
+    }
+
+    // ---- loop: fixed logic steps, real time clamped so a long gap never jumps ----
+    function bezi() {
+      return open && !!stav && !stav.konec && !pauza && !document.hidden && !hraPanel.hidden &&
+        warnModal.hidden && !hraEl.closest("[inert]") && (!full || V.top() === hraEl);
+    }
+    function smer() {
+      if (padSmer) return padSmer;
+      return drzene.length ? drzene[drzene.length - 1].smer : null;
+    }
+    function krokHry() {
+      zapamatujPozice();
+      var pred = stav.kolegove.slice();
+      var vstup = { smer: smer(), porada: chciPoradu };
+      chciPoradu = false;
+      var ud = L.krok(stav, vstup, Math.random);
+      for (var k = odchody.length - 1; k >= 0; k--) {
+        odchody[k].zbyva -= KROK;
+        if (odchody[k].zbyva <= 0) odchody.splice(k, 1);
+      }
+      if (ud.length) udalosti(ud, pred);
+    }
+    function udalosti(ud, pred) {
+      var ma = function (u) { return ud.indexOf(u) >= 0; }, hlaska = null, k;
+      if (ma("kolega")) {
+        for (k = 0; k < pred.length; k++) {
+          if (stav.kolegove.indexOf(pred[k]) < 0) {
+            odchody.push({ x: Math.round(pred[k].x), y: Math.round(pred[k].y), smer: pred[k].smer, typ: pred[k].typ, zbyva: ODCHOD_MS });
+          }
+        }
+      }
+      if (ma("vytah")) hlaska = ma("patro") ? "Patro " + stav.patro + ". Výtah je otevřený!" : "Výtah je otevřený!";
+      if (ma("zivot")) hlaska = "Přišel jsi o život";
+      if (ma("patro")) {
+        odchody = [];
+        ulozRekord();
+        if (!ma("vytah")) hlaska = "Patro " + stav.patro;
+      }
+      if (ma("konec")) {
+        novyRekord = L.lepsi({ rekordPatro: stav.patro, rekordBody: stav.body }, rekordNaZacatku) && (stav.patro >= 2 || stav.body > 0);
+        ulozRekord();
+        chciPoradu = false;
+        hlaska = vysledek() + (novyRekord ? ". Nový rekord!" : "");
+      }
+      hud();
+      if (hlaska) setStav(hlaska);
+      if (stav.konec && open && (full || hraEl.contains(document.activeElement))) focusEl(znovuBtn);
+    }
+    function frame(t) {
+      rafId = 0;
+      if (!open) return;
+      try {
+        if (bezi()) {
+          var dt = lastT ? t - lastT : 0;
+          lastT = t;
+          if (!(dt > 0)) dt = 0;
+          acc += Math.min(dt, MAX_DT);
+          while (acc >= KROK && !stav.konec) {
+            krokHry();
+            acc -= KROK;
+          }
+          if (stav.konec) acc = 0;
+          kresli();
+        } else {
+          lastT = 0; // paused time is never accumulated
+        }
+        if (open) rafId = requestAnimationFrame(frame);
+      } catch (err) {
+        fail(err);
+      }
+    }
+    function startLoop() {
+      lastT = 0;
+      if (!rafId) rafId = requestAnimationFrame(frame);
+    }
+    function cancelLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    function fail(err) {
+      cancelLoop();
+      try { if (open) closeGame(); } catch (e) {}
+      hideEntry(err, "Porada spadla");
+    }
+
+    // ---- colours, read once per theme change ----
+    function readColors() {
+      var cs = getComputedStyle(document.documentElement);
+      var v = function (n, d) { var x = cs.getPropertyValue(n).trim(); return x || d; };
+      col = {
+        podlaha: v("--porada-podlaha", "#f3eee3"), podlaha2: v("--porada-podlaha2", "#e8e1d2"),
+        zed: v("--porada-zed", "#6d858b"), zedHrana: v("--porada-zed-hrana", "#8fa6ab"),
+        krabice: v("--porada-krabice", "#d9b47a"), krabiceHrana: v("--porada-krabice-hrana", "#9a6a2a"),
+        oblek: v("--porada-oblek", "#1f2a44"), kravata: v("--porada-kravata", "#e0332a"),
+        kuze: v("--porada-kuze", "#f2c9a3"), vlasy: v("--porada-vlasy", "#3b2a1e"),
+        obrys: v("--porada-obrys", "#0d1626"), vybuch: v("--porada-vybuch", "#ff7a1a"),
+        vybuch2: v("--porada-vybuch2", "#ffd23f"), brass: v("--brass", "#a8761c"),
+        brassSoft: v("--brass-soft", "#f4e6c8"), zelena: v("--hra-zelena", "#4f9d4a"),
+        svestka: v("--hra-svestka", "#8e4f86"), dutinka: v("--hra-dutinka", "#d9b77e"),
+        muted: v("--muted", "#4d6f75"), ink: v("--ink", "#0e3b43"), porcelain: v("--porcelain", "#ffffff")
+      };
+    }
+
+    // ---- layout: 13 x 11 cells scaled to the box ----
+    function bezpecnyResize() {
+      try { resize(); } catch (err) { fail(err); }
+    }
+    function resize() {
+      if (!open) return;
+      var cs = getComputedStyle(pole);
+      var aw = pole.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+      var ah = pole.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+      var t = Math.floor(Math.min(aw / SL, ah / RA, 64));
+      tile = Math.max(8, t || 8);
+      dpr = window.devicePixelRatio || 1;
+      canvas.style.width = tile * SL + "px";
+      canvas.style.height = tile * RA + "px";
+      canvas.width = Math.round(tile * SL * dpr);
+      canvas.height = Math.round(tile * RA * dpr);
+      kresli();
+    }
+
+    // ---- drawing, in cell units (cell c spans c..c+1) ----
+    function rr(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function kruh(x, y, r) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    function emoji(ch, x, y, velikost) {
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font = Math.round(tile * velikost) + "px " + EMOJI_FONT;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(ch, x * tile, y * tile + tile * 0.04);
+      ctx.restore();
+    }
+    function stin(sirka) {
+      ctx.fillStyle = "rgba(0, 0, 0, .18)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0.4, sirka, 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    function zed(c, r) {
+      ctx.fillStyle = col.zed;
+      ctx.fillRect(c, r, 1, 1);
+      ctx.fillStyle = col.zedHrana;
+      ctx.fillRect(c + 0.06, r + 0.06, 0.88, 0.16);
+    }
+    function krabice(c, r) {
+      ctx.fillStyle = col.porcelain; // papers sticking out
+      ctx.fillRect(c + 0.26, r + 0.12, 0.3, 0.14);
+      ctx.fillRect(c + 0.44, r + 0.08, 0.26, 0.16);
+      rr(c + 0.12, r + 0.2, 0.76, 0.68, 0.06);
+      ctx.fillStyle = col.krabice;
+      ctx.fill();
+      ctx.lineWidth = 0.05;
+      ctx.strokeStyle = col.krabiceHrana;
+      ctx.stroke();
+      ctx.fillStyle = col.krabiceHrana;
+      ctx.fillRect(c + 0.12, r + 0.42, 0.76, 0.06);
+      ctx.fillRect(c + 0.42, r + 0.6, 0.16, 0.08);
+    }
+    function vytah(c, r, otevreny) {
+      ctx.save();
+      if (otevreny) {
+        var puls = 0.5 + 0.5 * Math.sin(Date.now() / 250);
+        ctx.fillStyle = col.vybuch2;
+        ctx.globalAlpha = 0.35 + 0.25 * puls;
+        ctx.fillRect(c, r, 1, 1);
+        ctx.globalAlpha = 1;
+        rr(c + 0.1, r + 0.08, 0.8, 0.84, 0.08);
+        ctx.fillStyle = col.brassSoft;
+        ctx.fill();
+        ctx.lineWidth = 0.08;
+        ctx.strokeStyle = col.brass;
+        ctx.stroke();
+        ctx.fillStyle = col.muted; // doors slid aside
+        ctx.fillRect(c + 0.16, r + 0.26, 0.1, 0.6);
+        ctx.fillRect(c + 0.74, r + 0.26, 0.1, 0.6);
+        ctx.fillStyle = col.brass; // up arrow
+        ctx.beginPath();
+        ctx.moveTo(c + 0.5, r + 0.3);
+        ctx.lineTo(c + 0.68, r + 0.56);
+        ctx.lineTo(c + 0.32, r + 0.56);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(c + 0.44, r + 0.54, 0.12, 0.22);
+      } else {
+        ctx.globalAlpha = 0.6;
+        rr(c + 0.1, r + 0.08, 0.8, 0.84, 0.08);
+        ctx.fillStyle = col.zedHrana;
+        ctx.fill();
+        ctx.lineWidth = 0.06;
+        ctx.strokeStyle = col.muted;
+        ctx.stroke();
+        ctx.fillStyle = col.muted;
+        ctx.fillRect(c + 0.48, r + 0.24, 0.04, 0.64); // closed doors meet here
+        ctx.fillRect(c + 0.3, r + 0.13, 0.4, 0.07);
+      }
+      ctx.restore();
+    }
+    function hlava(fx, y, r, vlasy, smer) {
+      kruh(fx, y, r);
+      ctx.fillStyle = smer === "up" ? vlasy : col.kuze;
+      ctx.fill();
+      ctx.lineWidth = 0.035;
+      ctx.strokeStyle = col.obrys;
+      ctx.stroke();
+      if (smer === "up") return;
+      ctx.fillStyle = vlasy;
+      ctx.beginPath();
+      ctx.arc(fx, y, r, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.closePath();
+      ctx.fill();
+      var p = POHLED[smer] || POHLED.down, ox = fx + p[0] * 0.06;
+      ctx.fillStyle = col.obrys;
+      kruh(ox - 0.06, y + 0.02, 0.025);
+      ctx.fill();
+      kruh(ox + 0.06, y + 0.02, 0.025);
+      ctx.fill();
+    }
+    // The manager: dark suit, white shirt, bright tie, facing the way he walks.
+    function manazer(x, y, smer) {
+      var p = POHLED[smer] || POHLED.down, fx = p[0] * 0.04;
+      ctx.save();
+      ctx.translate(x + 0.5, y + 0.5);
+      stin(0.26);
+      ctx.fillStyle = col.oblek; // legs and shoes
+      ctx.fillRect(-0.15, 0.24, 0.12, 0.16);
+      ctx.fillRect(0.03, 0.24, 0.12, 0.16);
+      ctx.fillStyle = col.obrys;
+      ctx.fillRect(-0.17, 0.38, 0.15, 0.06);
+      ctx.fillRect(0.02, 0.38, 0.15, 0.06);
+      rr(-0.37, -0.04, 0.13, 0.3, 0.06); // arms
+      ctx.fillStyle = col.oblek;
+      ctx.fill();
+      rr(0.24, -0.04, 0.13, 0.3, 0.06);
+      ctx.fill();
+      ctx.fillStyle = col.kuze;
+      kruh(-0.3, 0.28, 0.055);
+      ctx.fill();
+      kruh(0.3, 0.28, 0.055);
+      ctx.fill();
+      rr(-0.27, -0.09, 0.54, 0.39, 0.1); // jacket
+      ctx.fillStyle = col.oblek;
+      ctx.fill();
+      ctx.lineWidth = 0.035;
+      ctx.strokeStyle = col.obrys;
+      ctx.stroke();
+      if (smer !== "up") {
+        ctx.fillStyle = "#ffffff"; // shirt
+        ctx.beginPath();
+        ctx.moveTo(fx - 0.13, -0.09);
+        ctx.lineTo(fx + 0.13, -0.09);
+        ctx.lineTo(fx, 0.16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = col.kravata; // tie: knot and blade
+        ctx.fillRect(fx - 0.045, -0.09, 0.09, 0.05);
+        ctx.beginPath();
+        ctx.moveTo(fx - 0.035, -0.04);
+        ctx.lineTo(fx + 0.035, -0.04);
+        ctx.lineTo(fx + 0.065, 0.17);
+        ctx.lineTo(fx, 0.24);
+        ctx.lineTo(fx - 0.065, 0.17);
+        ctx.closePath();
+        ctx.fill();
+      }
+      hlava(fx, -0.25, 0.17, col.vlasy, smer);
+      ctx.restore();
+    }
+    // Colleagues: the intern wears a green shirt and a badge, the "got a minute?"
+    // colleague a plum shirt, frowning, with a coffee mug.
+    function kolega(x, y, smer, typ, alfa, meritko) {
+      var minutka = typ === "minutka", kosile = minutka ? col.svestka : col.zelena;
+      var p = POHLED[smer] || POHLED.down, fx = p[0] * 0.04;
+      ctx.save();
+      ctx.globalAlpha = alfa;
+      ctx.translate(x + 0.5, y + 0.5);
+      ctx.scale(meritko, meritko);
+      stin(0.22);
+      ctx.fillStyle = col.muted; // trousers
+      ctx.fillRect(-0.14, 0.22, 0.11, 0.18);
+      ctx.fillRect(0.03, 0.22, 0.11, 0.18);
+      rr(-0.33, -0.02, 0.12, 0.26, 0.06); // arms
+      ctx.fillStyle = kosile;
+      ctx.fill();
+      rr(0.21, -0.02, 0.12, 0.26, 0.06);
+      ctx.fill();
+      rr(-0.23, -0.07, 0.46, 0.35, 0.12); // body
+      ctx.fill();
+      ctx.lineWidth = 0.035;
+      ctx.strokeStyle = col.obrys;
+      ctx.stroke();
+      if (minutka) {
+        rr(0.2, 0.1, 0.14, 0.16, 0.03); // mug
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 0.03;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0.36, 0.18, 0.045, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+        ctx.fillStyle = "#6b3f1f";
+        ctx.fillRect(0.22, 0.12, 0.1, 0.03);
+      } else if (smer !== "up") {
+        ctx.strokeStyle = col.vybuch; // lanyard and badge
+        ctx.lineWidth = 0.03;
+        ctx.beginPath();
+        ctx.moveTo(fx - 0.08, -0.07);
+        ctx.lineTo(fx, 0.06);
+        ctx.lineTo(fx + 0.08, -0.07);
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(fx - 0.06, 0.06, 0.12, 0.1);
+      }
+      hlava(fx, -0.22, 0.16, minutka ? col.obrys : col.dutinka, smer);
+      if (minutka && smer !== "up") {
+        ctx.strokeStyle = col.obrys; // frown
+        ctx.lineWidth = 0.03;
+        ctx.beginPath();
+        ctx.moveTo(fx + p[0] * 0.06 - 0.11, -0.27);
+        ctx.lineTo(fx + p[0] * 0.06 - 0.03, -0.24);
+        ctx.moveTo(fx + p[0] * 0.06 + 0.11, -0.27);
+        ctx.lineTo(fx + p[0] * 0.06 + 0.03, -0.24);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function porada(p) {
+      var c = p.i % SL, r = Math.floor(p.i / SL), zbyva = Math.max(0, p.zbyva / L.ROZBUSKA_MS);
+      ctx.fillStyle = col.brassSoft;
+      kruh(c + 0.5, r + 0.5, 0.42);
+      ctx.fill();
+      ctx.strokeStyle = col.vybuch; // the remaining fuse as a shrinking ring
+      ctx.lineWidth = 0.09;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(c + 0.5, r + 0.5, 0.42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * zbyva);
+      ctx.stroke();
+      ctx.lineCap = "butt";
+      var tep = p.zbyva < 600 ? 1 + 0.08 * Math.sin(p.zbyva / 30) : 1;
+      emoji("📅", c + 0.5, r + 0.5, 0.56 * tep);
+    }
+    function vybuch(v) {
+      var a = Math.max(0, Math.min(1, v.zbyva / L.VYBUCH_MS));
+      ctx.save();
+      for (var k = 0; k < v.bunky.length; k++) {
+        var c = v.bunky[k] % SL, r = Math.floor(v.bunky[k] / SL);
+        ctx.globalAlpha = 0.85 * a;
+        ctx.fillStyle = col.vybuch;
+        rr(c + 0.04, r + 0.04, 0.92, 0.92, 0.2);
+        ctx.fill();
+        ctx.globalAlpha = a;
+        ctx.fillStyle = col.vybuch2;
+        rr(c + 0.24, r + 0.24, 0.52, 0.52, 0.16);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Interpolated position between the last two logic steps; a jump (respawn, new floor) is not smoothed.
+    function mezi(akt, pred, a) {
+      if (!pred || Math.abs(akt.x - pred.x) + Math.abs(akt.y - pred.y) > 1) return { x: akt.x, y: akt.y };
+      return { x: pred.x + (akt.x - pred.x) * a, y: pred.y + (akt.y - pred.y) * a };
+    }
+    function kresli() {
+      if (!open || !stav) return;
+      var a = Math.max(0, Math.min(1, acc / KROK)), m = stav.mrizka, i, c, r, k, q;
+      ctx.setTransform(dpr * tile, 0, 0, dpr * tile, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = col.podlaha;
+      ctx.fillRect(0, 0, SL, RA);
+      ctx.fillStyle = col.podlaha2; // carpet tiles
+      for (r = 0; r < RA; r++) for (c = (r % 2); c < SL; c += 2) ctx.fillRect(c, r, 1, 1);
+      if (stav.vytah.odkryty && m[stav.vytah.i] !== 2) {
+        vytah(stav.vytah.i % SL, Math.floor(stav.vytah.i / SL), stav.vytah.otevreny);
+      }
+      for (i = 0; i < m.length; i++) {
+        c = i % SL;
+        r = Math.floor(i / SL);
+        if (m[i] === 1) zed(c, r);
+        else if (m[i] === 2) krabice(c, r);
+      }
+      for (k = 0; k < stav.bonusy.length; k++) {
+        q = stav.bonusy[k];
+        if (q.skryty) continue;
+        c = q.i % SL;
+        r = Math.floor(q.i / SL);
+        ctx.fillStyle = col.brassSoft;
+        kruh(c + 0.5, r + 0.5, 0.38);
+        ctx.fill();
+        ctx.lineWidth = 0.05;
+        ctx.strokeStyle = col.brass;
+        ctx.stroke();
+        emoji(EMOJI_BONUS[q.typ] || "?", c + 0.5, r + 0.5, 0.56);
+      }
+      for (k = 0; k < stav.porady.length; k++) porada(stav.porady[k]);
+      for (k = 0; k < stav.vybuchy.length; k++) vybuch(stav.vybuchy[k]);
+      for (k = 0; k < odchody.length; k++) {
+        q = odchody[k];
+        var f = q.zbyva / ODCHOD_MS;
+        kolega(q.x, q.y - (1 - f) * 0.4, q.smer, q.typ, f, 0.6 + 0.4 * f);
+      }
+      for (k = 0; k < stav.kolegove.length; k++) {
+        var kol = stav.kolegove[k], pred = null;
+        for (var n = 0; n < predKolegove.length; n++) if (predKolegove[n].kol === kol) pred = predKolegove[n];
+        var pk = mezi(kol, pred, a);
+        kolega(pk.x, pk.y, kol.smer, kol.typ, 1, 1);
+      }
+      var h = stav.hrac;
+      // blinks while invulnerable (logic time, so it freezes in a pause)
+      if (!(h.nezranitelny > 0 && Math.floor(h.nezranitelny / 120) % 2 === 0)) {
+        var ph = mezi(h, predHrac, a);
+        manazer(ph.x, ph.y, h.smer);
+      }
+      if (pauza && !stav.konec) {
+        ctx.fillStyle = col.porcelain;
+        ctx.globalAlpha = 0.75;
+        ctx.fillRect(0, 0, SL, RA);
+        ctx.globalAlpha = 1;
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = col.ink;
+        ctx.font = "700 " + Math.round(tile * 0.9) + "px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Pauza", SL * tile / 2, RA * tile / 2);
+        ctx.restore();
+      }
+    }
+
+    // ---- stopwatch line ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      stopky.hidden = false;
+    }
+
+    // ---- input ----
+    function pust(id) {
+      for (var k = drzene.length - 1; k >= 0; k--) if (drzene[k].id === id) drzene.splice(k, 1);
+    }
+    function pustVse() {
+      drzene = [];
+      padSmer = null;
+      padId = null;
+    }
+    function idKlavesy(e) {
+      return e.code || String(e.key).toLowerCase();
+    }
+    document.addEventListener("keydown", function (e) {
+      if (!open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (hraEl.closest("[inert]")) return;
+      // fullscreen: the game owns the keyboard; in the tab only while focus is inside it
+      if (full ? V.top() !== hraEl : !hraEl.contains(document.activeElement)) return;
+      var s = KLAVESY[e.code] || KLAVESY[e.key];
+      if (s) {
+        e.preventDefault();
+        var id = idKlavesy(e);
+        pust(id);
+        drzene.push({ id: id, smer: s }); // the most recent key wins
+        return;
+      }
+      if (e.key === " " || e.key === "Spacebar" || e.key === "Enter") {
+        var tag = e.target && e.target.tagName;
+        if (tag === "BUTTON") return; // the button handles it
+        e.preventDefault();
+        if (!e.repeat && bezi()) chciPoradu = true;
+      }
+    });
+    document.addEventListener("keyup", function (e) {
+      if (drzene.length) pust(idKlavesy(e));
+    });
+    window.addEventListener("blur", pustVse);
+    document.addEventListener("visibilitychange", function () {
+      pustVse();
+      lastT = 0;
+    });
+
+    // pad: a direction holds while pressed; capture keeps the release on the button
+    function smerTlacitko(e) {
+      var b = e.target && e.target.closest ? e.target.closest(".hra-smer") : null;
+      return b && ovladani.contains(b) ? b : null;
+    }
+    ovladani.addEventListener("pointerdown", function (e) {
+      if (!open) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (tlacitko.contains(e.target)) {
+        e.preventDefault(); // no focus change, no double-tap zoom
+        if (bezi()) chciPoradu = true;
+        return;
+      }
+      var b = smerTlacitko(e);
+      if (!b) return;
+      e.preventDefault();
+      padSmer = b.getAttribute("data-smer");
+      padId = e.pointerId;
+      try { b.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    function pustPad(e) {
+      if (padId !== null && e.pointerId === padId) {
+        padSmer = null;
+        padId = null;
+      }
+    }
+    var smerBtns = ovladani.querySelectorAll(".hra-smer");
+    for (var sb = 0; sb < smerBtns.length; sb++) {
+      smerBtns[sb].addEventListener("pointerup", pustPad);
+      smerBtns[sb].addEventListener("pointercancel", pustPad);
+      smerBtns[sb].addEventListener("lostpointercapture", pustPad);
+      smerBtns[sb].addEventListener("pointerleave", pustPad);
+    }
+    ovladani.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    tlacitko.addEventListener("click", function (e) {
+      if (e.detail !== 0) return; // pointer presses were handled on pointerdown
+      if (bezi()) chciPoradu = true;
+    });
+
+    // ---- open / close, mirroring #splachni-ui ----
+    function focusEl(el) {
+      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    }
+    function setMode(isFull) {
+      full = isFull;
+      hraEl.classList.toggle("hra-inline", !isFull);
+      if (isFull) {
+        hraEl.setAttribute("role", "dialog");
+        hraEl.setAttribute("aria-modal", "true");
+      } else {
+        hraEl.removeAttribute("role");
+        hraEl.removeAttribute("aria-modal");
+      }
+      cela.setAttribute("aria-pressed", String(isFull));
+      cela.setAttribute("aria-label", isFull ? "Zmenšit hru" : "Celá obrazovka");
+      cela.title = cela.getAttribute("aria-label");
+    }
+    function closeGame() {
+      if (!open) return;
+      if (full) { endAfterFull = true; V.close(hraEl); return; }
+      open = false;
+      cancelLoop();
+      pustVse();
+      chciPoradu = false;
+      if (stopkyId) clearInterval(stopkyId);
+      stopkyId = 0;
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", bezpecnyResize);
+      hraEl.hidden = true;
+      HS.zobrazMenu();
+      rekordText();
+      focusMenu();
+    }
+    function focusMenu() {
+      // after a failure the entry may already be gone, so fall back to what is visible
+      var t = hrajBtn.offsetParent ? hrajBtn : null;
+      var menu = document.getElementById("hryMenu");
+      var sels = [".hry-detail .hra-btn", ".hry-polozka"];
+      for (var s = 0; s < sels.length && !t && menu; s++) {
+        var list = menu.querySelectorAll(sels[s]);
+        for (var k = 0; k < list.length && !t; k++) if (list[k].offsetParent) t = list[k];
+      }
+      if (t) t.focus();
+    }
+    function openGame() {
+      if (open) return;
+      if (!stav || stav.konec) zacni();
+      pauza = false;
+      pustVse();
+      readColors();
+      open = true;
+      setMode(false);
+      slot.appendChild(hraEl);
+      HS.skryjMenu();
+      hraEl.hidden = false;
+      hud();
+      tickStopky();
+      stopkyId = setInterval(tickStopky, 1000);
+      resize();
+      if (ro) ro.observe(pole);
+      else window.addEventListener("resize", bezpecnyResize);
+      focusEl(canvas);
+      if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
+      startLoop();
+    }
+    function onFullClose() {
+      // Vrstvy hid the element; put it back into the tab.
+      setMode(false);
+      slot.appendChild(hraEl);
+      hraEl.hidden = false;
+      pustVse();
+      if (endAfterFull) {
+        endAfterFull = false;
+        closeGame();
+      } else {
+        focusEl(stav && stav.konec ? znovuBtn : canvas);
+        if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function toggleFull() {
+      if (!open) return;
+      if (full) { V.close(hraEl); return; }
+      setMode(true);
+      document.body.appendChild(hraEl);
+      V.open(hraEl, { onClose: onFullClose, initialFocus: stav && stav.konec ? znovuBtn : canvas });
+    }
+
+    hrajBtn.addEventListener("click", function () {
+      try { openGame(); } catch (err) { fail(err); }
+    });
+    cela.addEventListener("click", toggleFull);
+    zavrit.addEventListener("click", closeGame);
+    konecZavrit.addEventListener("click", closeGame);
+    znovuBtn.addEventListener("click", function () {
+      if (!open) return;
+      try {
+        zacni();
+        hud();
+        kresli();
+        focusEl(canvas);
+        startLoop();
+      } catch (err) {
+        fail(err);
+      }
+    });
+    pauzaBtn.addEventListener("click", function () {
+      if (!open || !stav || stav.konec) return;
+      pauza = !pauza;
+      lastT = 0;
+      chciPoradu = false;
+      try {
+        hud();
+        kresli();
+      } catch (err) {
+        fail(err);
+      }
+    });
+
+    // ---- theme changes ----
+    function themeChanged() {
+      if (!open) return;
+      try {
+        readColors();
+        kresli();
+      } catch (err) {
+        fail(err);
+      }
+    }
+    if (darkMq) {
+      if (darkMq.addEventListener) darkMq.addEventListener("change", themeChanged);
+      else if (darkMq.addListener) darkMq.addListener(themeChanged);
+    }
+    if (window.MutationObserver) {
+      new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    }
+
+    rekordText();
+    window.Porada = { isOpen: function () { return open; } };
+  }
+})();
+</script>
 <script id="instalace-ui">
 (function () {
   var L = window.InstalaceLogika;
@@ -6683,11 +8163,12 @@ body.detail-open { overflow: hidden; }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
   function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function blokovano() {
-    // An open game (chess, gomoku, Rulicka, Splachni) blocks too, so the banner never covers the board or its controls.
+    // An open game (chess, gomoku, Rulicka, Splachni, Porada) blocks too, so the banner never covers the board or its controls.
     if (window.Hra && window.Hra.isOpen && window.Hra.isOpen()) return true;
     if (window.Sachy && window.Sachy.isOpen && window.Sachy.isOpen()) return true;
     if (window.Pisk && window.Pisk.isOpen && window.Pisk.isOpen()) return true;
     if (window.Splachni && window.Splachni.isOpen && window.Splachni.isOpen()) return true;
+    if (window.Porada && window.Porada.isOpen && window.Porada.isOpen()) return true;
     return document.documentElement.classList.contains("zamceno") || document.body.classList.contains("detail-open") || (warnModal && !warnModal.hidden);
   }
   function eligible() {

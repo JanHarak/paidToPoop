@@ -91,7 +91,7 @@
   - Laying: one meeting per `maxPorad`; no second meeting on the same cell; not on the elevator cell.
   - Fuse: after `ROZBUSKA_MS` the meeting is gone and `vybuchy` has a cross of the right shape, cut by walls and stopped at the first crate (crate cell turned to `0`); after `VYBUCH_MS` more, `vybuchy` is empty.
   - Chain: two meetings in range; the second detonates in the same step as the first.
-  - Escape (Review Focus 2): over 200 seeds, lay a meeting at start, walk right one cell then down out of the cross (or the symmetric route), wait 3500 ms; no `"zasah"` event.
+  - Escape (Review Focus 2): over 200 seeds, with `stav.kolegove = []` (so the test stays valid after Task 2), walk from start to `(1,2)` (row 1, column 2), lay a meeting there, walk back left to `(1,1)` and down to `(2,1)`, which is outside the cross of range 1, then wait 3500 ms; no `"zasah"` event and the manager still has full control.
   - Bonus: a destroyed crate with a hidden `"dosah"` bonus reveals it; walking onto it increases `dosah` by 1; caps are respected (`dosah` ≤ 6, `maxPorad` ≤ 5, `rychlost` ≤ 5.5).
   - `parseUlozeni`: `null`, `"{bad"`, `"[]"` give defaults; valid round-trips; negative or non-integer values give 0.
   - `lepsi`: higher floor wins; equal floor, higher points wins; equal is false.
@@ -111,7 +111,7 @@
 - Each colleague is `{x, y, smer, typ: "stazista"|"minutka", rychlost}`, moving cell to cell (decides only at cell centres).
 - New events: `"kolega"` (one per colleague removed), `"zivot"` (life lost), `"vytah"` (elevator opened), `"patro"` (new floor reached), `"konec"` (game over).
 - Rules:
-  - **Count per floor:** `min(3 + (patro - 1), 8)`. Share of `"minutka"`: `min(0.1 * (patro - 1), 0.6)`, rounded; floor 1 has none.
+  - **Count per floor:** `min(3 + (patro - 1), 8)`. Number of `"minutka"`: `Math.ceil(count * min(0.1 * (patro - 1), 0.6))`; floor 1 has none, floor 2 has one.
   - **Speed:** `min(1.5 + 0.1 * (patro - 1), 2.9)` for stážista, `+0.2` for minutka, also capped at 2.9.
   - **Spawn:** random free cells (not crates, not the elevator) with `vzdalenosti(stav, start, true)[i] >= 5`, each on a different cell.
   - **Stážista:** keeps its direction when possible; at an intersection it turns with probability 0.3; when blocked it picks a random free direction (turning back only if nothing else). Cannot enter walls, crates, meetings or the elevator cell.
