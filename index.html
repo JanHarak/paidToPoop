@@ -511,15 +511,25 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   font-variant-numeric: tabular-nums;
 }
 .denik-rada:last-child { border-bottom: 0; }
-.denik-cas { font-weight: 700; min-width: 3.2em; }
-.denik-min { color: var(--muted); }
-.denik-castka { margin-left: auto; font-weight: 700; text-align: right; }
+.denik-info { display: flex; flex-wrap: wrap; align-items: center; flex: 1 1 0; gap: .1rem .6rem; min-width: 0; }
+.denik-cas { font-weight: 700; min-width: 3.2em; white-space: nowrap; }
+.denik-min { color: var(--muted); white-space: nowrap; min-width: 0; }
+.denik-castka { flex: none; margin-left: auto; font-weight: 700; text-align: right; white-space: nowrap; }
+.denik-varovani {
+  margin: 0 0 1rem;
+  padding: .6rem .8rem;
+  background: var(--brass-soft);
+  border: 2px solid var(--brass);
+  border-radius: 12px;
+}
+.denik-varovani[hidden] { display: none; }
 .denik-rucne {
   padding: .05rem .5rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
   font-size: .75rem;
+  white-space: nowrap;
 }
 .denik-smaz {
   flex: none;
@@ -558,7 +568,7 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
   font-size: .95rem;
 }
-.denik-lista[hidden] { display: none; }
+.denik-lista.skryta { opacity: 0; pointer-events: none; }
 .denik-vratit {
   min-height: 36px;
   padding: .3rem .9rem;
@@ -1418,12 +1428,12 @@ body.detail-open { overflow: hidden; }
   </header>
 
   <div class="seg pohled-tabs" id="pohledTabs" role="tablist" aria-label="Zobrazení">
-    <button type="button" role="tab" class="seg-btn" id="modeMd" aria-selected="true" tabindex="0">MD sazba</button>
-    <button type="button" role="tab" class="seg-btn" id="modeSal" aria-selected="false" tabindex="-1">Měsíční plat</button>
-    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-selected="false" tabindex="-1">Deník</button>
+    <button type="button" role="tab" class="seg-btn" id="modeMd" aria-controls="pohledPanel" aria-selected="true" tabindex="0">MD sazba</button>
+    <button type="button" role="tab" class="seg-btn" id="modeSal" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Měsíční plat</button>
+    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Deník</button>
   </div>
 
-  <div class="grid">
+  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="modeMd">
     <section class="panel" id="vstupPanel" aria-labelledby="in-h">
       <h2 id="in-h">Tvoje údaje</h2>
 
@@ -1511,6 +1521,7 @@ body.detail-open { overflow: hidden; }
 
     <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
       <h2 id="denikH" tabindex="-1">Deník</h2>
+      <p class="denik-varovani" id="denikVarovani" hidden>Uložený deník se nepodařilo načíst. Nic nepřepíšu, dokud nezapíšeš.</p>
       <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
       <div id="denikSeznam"></div>
       <button class="hra-btn denik-dalsi" id="denikDalsi" type="button" hidden>Zobrazit starší</button>
@@ -1826,7 +1837,7 @@ body.detail-open { overflow: hidden; }
   </div>
 </div>
 
-<div class="denik-lista" id="denikLista" role="status" aria-live="polite" hidden>
+<div class="denik-lista skryta" id="denikLista" role="status" aria-live="polite">
   <span id="denikListaText"></span>
   <button class="denik-vratit" id="denikVratit" type="button" hidden>Vrátit</button>
 </div>
@@ -2101,8 +2112,9 @@ body.detail-open { overflow: hidden; }
     for (var i = 0; i < data.zapisy.length; i++) {
       var p = data.zapisy[i];
       if (!p || typeof p !== "object") continue;
-      var z = novyZapis(p.start, p.min, p.castka, p.mena, p.zdroj, p.id);
-      if (z && (typeof p.id === "string" || cislo(p.id))) out.push(z);
+      var id = typeof p.id === "string" ? p.id : (cislo(p.id) ? String(p.id) : null);
+      var z = id === null ? null : novyZapis(p.start, p.min, p.castka, p.mena, p.zdroj, id);
+      if (z) out.push(z);
     }
     return { zapisy: out, poskozeno: false };
   }
@@ -2342,25 +2354,84 @@ body.detail-open { overflow: hidden; }
     if (p !== null) els.mins.value = Math.round(p * 10) / 10;
   }
 
+  // Re-read the diary before a change, so entries written by another open copy of the page are kept.
+  // Only trusted when the stored data parses cleanly; otherwise the in-memory state stays.
+  function obnovZUloziste() {
+    try {
+      var raw = localStorage.getItem(DL.KEY);
+      if (raw === null) return;
+      var r = DL.parse(raw);
+      if (r.poskozeno) return;
+      zapisy = r.zapisy;
+      denikPoskozen = false;
+    } catch (e) {}
+  }
+
   var listaEl = $("denikLista"), listaText = $("denikListaText"), vratitBtn = $("denikVratit");
-  var listaTimer = null;
-  function schovejListu() {
+  var listaTimer = null, listaTextTimer = null;
+  var listaPointer = false, listaFokus = false;
+  var listaNavrat = null;   // function returning the element that gets focus when the bar goes away
+  function listaDrzena() { return listaPointer || listaFokus; }
+  function listaMaFokus() { return listaEl.contains(document.activeElement); }
+  function listaSkryta() { return listaEl.classList.contains("skryta"); }
+  function navratFokus() {
+    var cil = listaNavrat ? listaNavrat() : null;
+    if (cil && !cil.disabled && cil.focus) cil.focus();
+  }
+  function naplanujSchovani() {
     clearTimeout(listaTimer);
+    listaTimer = setTimeout(function () {
+      listaTimer = null;
+      if (listaDrzena()) return;   // resumed by the leave handlers
+      schovejListu(true);
+    }, 6000);
+  }
+  // Hides the bar (it stays mounted for the live region). With vratFokus the focus is moved
+  // back to the element chosen by the flow that showed the bar, but only if it was inside the bar.
+  function schovejListu(vratFokus) {
+    clearTimeout(listaTimer);
+    clearTimeout(listaTextTimer);
     listaTimer = null;
-    listaEl.hidden = true;
+    listaTextTimer = null;
+    var mel = listaMaFokus();
+    listaPointer = false;
+    listaFokus = false;
+    listaEl.classList.add("skryta");
+    vratitBtn.hidden = true;
+    listaText.textContent = "";
+    if (mel && vratFokus) navratFokus();
+    listaNavrat = null;
   }
-  function ukazListu(text, sVratit) {
-    listaText.textContent = text;
+  function ukazListu(text, sVratit, navrat) {
+    clearTimeout(listaTextTimer);
+    listaNavrat = navrat || null;
+    listaText.textContent = "";
     vratitBtn.hidden = !sVratit;
-    listaEl.hidden = false;
-    clearTimeout(listaTimer);
-    listaTimer = setTimeout(schovejListu, 6000);
+    listaEl.classList.remove("skryta");
+    // Set the text on a later tick, so the live region announces it also when it is unchanged.
+    listaTextTimer = setTimeout(function () { listaTextTimer = null; listaText.textContent = text; }, 50);
+    naplanujSchovani();
   }
+  listaEl.addEventListener("mouseenter", function () { listaPointer = true; });
+  listaEl.addEventListener("mouseleave", function () {
+    listaPointer = false;
+    if (!listaFokus && !listaSkryta()) naplanujSchovani();
+  });
+  listaEl.addEventListener("focusin", function () { listaFokus = true; });
+  listaEl.addEventListener("focusout", function (e) {
+    if (e.relatedTarget && listaEl.contains(e.relatedTarget)) return;
+    listaFokus = false;
+    if (!listaPointer && !listaSkryta()) naplanujSchovani();
+  });
+  listaEl.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !listaSkryta()) { e.preventDefault(); schovejListu(true); }
+  });
 
   function pridejZapis(min, zdroj, start) {
     var cur = els.cur.value;
     var z = DL.novyZapis(start, min, rateMin() * min, cur, zdroj, noveId());
     if (!z) return null;
+    obnovZUloziste();
     zapisy.push(z);
     ulozDenik();
     if (zdroj === "stopky") prepocitejPrumer();
@@ -2369,40 +2440,66 @@ body.detail-open { overflow: hidden; }
     return z;
   }
 
-  function smazZapis(id) {
+  // navrat: function returning the element that gets focus when the undo bar goes away.
+  // zKlavesnice: the delete came from the keyboard, so focus moves to "Vrátit".
+  function smazZapis(id, navrat, zKlavesnice) {
+    obnovZUloziste();
     var r = DL.odeber(zapisy, id);
-    if (!r.odebrany) return;
+    if (!r.odebrany) { render(); return; }
     zapisy = r.zapisy;
     posledniSmazany = r.odebrany;
     ulozDenik();
     prepocitejPrumer();
     bump();
     render();
-    ukazListu("Smazáno", true);
+    ukazListu("Smazáno", true, navrat);
+    if (zKlavesnice) vratitBtn.focus();
   }
 
   function vratZapis() {
     var z = posledniSmazany;
     posledniSmazany = null;
-    schovejListu();
+    var mel = listaMaFokus();
+    schovejListu(false);
     if (!z) return;
-    zapisy.push(z);
+    obnovZUloziste();
+    var jiz = false;
+    for (var i = 0; i < zapisy.length; i++) if (zapisy[i].id === z.id) jiz = true;
+    if (!jiz) zapisy.push(z);
     ulozDenik();
     prepocitejPrumer();
     bump();
     render();
+    if (mel) {
+      var cil = null;
+      if (pohled === "denik") {
+        var rady = denikSeznam.querySelectorAll(".denik-rada");
+        for (var k = 0; k < rady.length; k++) {
+          if (rady[k].getAttribute("data-id") === z.id) { cil = rady[k].querySelector(".denik-smaz"); break; }
+        }
+        if (!cil) cil = denikH;
+      } else {
+        cil = $("minus").disabled ? $("plus") : $("minus");
+      }
+      cil.focus();
+    }
   }
 
   function zapisRucne() {
     var mins = num(els.mins);
-    if (mins <= 0) { ukazListu("Nejdřív vyplň průměr na návštěvu.", false); return; }
+    if (mins <= 0) {
+      ukazListu(pohled === "denik"
+        ? "Nejdřív vyplň průměr na návštěvu v záložce MD sazba nebo Měsíční plat."
+        : "Nejdřív vyplň průměr na návštěvu.", false);
+      return;
+    }
     var z = pridejZapis(mins, "rucne", Date.now());
     if (z) ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
   }
 
-  function smazPosledniDnes() {
+  function smazPosledniDnes(e) {
     var dnes = DL.dnesni(zapisy, Date.now());
-    if (dnes.length) smazZapis(dnes[dnes.length - 1].id);
+    if (dnes.length) smazZapis(dnes[dnes.length - 1].id, function () { return $("plus"); }, !!e && e.detail === 0);
   }
 
   /* Deník view: list of entries and the diary settlement. */
@@ -2412,6 +2509,7 @@ body.detail-open { overflow: hidden; }
   var timerBlock = document.querySelector(".timer-block");
   var timerDomov = timerBlock.parentNode;
   var denikSeznam = $("denikSeznam"), denikH = $("denikH");
+  var denikPocetSkupin = 0;
   var smazatPotvrdit = $("denikSmazatPotvrdit"), smazatVse = $("denikSmazatVse");
 
   function esc(t) {
@@ -2440,9 +2538,9 @@ body.detail-open { overflow: hidden; }
         '</span></h3><ul class="denik-rady">';
       for (j = 0; j < g.zapisy.length; j++) {
         var z = g.zapisy[j], cas = casZapisu(z.start);
-        h += '<li class="denik-rada" data-id="' + esc(z.id) + '"><span class="denik-cas">' + cas + '</span>' +
+        h += '<li class="denik-rada" data-id="' + esc(z.id) + '"><span class="denik-info"><span class="denik-cas">' + cas + '</span>' +
           '<span class="denik-min">' + esc(DL.fmtMin(z.min)) + '</span>' +
-          (z.zdroj === "rucne" ? '<span class="denik-rucne">ručně</span>' : '') +
+          (z.zdroj === "rucne" ? '<span class="denik-rucne">ručně</span>' : '') + '</span>' +
           '<span class="denik-castka">' + esc(fmtCur(z.castka, z.mena)) + '</span>' +
           '<button type="button" class="denik-smaz" aria-label="' + esc("Smazat zápis " + cas + ", " + minTxt(z.min)) + '">\ud83d\uddd1</button></li>';
       }
@@ -2450,9 +2548,18 @@ body.detail-open { overflow: hidden; }
     }
     // Redraw only on a real change, so a minute tick does not steal focus from a row button.
     if (h !== denikHtml) { denikHtml = h; denikSeznam.innerHTML = h; }
+    var dalsiBtn = $("denikDalsi");
+    if (!pr.dalsi && document.activeElement === dalsiBtn) {
+      // The button disappears on the last page: focus the first row of the newly revealed day, else the heading.
+      var skupiny = denikSeznam.querySelectorAll(".denik-den");
+      var nova = skupiny[denikPocetSkupin] ? skupiny[denikPocetSkupin].querySelector(".denik-smaz") : null;
+      (nova || denikH).focus();
+    }
+    denikPocetSkupin = pr.skupiny.length;
     var prazdny = zapisy.length === 0;
+    $("denikVarovani").hidden = !denikPoskozen;
     $("denikPrazdno").hidden = !prazdny;
-    $("denikDalsi").hidden = !pr.dalsi;
+    dalsiBtn.hidden = !pr.dalsi;
     $("denikSmazatBlok").hidden = prazdny;
     if (prazdny) smazatPotvrdit.hidden = true;
 
@@ -2481,15 +2588,18 @@ body.detail-open { overflow: hidden; }
     var idx = Array.prototype.indexOf.call(vse, rada);
     var sousedni = vse[idx + 1] || vse[idx - 1];
     var sousedniId = sousedni ? sousedni.getAttribute("data-id") : null;
-    smazZapis(id);
-    var cil = null;
-    if (sousedniId !== null) {
+    function cilFokusu() {
       var radyNove = denikSeznam.querySelectorAll(".denik-rada");
-      for (var k = 0; k < radyNove.length; k++) {
-        if (radyNove[k].getAttribute("data-id") === sousedniId) { cil = radyNove[k].querySelector(".denik-smaz"); break; }
+      if (sousedniId !== null) {
+        for (var k = 0; k < radyNove.length; k++) {
+          if (radyNove[k].getAttribute("data-id") === sousedniId) return radyNove[k].querySelector(".denik-smaz");
+        }
       }
+      return denikH;
     }
-    (cil || denikH).focus();
+    var zKlavesnice = e.detail === 0;
+    smazZapis(id, cilFokusu, zKlavesnice);
+    if (!zKlavesnice) cilFokusu().focus();
   });
   $("denikDalsi").addEventListener("click", function () {
     denikDni += DENIK_DNI;
@@ -2508,9 +2618,10 @@ body.detail-open { overflow: hidden; }
     if (e.key === "Escape") { e.preventDefault(); smazatZpet(); }
   });
   $("denikSmazatAno").addEventListener("click", function () {
+    obnovZUloziste();
     zapisy = [];
     posledniSmazany = null;
-    schovejListu();
+    schovejListu(false);
     ulozDenik();
     smazatPotvrdit.hidden = true;
     render();
@@ -2524,7 +2635,8 @@ body.detail-open { overflow: hidden; }
     for (i = 0; i < PANELY.md.length; i++) $(PANELY.md[i]).hidden = denik;
     for (i = 0; i < PANELY.denik.length; i++) $(PANELY.denik[i]).hidden = !denik;
     if (denik) {
-      denikH.parentNode.insertBefore(timerBlock, denikH.nextSibling);
+      var varovani = $("denikVarovani");
+      varovani.parentNode.insertBefore(timerBlock, varovani.nextSibling);
     } else {
       timerDomov.appendChild(timerBlock);
       smazatPotvrdit.hidden = true;
@@ -2541,6 +2653,7 @@ body.detail-open { overflow: hidden; }
       $(id).setAttribute("aria-selected", String(on));
       $(id).tabIndex = on ? 0 : -1;
     });
+    $("pohledPanel").setAttribute("aria-labelledby", aktivni);
   }
   function prepniPohled(p) {
     if (p !== "denik" && mode !== p) setMode(p);
@@ -2563,6 +2676,7 @@ body.detail-open { overflow: hidden; }
     var perDay = perVisit * count;
 
     $("count").textContent = count;
+    if (count === 0 && document.activeElement === $("minus")) $("plus").focus();
     $("minus").disabled = count === 0;
     $("rDay").textContent = DL.formatCastky(dnesSouhrn.castky, fmtCur, els.cur.value);
     $("rDaySub").textContent = count + " " + visitsWord(count) + " · " + DL.fmtMin(dnesSouhrn.min) + " placeného trůnu";
@@ -2580,6 +2694,13 @@ body.detail-open { overflow: hidden; }
     save();
     renderDenik();
   }
+
+  window.addEventListener("storage", function (e) {
+    if (e.key !== null && e.key !== DL.KEY) return;
+    obnovZUloziste();
+    prepocitejPrumer();
+    render();
+  });
 
   function zkontrolujDen() {
     if (DL.zacatekDne(Date.now()) !== lastDay) render();

@@ -43,6 +43,13 @@ test("parse vynechá neplatné položky", () => {
   assert.equal(r.poskozeno, false);
   assert.deepEqual(J(r.zapisy), [J(ok)]);
 });
+test("parse převede číselné id na řetězec", () => {
+  const raw = '{"zapisy":[{"id":7,"start":' + NOW + ',"min":4,"castka":50,"mena":"CZK","zdroj":"stopky"}]}';
+  const r = D.parse(raw);
+  assert.equal(r.zapisy.length, 1);
+  assert.strictEqual(r.zapisy[0].id, "7");
+  assert.equal(D.odeber(r.zapisy, "7").odebrany.id, "7");
+});
 test("round-trip", () => {
   const a = [z(NOW, 4, 50, "CZK", "stopky", "a"), z(NOW + 1, 2, 3, "EUR", "rucne", "b")];
   assert.deepEqual(J(D.parse(D.serializuj(a))), { zapisy: J(a), poskozeno: false });
@@ -87,7 +94,7 @@ test("vyuctovani přes tři měsíce", () => {
   const a = [
     z(t(2026, 10, 16, 8), 4, 40, "CZK", "stopky", "1"),  // dnes
     z(t(2026, 10, 16, 9), 6, 60, "CZK", "stopky", "2"),  // dnes
-    z(t(2026, 10, 18, 8), 2, 20, "CZK", "rucne", "3"),   // budoucnost v týdnu, jen nezapočítat do dnes
+    z(t(2026, 10, 18, 8), 2, 20, "CZK", "rucne", "3"),   // budoucnost později v týdnu, nepočítá se do dnes
     z(t(2026, 10, 3, 8), 8, 80, "CZK", "stopky", "4"),   // měsíc, ne týden
     z(t(2026, 9, 5, 8), 10, 100, "CZK", "stopky", "5"),  // říjen
     z(t(2026, 8, 5, 8), 12, 120, "CZK", "stopky", "6")   // září
