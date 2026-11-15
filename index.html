@@ -1951,6 +1951,183 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="denik-logika">
+(function () {
+  var KEY = "zachodova-denik-v1";
+  var MIN_MS = 10000;
+  var STRANKA_DNI = 30;
+  var ZDROJE = ["stopky", "rucne"];
+  var DNY = ["ne", "po", "\u00fat", "st", "\u010dt", "p\u00e1", "so"];
+
+  function cislo(x) { return typeof x === "number" && isFinite(x); }
+
+  function novyZapis(start, min, castka, mena, zdroj, id) {
+    if (!cislo(start) || !cislo(min) || !cislo(castka)) return null;
+    if (min <= 0 || castka < 0) return null;
+    if (typeof mena !== "string" || !mena) return null;
+    if (ZDROJE.indexOf(zdroj) < 0) return null;
+    return { id: id, start: start, min: min, castka: castka, mena: mena, zdroj: zdroj };
+  }
+
+  function parse(raw) {
+    if (raw === null || raw === undefined) return { zapisy: [], poskozeno: false };
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return { zapisy: [], poskozeno: true }; }
+    if (!data || !Array.isArray(data.zapisy)) return { zapisy: [], poskozeno: true };
+    var out = [];
+    for (var i = 0; i < data.zapisy.length; i++) {
+      var p = data.zapisy[i];
+      if (!p || typeof p !== "object") continue;
+      var z = novyZapis(p.start, p.min, p.castka, p.mena, p.zdroj, p.id);
+      if (z && (typeof p.id === "string" || cislo(p.id))) out.push(z);
+    }
+    return { zapisy: out, poskozeno: false };
+  }
+
+  function serializuj(zapisy) { return JSON.stringify({ zapisy: zapisy }); }
+
+  function odeber(zapisy, id) {
+    var out = [], odebrany = null;
+    for (var i = 0; i < zapisy.length; i++) {
+      if (odebrany === null && zapisy[i].id === id) odebrany = zapisy[i];
+      else out.push(zapisy[i]);
+    }
+    return { zapisy: out, odebrany: odebrany };
+  }
+
+  function zacatekDne(ms) {
+    var d = new Date(ms);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  }
+  function zacatekTydne(ms) {
+    var d = new Date(ms);
+    var odPo = (d.getDay() + 6) % 7;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - odPo).getTime();
+  }
+  function zacatekMesice(ms) {
+    var d = new Date(ms);
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  }
+  function dalsiDen(ms) {
+    var d = new Date(ms);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+  }
+
+  function dnesni(zapisy, now) {
+    var od = zacatekDne(now), doMs = dalsiDen(now), out = [];
+    for (var i = 0; i < zapisy.length; i++) {
+      if (zapisy[i].start >= od && zapisy[i].start < doMs) out.push(zapisy[i]);
+    }
+    out.sort(function (a, b) { return a.start - b.start; });
+    return out;
+  }
+
+  function souhrn(zapisy, od, doMs) {
+    var r = { pocet: 0, min: 0, castky: {} };
+    for (var i = 0; i < zapisy.length; i++) {
+      var z = zapisy[i];
+      if (z.start >= od && z.start < doMs) {
+        r.pocet++;
+        r.min += z.min;
+        r.castky[z.mena] = (r.castky[z.mena] || 0) + z.castka;
+      }
+    }
+    return r;
+  }
+
+  function vyuctovani(zapisy, now) {
+    var d = new Date(now);
+    var tyd = zacatekTydne(now);
+    var tydKonec = new Date(new Date(tyd).getFullYear(), new Date(tyd).getMonth(), new Date(tyd).getDate() + 7).getTime();
+    var mesKonec = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+    var celkem = souhrn(zapisy, -Infinity, Infinity);
+    var dny = {}, pocetDni = 0, i;
+    for (i = 0; i < zapisy.length; i++) {
+      var k = zacatekDne(zapisy[i].start);
+      if (!dny[k]) { dny[k] = true; pocetDni++; }
+    }
+    var naDen = {};
+    for (var m in celkem.castky) {
+      if (Object.prototype.hasOwnProperty.call(celkem.castky, m)) naDen[m] = celkem.castky[m] / pocetDni;
+    }
+    return {
+      dnes: souhrn(zapisy, zacatekDne(now), dalsiDen(now)),
+      tyden: souhrn(zapisy, tyd, tydKonec),
+      mesic: souhrn(zapisy, zacatekMesice(now), mesKonec),
+      celkem: celkem,
+      prumerMin: zapisy.length ? celkem.min / zapisy.length : 0,
+      prumerNaDen: naDen
+    };
+  }
+
+  function prumerStopek(zapisy) {
+    var s = 0, n = 0;
+    for (var i = 0; i < zapisy.length; i++) {
+      if (zapisy[i].zdroj === "stopky") { s += zapisy[i].min; n++; }
+    }
+    return n ? s / n : null;
+  }
+
+  function nadpisDne(denStart, now) {
+    var dnes = zacatekDne(now);
+    if (denStart === dnes) return "Dnes";
+    var d = new Date(dnes);
+    if (denStart === new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1).getTime()) return "V\u010dera";
+    var x = new Date(denStart);
+    var s = DNY[x.getDay()] + " " + x.getDate() + ". " + (x.getMonth() + 1) + ".";
+    if (x.getFullYear() !== d.getFullYear()) s += " " + x.getFullYear();
+    return s;
+  }
+
+  function poDnech(zapisy, now, dni) {
+    var razene = zapisy.slice().sort(function (a, b) { return b.start - a.start; });
+    var skupiny = [], dalsi = false, cur = null;
+    for (var i = 0; i < razene.length; i++) {
+      var den = zacatekDne(razene[i].start);
+      if (!cur || cur.start !== den) {
+        if (skupiny.length >= dni) { dalsi = true; break; }
+        cur = { start: den, nadpis: nadpisDne(den, now), zapisy: [], souhrn: null };
+        skupiny.push(cur);
+      }
+      cur.zapisy.push(razene[i]);
+    }
+    for (var j = 0; j < skupiny.length; j++) {
+      skupiny[j].souhrn = souhrn(skupiny[j].zapisy, -Infinity, Infinity);
+    }
+    return { skupiny: skupiny, dalsi: dalsi };
+  }
+
+  var PORADI = ["CZK", "EUR", "USD"];
+  function formatCastky(castky, fmt, vychoziMena) {
+    var meny = Object.keys(castky || {});
+    if (!meny.length) return fmt(0, vychoziMena);
+    meny.sort(function (a, b) {
+      var ia = PORADI.indexOf(a), ib = PORADI.indexOf(b);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+    var casti = [];
+    for (var i = 0; i < meny.length; i++) casti.push(fmt(castky[meny[i]], meny[i]));
+    return casti.join(" + ");
+  }
+
+  function fmtMin(min) {
+    var s = (Math.round(min * 10) / 10).toFixed(1).replace(".", ",");
+    if (s.slice(-2) === ",0") s = s.slice(0, -2);
+    return s + "\u00a0min";
+  }
+
+  window.DenikLogika = {
+    KEY: KEY, MIN_MS: MIN_MS, STRANKA_DNI: STRANKA_DNI,
+    novyZapis: novyZapis, parse: parse, serializuj: serializuj, odeber: odeber,
+    zacatekDne: zacatekDne, zacatekTydne: zacatekTydne, zacatekMesice: zacatekMesice,
+    dnesni: dnesni, souhrn: souhrn, vyuctovani: vyuctovani, prumerStopek: prumerStopek,
+    poDnech: poDnech, nadpisDne: nadpisDne, formatCastky: formatCastky, fmtMin: fmtMin
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
