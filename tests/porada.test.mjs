@@ -214,18 +214,38 @@ test("pohyb: pomoc v zatacce dorovna do chodby", () => {
   assert.ok(st.hrac.y > 1);
 });
 
-test("pohyb: pomoc v zatacce zbytek kroku pouzije na pohyb vpred", () => {
+test("pohyb: pomoc v zatacce dorovnava dvojnasobkem a hned jde vpred", () => {
+  const krokD = L.RYCHLOST * L.KROK_MS / 1000;
+  for (const [smer, osa, start] of [["right", "y", 1.45], ["down", "x", 2.55]]) {
+    const { st, rnd } = prazdnePatro();
+    st.hrac[osa] = start;
+    const vpred = osa === "y" ? "x" : "y";
+    let pred = st.hrac[vpred];
+    for (let n = 0; n < 4; n++) {
+      L.krok(st, POHYB(smer), rnd);
+      const dalsi = st.hrac[vpred];
+      assert.ok(dalsi - pred <= krokD + 1e-9, "vpred za krok " + (dalsi - pred));
+      // Footprint: never overlaps a wall or crate.
+      for (const r of [Math.floor(st.hrac.y), Math.ceil(st.hrac.y)]) {
+        for (const c of [Math.floor(st.hrac.x), Math.ceil(st.hrac.x)]) assert.equal(st.mrizka[idx(r, c)], 0);
+      }
+      pred = dalsi;
+    }
+    // 0.45 off at 0.06 per step: snapping 0.12 per step aligns in step 4 and moves on.
+    assert.equal(st.hrac[osa], Math.round(start), smer + " " + start);
+    assert.ok(st.hrac[vpred] > 1.01, "pohyb vpred " + st.hrac[vpred]);
+  }
+  // Long run: forward per step never exceeds 1x step distance.
   const { st, rnd } = prazdnePatro();
-  st.hrac.y = 1.3;
-  // 0.3 cell at 0.06 per step: aligned within 5 steps, moving forward by step 6.
-  drz(st, POHYB("right"), 6 * L.KROK_MS, rnd);
-  assert.equal(st.hrac.y, 1);
-  assert.ok(st.hrac.x > 1.01, "x " + st.hrac.x);
-  // Each step covers the full step distance (snap plus forward).
-  const { st: st2, rnd: rnd2 } = prazdnePatro();
-  st2.hrac.y = 1.33;
-  for (let n = 0; n < 10; n++) L.krok(st2, POHYB("right"), rnd2);
-  assert.ok(Math.abs(0.33 + (st2.hrac.x - 1) - 10 * 0.06) < 1e-9, "x " + st2.hrac.x);
+  st.hrac.y = 1.33;
+  let pred = st.hrac.x;
+  for (let n = 0; n < 10; n++) {
+    L.krok(st, POHYB("right"), rnd);
+    assert.ok(st.hrac.x - pred <= krokD + 1e-9);
+    pred = st.hrac.x;
+  }
+  // 0.33 off: 0.12, 0.12, then 0.09 to the line plus 0.03 forward, then 7 full steps.
+  assert.ok(Math.abs(st.hrac.x - (1 + 0.03 + 7 * krokD)) < 1e-9, "x " + st.hrac.x);
 });
 
 test("pohyb: 10 000 kroku nahodneho vstupu nikdy nestoji na zdi ani krabici", () => {
@@ -555,6 +575,38 @@ test("ztrata zivota: start, bez porad a vybuchu, krabice, bonusy a staty zustano
   assert.equal(st.kolegove.length, 2);
   eq(st.kolegove.map((k) => [k.typ, k.rychlost]), [["stazista", 1.5], ["minutka", 1.7]]);
   overRozmisteni(st, "po ztrate zivota");
+});
+
+// Every free cell except the given ones becomes a crate.
+function jenVolne(st, volne) {
+  for (let i = 0; i < S * R; i++) if (st.mrizka[i] === 0 && !volne.includes(i)) st.mrizka[i] = 2;
+}
+
+test("rozmisteni: bez mist v odstupu 5 nouzove blize, bez mist vubec otevre vytah", () => {
+  // Only cells at distance 1 and 2 are free: the colleague lands there.
+  const a = prazdnePatro();
+  jenVolne(a.st, [START, idx(1, 2), idx(1, 3)]);
+  a.st.kolegove = [kolega(9, 9)];
+  a.st.vybuchy = [{ bunky: [START], zbyva: 1e9 }];
+  let ud = L.krok(a.st, NIC, a.rnd);
+  assert.ok(ud.includes("zivot"));
+  assert.equal(a.st.kolegove.length, 1);
+  const k = a.st.kolegove[0];
+  assert.ok([idx(1, 2), idx(1, 3)].includes(idx(k.y, k.x)), "nouzove misto");
+  assert.ok(!ud.includes("vytah"));
+  assert.equal(a.st.vytah.otevreny, false);
+
+  // No free cell besides start: nobody fits, so the elevator opens once.
+  const b = prazdnePatro();
+  jenVolne(b.st, [START]);
+  b.st.kolegove = [kolega(9, 9), kolega(9, 7)];
+  b.st.vybuchy = [{ bunky: [START], zbyva: 1e9 }];
+  ud = L.krok(b.st, NIC, b.rnd);
+  assert.ok(ud.includes("zivot"));
+  eq(b.st.kolegove, []);
+  assert.equal(b.st.vytah.otevreny, true);
+  assert.equal(kolik(ud, "vytah"), 1);
+  assert.ok(!drz(b.st, NIC, 200, b.rnd).includes("vytah"));
 });
 
 test("konec hry: po tretim zivotu konec jednou a krok uz nic nemeni", () => {

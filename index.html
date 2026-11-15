@@ -4140,6 +4140,7 @@ body.detail-open { overflow: hidden; }
   var SANCE_BONUSU = 0.22;
   var TYPY_BONUSU = ["kava", "porada", "dosah"];
   var ROH = 0.45;
+  var ROH_NASOBEK = 2;
   var START_X = 1;
   var START_Y = 1;
   var SMERY = {
@@ -4157,6 +4158,7 @@ body.detail-open { overflow: hidden; }
   var MINUTKA_NAVIC = 0.2;
   var MINUTKA_DOSAH = 5;
   var ODSTUP_OD_STARTU = 5;
+  var NOUZOVE_ODSTUPY = [ODSTUP_OD_STARTU, 3, 1];
   var SANCE_ODBOCENI = 0.3;
   var DOTYK = 0.6;
   var BODY_KOLEGA = 100;
@@ -4223,22 +4225,37 @@ body.detail-open { overflow: hidden; }
 
   // Puts the given colleagues on random free cells (not crates, meetings or the
   // elevator) at least ODSTUP_OD_STARTU path steps from start, crates ignored.
-  // Each lands on a different cell centre; any that do not fit are dropped.
+  // Each lands on a different cell centre. When those cells run out it falls
+  // back to cells nearer the start (NOUZOVE_ODSTUPY); any that still do not fit
+  // are dropped.
   function rozmisti(st, kolegove, rnd) {
-    var d = vzdalenosti(st, START_Y * S + START_X, true), mista = [], i, j, t, k;
-    for (i = 0; i < S * R; i++) {
-      if (st.mrizka[i] === 0 && i !== st.vytah.i && d[i] >= ODSTUP_OD_STARTU && !poradaNa(st, i)) mista.push(i);
+    var d = vzdalenosti(st, START_Y * S + START_X, true), i, j, t, k, p, mista, n;
+    var umisteno = 0, horni = Infinity;
+    for (p = 0; p < NOUZOVE_ODSTUPY.length && umisteno < kolegove.length; p++) {
+      mista = [];
+      for (i = 0; i < S * R; i++) {
+        if (st.mrizka[i] === 0 && i !== st.vytah.i && d[i] >= NOUZOVE_ODSTUPY[p] && d[i] < horni && !poradaNa(st, i)) mista.push(i);
+      }
+      horni = NOUZOVE_ODSTUPY[p];
+      n = Math.min(kolegove.length - umisteno, mista.length);
+      for (k = 0; k < n; k++) {
+        j = k + Math.floor(rnd() * (mista.length - k));
+        t = mista[k]; mista[k] = mista[j]; mista[j] = t;
+        kolegove[umisteno].x = mista[k] % S;
+        kolegove[umisteno].y = Math.floor(mista[k] / S);
+        kolegove[umisteno].smer = KLICE_SMERU[Math.floor(rnd() * 4)];
+        umisteno++;
+      }
     }
-    var n = Math.min(kolegove.length, mista.length);
-    for (k = 0; k < n; k++) {
-      j = k + Math.floor(rnd() * (mista.length - k));
-      t = mista[k]; mista[k] = mista[j]; mista[j] = t;
-      kolegove[k].x = mista[k] % S;
-      kolegove[k].y = Math.floor(mista[k] / S);
-      kolegove[k].smer = KLICE_SMERU[Math.floor(rnd() * 4)];
-    }
-    kolegove.length = n;
+    kolegove.length = umisteno;
     return kolegove;
+  }
+
+  // With no colleague left the elevator opens; true when it opened just now.
+  function otevriPrazdny(st) {
+    if (st.kolegove.length || st.vytah.otevreny) return false;
+    st.vytah.otevreny = true;
+    return true;
   }
 
   function noviKolegove(st, rnd) {
@@ -4267,6 +4284,7 @@ body.detail-open { overflow: hidden; }
     st.hrac.smer = "down";
     st.hrac.nezranitelny = 0;
     st.kolegove = noviKolegove(st, rnd);
+    otevriPrazdny(st);
   }
 
   function novaHra(rnd) {
@@ -4407,8 +4425,9 @@ body.detail-open { overflow: hidden; }
 
   // Moves the manager one step. One axis is always on a corridor line: moving
   // along it needs the cross axis aligned; when it is not, corner assist snaps
-  // toward the nearest line if it is within ROH and the corridor ahead is open,
-  // and what is left of the step distance after aligning goes forward.
+  // toward the nearest line if it is within ROH and the corridor ahead is open.
+  // The snap may use up to ROH_NASOBEK step distances; what is left of that
+  // after aligning goes forward, capped at one step distance.
   function pohni(st, smer) {
     var h = st.hrac;
     var s = SMERY[smer];
@@ -4424,12 +4443,12 @@ body.detail-open { overflow: hidden; }
     var vpred = d;
     if (b !== bR) {
       var odchylka = Math.abs(b - bR);
-      if (odchylka > ROH || !volno) return;
-      if (odchylka <= d + 1e-9) {
+      if (odchylka > ROH + 1e-9 || !volno) return;
+      if (odchylka <= ROH_NASOBEK * d + 1e-9) {
         b = bR;
-        vpred = Math.max(0, d - odchylka);
+        vpred = Math.min(d, Math.max(0, ROH_NASOBEK * d - odchylka));
       } else {
-        b += bR > b ? d : -d;
+        b += bR > b ? ROH_NASOBEK * d : -ROH_NASOBEK * d;
         vpred = 0;
       }
     }
@@ -4555,6 +4574,7 @@ body.detail-open { overflow: hidden; }
       st.patro += 1;
       novePatro(st, rnd);
       ud.push("patro");
+      if (st.vytah.otevreny) ud.push("vytah");
     }
 
     return ud;
@@ -4568,10 +4588,7 @@ body.detail-open { overflow: hidden; }
       ud.push("kolega");
       return false;
     });
-    if (bylo > 0 && !st.kolegove.length && !st.vytah.otevreny) {
-      st.vytah.otevreny = true;
-      ud.push("vytah");
-    }
+    if (bylo > 0 && otevriPrazdny(st)) ud.push("vytah");
   }
 
   function dotyk(st) {
@@ -4601,6 +4618,7 @@ body.detail-open { overflow: hidden; }
     st.porady = [];
     st.vybuchy = [];
     rozmisti(st, st.kolegove, rnd);
+    if (otevriPrazdny(st)) ud.push("vytah");
   }
 
   function nezapCele(v) {
