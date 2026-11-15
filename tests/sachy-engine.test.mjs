@@ -99,3 +99,34 @@ test("engine: worker odpovi tah null i pri vyjimce", () => {
   W.onmessage({ data });
   assert.deepEqual(JSON.parse(JSON.stringify(zpravy)), [{ id: 9, tah: null }]);
 });
+
+// Tezka hraje za obe strany; vrati stav konce partie a pocet pultahu.
+function dohraj(fen, maxPly) {
+  const pos = S.zFen(fen);
+  const p = { pos, tahy: [], klice: [S.klic(pos)], posledni: null };
+  for (let ply = 0; ply < maxPly; ply++) {
+    const st = S.stav(p);
+    if (st.konec) return { ...st, ply };
+    const tah = S.nejlepsiTah(p.pos, { uroven: "tezka", casMs: 200, rnd: () => 0, klice: p.klice });
+    assert.ok(S.partieTah(p, tah), "neplatny tah " + tah);
+  }
+  return { ...S.stav(p), ply: maxPly };
+}
+
+test("engine: tezka udela mat damou proti samotnemu krali do 50 pultahu", () => {
+  const v = dohraj("8/8/8/4k3/8/8/8/3QK3 w - - 0 1", 50);
+  assert.equal(v.duvod, "mat", JSON.stringify(v));
+  assert.equal(v.vitez, "b");
+});
+
+test("engine: tezka udela mat vezi proti samotnemu krali do 100 pultahu", () => {
+  const v = dohraj("8/8/8/4k3/8/8/8/R3K3 w - - 0 1", 100);
+  assert.equal(v.duvod, "mat", JSON.stringify(v));
+  assert.equal(v.vitez, "b");
+});
+
+test("engine: dorazeni funguje i pro cerneho", () => {
+  const v = dohraj("r3k3/8/8/8/4K3/8/8/8 b - - 0 1", 100);
+  assert.equal(v.duvod, "mat", JSON.stringify(v));
+  assert.equal(v.vitez, "c");
+});

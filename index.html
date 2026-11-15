@@ -914,6 +914,9 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 }
 .sachy-volba[hidden] { display: none; }
 .sachy-volba p { margin: 0 0 .6rem; font-weight: 700; }
+.sachy-volba.sachy-volba-detail { position: static; transform: none; margin-top: .8rem; box-shadow: none; }
+.sachy-pozn { margin: .5rem 0 0; color: var(--muted); font-size: .9rem; }
+.sachy-pozn[hidden] { display: none; }
 .sachy-volba-tlacitka { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
 .sachy-volba button {
   min-width: 44px;
@@ -1239,8 +1242,16 @@ body.detail-open { overflow: hidden; }
               <button class="seg-btn sachy-obt" type="button" data-obt="lehka" aria-pressed="true">Lehká</button>
               <button class="seg-btn sachy-obt" type="button" data-obt="tezka" aria-pressed="false">Těžká</button>
             </div>
+            <p class="sachy-pozn" id="sachyPozn" hidden>Barva a obtížnost platí pro novou partii.</p>
             <button class="hra-btn" id="sachyHrajBtn" type="button">Zahraj si</button>
             <button class="hra-btn hra-btn-sek" id="sachyNovaBtn" type="button" hidden>Nová partie</button>
+            <div class="sachy-volba sachy-volba-detail" id="sachyNovaPotvrdit" role="group" aria-labelledby="sachyNovaTitul" hidden>
+              <p id="sachyNovaTitul">Rozehraná partie se zahodí. Začít novou?</p>
+              <div class="sachy-volba-tlacitka">
+                <button type="button" id="sachyNovaAno">Začít novou</button>
+                <button type="button" class="vedlejsi" id="sachyNovaNe">Zpět</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3302,14 +3313,32 @@ body.detail-open { overflow: hidden; }
     }
   })();
 
-  // Ohodnoceni z pohledu strany na tahu.
-  function ohodnot(pos) {
-    var d = pos.deska, s = 0, i, p;
+  // Vzdalenost pole od stredu (0 az 6) a manhattanska vzdalenost dvou poli (0 az 14).
+  function odStredu(sq) {
+    var r = sq >> 3, f = sq & 7;
+    return (r < 4 ? 3 - r : r - 4) + (f < 4 ? 3 - f : f - 4);
+  }
+  function vzdalenost(a, b) {
+    var dr = (a >> 3) - (b >> 3), df = (a & 7) - (b & 7);
+    return (dr < 0 ? -dr : dr) + (df < 0 ? -df : df);
+  }
+
+  // Ohodnoceni z pohledu strany na tahu. S dorazenim (jen tezka) pridava bonus
+  // za zahnani osamoceneho krale ke kraji a priblizeni vlastniho krale k nemu.
+  function ohodnot(pos, dorazeni) {
+    var d = pos.deska, s = 0, i, p, jenB = true, jenC = true, figB = false, figC = false;
     for (i = 0; i < 64; i++) {
       p = d[i];
-      if (p > 0) s += PST_B[p][i];
-      else if (p < 0) s -= PST_C[-p][i];
+      if (p > 0) {
+        if (p !== K) { s += PST_B[p][i]; jenB = false; if (p !== P) figB = true; }
+      } else if (p < 0) {
+        if (p !== -K) { s -= PST_C[-p][i]; jenC = false; if (p !== -P) figC = true; }
+      }
     }
+    // Tabulka kralu je pro stredni hru (kral v rohu); pri dorazeni ji nahradi bonus.
+    if (dorazeni && jenC && figB) s += 10 * odStredu(pos.kc) + 4 * (14 - vzdalenost(pos.kb, pos.kc));
+    else if (dorazeni && jenB && figC) s -= 10 * odStredu(pos.kb) + 4 * (14 - vzdalenost(pos.kb, pos.kc));
+    else s += PST_B[K][pos.kb] - PST_C[K][pos.kc];
     return pos.tah === "b" ? s : -s;
   }
 
@@ -3362,7 +3391,7 @@ body.detail-open { overflow: hidden; }
 
   Hledani.prototype.klid = function (alfa, beta, ply) {
     if (this.cas()) return 0;
-    var pos = this.pos, stoj = ohodnot(pos), tahy, i, m, z, v;
+    var pos = this.pos, stoj = ohodnot(pos, true), tahy, i, m, z, v;
     if (stoj >= beta) return stoj;
     if (stoj > alfa) alfa = stoj;
     tahy = generuj(pos, []);
@@ -3457,7 +3486,8 @@ body.detail-open { overflow: hidden; }
     var hl = new Hledani(pos, { klice: volby.klice }, true), start = Date.now();
     serad(pos, tahy, -1);
     nejlepsi = tahy[0];
-    for (var hloubka = 1; hloubka <= 4; hloubka++) {
+    // Iterativni prohlubovani; dokud zbyva cas, az do hloubky 6.
+    for (var hloubka = 1; hloubka <= 6; hloubka++) {
       // Prvni iterace bez casoveho limitu, aby byl vzdy nejaky tah.
       hl.konec = hloubka === 1 ? 0 : start + casMs;
       vysl = hl.koren(tahy, hloubka, false);
@@ -4811,6 +4841,8 @@ body.detail-open { overflow: hidden; }
     var vzdat = $("sachyVzdat"), prom = $("sachyProm"), promZrusit = $("sachyPromZrusit");
     var potvrdit = $("sachyVzdatPotvrdit"), vzdatAno = $("sachyVzdatAno"), vzdatNe = $("sachyVzdatNe");
     var hrajBtn = $("sachyHrajBtn"), novaBtn = $("sachyNovaBtn"), statEl = $("sachyStat"), slot = $("hraSlot");
+    var novaPotvrdit = $("sachyNovaPotvrdit"), novaAno = $("sachyNovaAno"), novaNe = $("sachyNovaNe");
+    var poznEl = $("sachyPozn");
     var logikaSrc = $("sachy-logika").textContent;
     var barvaBtns = document.querySelectorAll(".sachy-barva[data-barva]");
     var obtBtns = document.querySelectorAll(".sachy-obt[data-obt]");
@@ -4863,7 +4895,9 @@ body.detail-open { overflow: hidden; }
         obtBtns[i].setAttribute("aria-pressed", String(obtBtns[i].getAttribute("data-obt") === ulozeni.obtiznost));
       }
       hrajBtn.textContent = rozehrana() ? "Pokračovat" : "Zahraj si";
-      novaBtn.hidden = !rozehrana();
+      if (!rozehrana()) novaPotvrdit.hidden = true;
+      novaBtn.hidden = !rozehrana() || !novaPotvrdit.hidden;
+      poznEl.hidden = !rozehrana();
     }
     function skoreText() {
       skore.textContent = "Výhry " + ulozeni.vyhry + " · Prohry " + ulozeni.prohry;
@@ -5269,6 +5303,7 @@ body.detail-open { overflow: hidden; }
     }
     function openGame(znovu) {
       if (open) return;
+      novaPotvrdit.hidden = true;
       if (znovu || !rozehrana()) {
         novaHra();
         setRoving(vychoziPole());
@@ -5309,7 +5344,23 @@ body.detail-open { overflow: hidden; }
     }
 
     hrajBtn.addEventListener("click", function () { openGame(false); });
-    novaBtn.addEventListener("click", function () { openGame(true); });
+    // A saved unfinished game is discarded (not counted) only after confirming.
+    novaBtn.addEventListener("click", function () {
+      if (!rozehrana()) { openGame(true); return; }
+      novaPotvrdit.hidden = false;
+      detailUI();
+      novaNe.focus();
+    });
+    novaAno.addEventListener("click", function () { openGame(true); });
+    function zpetZPotvrzeni() {
+      novaPotvrdit.hidden = true;
+      detailUI();
+      novaBtn.focus();
+    }
+    novaNe.addEventListener("click", zpetZPotvrzeni);
+    novaPotvrdit.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); zpetZPotvrzeni(); }
+    });
     cela.addEventListener("click", toggleFull);
     zavrit.addEventListener("click", closeGame);
     nova.addEventListener("click", function () {
@@ -5379,6 +5430,9 @@ body.detail-open { overflow: hidden; }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
   function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function blokovano() {
+    // An open game (chess, gomoku) blocks too, so the banner never covers the board.
+    if (window.Sachy && window.Sachy.isOpen && window.Sachy.isOpen()) return true;
+    if (window.Pisk && window.Pisk.isOpen && window.Pisk.isOpen()) return true;
     return document.documentElement.classList.contains("zamceno") || document.body.classList.contains("detail-open") || (warnModal && !warnModal.hidden);
   }
   function eligible() {
