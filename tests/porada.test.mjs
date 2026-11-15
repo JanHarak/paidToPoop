@@ -42,7 +42,28 @@ function prazdnePatro(seed = 1) {
   for (let i = 0; i < S * R; i++) if (st.mrizka[i] === 2) st.mrizka[i] = 0;
   st.bonusy = [];
   st.vytah = { i: idx(9, 11), odkryty: true, otevreny: false };
+  st.kolegove = [];
   return { st, rnd };
+}
+
+const kolega = (r, c, typ = "stazista", smer = "right", rychlost = 1.5) => ({ x: c, y: r, smer, typ, rychlost });
+const pocetKolegu = (patro) => Math.min(3 + (patro - 1), 8);
+const pocetMinutek = (patro) => Math.ceil(pocetKolegu(patro) * Math.min(0.1 * (patro - 1), 0.6));
+const kolik = (ud, u) => ud.filter((x) => x === u).length;
+
+// Spawn rule: free cell, not the elevator, path distance >= 5 from start (crates ignored).
+function overRozmisteni(st, popis) {
+  const d = L.vzdalenosti(st, START, true);
+  const bunky = new Set();
+  for (const k of st.kolegove) {
+    assert.ok(Number.isInteger(k.x) && Number.isInteger(k.y), "na stredu pole " + popis);
+    const i = idx(k.y, k.x);
+    assert.equal(st.mrizka[i], 0, "volne pole " + popis);
+    assert.notEqual(i, st.vytah.i, "ne na vytahu " + popis);
+    assert.ok(d[i] >= 5, "vzdalenost " + d[i] + " " + popis);
+    bunky.add(i);
+  }
+  assert.equal(bunky.size, st.kolegove.length, "kazdy na jinem poli " + popis);
 }
 
 test("konstanty", () => {
@@ -62,7 +83,7 @@ test("novaHra: vychozi hodnoty", () => {
   assert.equal(st.mrizka.length, 143);
   eq(st.porady, []);
   eq(st.vybuchy, []);
-  eq(st.kolegove, []);
+  assert.equal(st.kolegove.length, 3);
   const h = st.hrac;
   eq([h.x, h.y, h.rychlost, h.maxPorad, h.dosah, h.nezranitelny], [1, 1, 3, 1, 1, 0]);
 });
@@ -147,7 +168,7 @@ test("novePatro: nove patro, staty, zivoty a body zustanou", () => {
   eq([h.x, h.y, h.rychlost, h.maxPorad, h.dosah], [1, 1, 4, 3, 2]);
   eq(st.porady, []);
   eq(st.vybuchy, []);
-  eq(st.kolegove, []);
+  assert.equal(st.kolegove.length, 6);
   assert.equal(st.vytah.odkryty, false);
   assert.equal(st.vytah.otevreny, false);
   assert.equal(st.mrizka[st.vytah.i], 2);
@@ -170,6 +191,7 @@ test("pohyb: 1000 ms doprava je 3 pole a nevejde do zdi", () => {
 test("pohyb: zastavi se pred krabici", () => {
   const rnd = lcg(3);
   const st = L.novaHra(rnd);
+  st.kolegove = [];
   for (let c = 2; c < 12; c++) st.mrizka[idx(1, c)] = 0;
   st.mrizka[idx(1, 4)] = 2;
   drz(st, POHYB("right"), 2000, rnd);
@@ -192,9 +214,25 @@ test("pohyb: pomoc v zatacce dorovna do chodby", () => {
   assert.ok(st.hrac.y > 1);
 });
 
+test("pohyb: pomoc v zatacce zbytek kroku pouzije na pohyb vpred", () => {
+  const { st, rnd } = prazdnePatro();
+  st.hrac.y = 1.3;
+  // 0.3 cell at 0.06 per step: aligned within 5 steps, moving forward by step 6.
+  drz(st, POHYB("right"), 6 * L.KROK_MS, rnd);
+  assert.equal(st.hrac.y, 1);
+  assert.ok(st.hrac.x > 1.01, "x " + st.hrac.x);
+  // Each step covers the full step distance (snap plus forward).
+  const { st: st2, rnd: rnd2 } = prazdnePatro();
+  st2.hrac.y = 1.33;
+  for (let n = 0; n < 10; n++) L.krok(st2, POHYB("right"), rnd2);
+  assert.ok(Math.abs(0.33 + (st2.hrac.x - 1) - 10 * 0.06) < 1e-9, "x " + st2.hrac.x);
+});
+
 test("pohyb: 10 000 kroku nahodneho vstupu nikdy nestoji na zdi ani krabici", () => {
   const rnd = lcg(11);
   const st = L.novaHra(rnd);
+  st.kolegove = [];
+  st.zivoty = 1e6;
   const smery = [null, "up", "down", "left", "right"];
   let vstup = NIC;
   for (let n = 0; n < 10000; n++) {
@@ -333,25 +371,241 @@ test("unik ze startu: 200 seminek bez zasahu a s plnou kontrolou", () => {
     assert.equal(bunka(st), idx(2, 1));
     ud.push(...drz(st, NIC, 3500, rnd));
     assert.ok(ud.includes("vybuch"), "vybuchlo seed " + seed);
-    assert.ok(!ud.includes("zasah"), "zasah seed " + seed);
+    assert.ok(!ud.includes("zivot"), "zivot seed " + seed);
     eq(st.porady, []);
     eq(st.vybuchy, []);
     // Full control: back up to the start and right again.
     jdiDokud(st, "up", (s) => s.hrac.y <= 1, rnd, ud);
     jdiDokud(st, "right", (s) => s.hrac.x >= 2, rnd, ud);
-    assert.ok(!ud.includes("zasah"));
+    assert.ok(!ud.includes("zivot"));
   }
 });
 
-test("zasah: manazer ve vybuchu dostane udalost, nezranitelny ne", () => {
+test("zasah: manazer ve vybuchu ztrati zivot, nezranitelny ne", () => {
   const { st, rnd } = prazdnePatro();
   st.porady = [{ i: idx(1, 2), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false }];
   const ud = L.krok(st, NIC, rnd);
-  assert.ok(ud.includes("zasah"));
-  assert.equal(st.zivoty, 3);
+  eq(ud.filter((u) => u === "zivot"), ["zivot"]);
+  assert.ok(!ud.includes("zasah"));
+  assert.equal(st.zivoty, 2);
   st.hrac.nezranitelny = 1000;
-  assert.ok(!L.krok(st, NIC, rnd).includes("zasah"));
+  st.vybuchy = [{ bunky: [START], zbyva: 1e9 }];
+  assert.ok(!L.krok(st, NIC, rnd).includes("zivot"));
+  assert.equal(st.zivoty, 2);
   assert.equal(st.hrac.nezranitelny, 1000 - L.KROK_MS);
+});
+
+test("kolegove: rozmisteni na 200 seminkach a patrech 1, 4 a 10", () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    for (const patro of [1, 4, 10]) {
+      const rnd = lcg(seed);
+      const st = L.novaHra(rnd);
+      if (patro > 1) {
+        st.patro = patro;
+        L.novePatro(st, rnd);
+      }
+      const popis = "seed " + seed + " patro " + patro;
+      assert.equal(st.kolegove.length, pocetKolegu(patro), "pocet " + popis);
+      const minutek = st.kolegove.filter((k) => k.typ === "minutka").length;
+      assert.equal(minutek, pocetMinutek(patro), "minutek " + popis);
+      if (patro === 1) assert.equal(minutek, 0);
+      const zaklad = Math.min(1.5 + 0.1 * (patro - 1), 2.9);
+      for (const k of st.kolegove) {
+        assert.ok(["stazista", "minutka"].includes(k.typ));
+        assert.ok(["up", "down", "left", "right"].includes(k.smer));
+        const ocek = k.typ === "minutka" ? Math.min(zaklad + 0.2, 2.9) : zaklad;
+        assert.ok(Math.abs(k.rychlost - ocek) < 1e-9, "rychlost " + popis);
+      }
+      overRozmisteni(st, popis);
+    }
+  }
+  assert.equal(pocetMinutek(2), 1);
+});
+
+test("kolegove: 20 000 kroku, nikdy na zdi, krabici, porade ani vytahu, rychlost pod 3", () => {
+  const rnd = lcg(7);
+  const st = L.novaHra(rnd);
+  st.zivoty = 1e6;
+  const smery = [null, "up", "down", "left", "right"];
+  const predtim = new Map();
+  let vstup = NIC;
+  let posun = 0;
+  const vsechny = [];
+  for (let n = 0; n < 20000; n++) {
+    if (n % 15 === 0) vstup = { smer: smery[Math.floor(rnd() * 5)], porada: rnd() < 0.1 };
+    const ud = L.krok(st, vstup, rnd);
+    vsechny.push(...ud);
+    const skok = ud.includes("zivot") || ud.includes("patro");
+    const porady = new Set(st.porady.map((p) => p.i));
+    for (const k of st.kolegove) {
+      assert.ok(k.rychlost < 3, "rychlost " + k.rychlost);
+      for (const r of [Math.floor(k.y), Math.ceil(k.y)]) {
+        for (const c of [Math.floor(k.x), Math.ceil(k.x)]) {
+          const i = idx(r, c);
+          const kod = st.mrizka[i];
+          assert.ok(kod !== 1 && kod !== 2, "krok " + n + " kolega na " + r + "," + c + " kod " + kod);
+          assert.notEqual(i, st.vytah.i, "krok " + n + " kolega na vytahu");
+        }
+      }
+      const i = idx(Math.round(k.y), Math.round(k.x));
+      const minule = predtim.get(k);
+      // A meeting may be laid on a colleague's cell, but a colleague never walks into one.
+      if (porady.has(i)) assert.ok(minule && minule.i === i && !skok, "krok " + n + " kolega vesel do porady");
+      if (minule && !skok) {
+        const d = Math.abs(k.x - minule.x) + Math.abs(k.y - minule.y);
+        assert.ok(d <= k.rychlost * L.KROK_MS / 1000 + 1e-9, "krok " + n + " skok " + d);
+        posun += d;
+      }
+      predtim.set(k, { i, x: k.x, y: k.y });
+    }
+  }
+  assert.ok(posun > 100, "kolegove se hybou " + posun);
+  assert.ok(vsechny.includes("kolega"));
+  assert.ok(vsechny.includes("zivot"));
+});
+
+test("minutka: v otevrene chodbe se priblizi k manazerovi", () => {
+  const { st, rnd } = prazdnePatro();
+  st.hrac.nezranitelny = 1e9;
+  st.kolegove = [kolega(1, 4, "minutka", "right", 1.7)];
+  const pred = Math.abs(st.kolegove[0].x - st.hrac.x);
+  assert.equal(pred, 3);
+  drz(st, NIC, 1500, rnd);
+  const k = st.kolegove[0];
+  assert.equal(k.y, 1);
+  assert.ok(k.x - st.hrac.x < 1, "vzdalenost " + (k.x - st.hrac.x));
+});
+
+test("dvojity zasah: kolega ve dvou vybuchach jednou, manazer prijde o jeden zivot", () => {
+  const { st, rnd } = prazdnePatro();
+  st.hrac.x = 9;
+  st.hrac.y = 9;
+  st.kolegove = [kolega(3, 4), kolega(9, 1, "stazista", "up")];
+  st.porady = [
+    { i: idx(3, 3), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false },
+    { i: idx(3, 5), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false }
+  ];
+  let ud = L.krok(st, NIC, rnd);
+  eq(ud.filter((u) => u === "kolega"), ["kolega"]);
+  assert.equal(st.body, 100);
+  assert.equal(st.kolegove.length, 1);
+  drz(st, NIC, 600, rnd);
+  assert.equal(st.body, 100);
+
+  // Blast and a touching colleague in the same step: one life.
+  const b = prazdnePatro();
+  // The colleague stays out of the blast (rounded cell (2,1)) but ends within 0.6.
+  b.st.kolegove = [kolega(1.6, 1, "stazista", "up")];
+  b.st.porady = [{ i: idx(1, 2), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false }];
+  ud = L.krok(b.st, NIC, b.rnd);
+  eq(ud.filter((u) => u === "zivot"), ["zivot"]);
+  assert.equal(b.st.zivoty, 2);
+});
+
+test("dotyk kolegy bere zivot, z dalky ne", () => {
+  const { st, rnd } = prazdnePatro();
+  st.kolegove = [kolega(1, 2.7, "stazista", "left")];
+  // At 1.7 cells apart nothing happens; within 0.6 a life is lost.
+  let ud = L.krok(st, NIC, rnd);
+  assert.ok(!ud.includes("zivot"));
+  ud = drz(st, NIC, 1000, rnd);
+  eq(ud.filter((u) => u === "zivot"), ["zivot"]);
+  assert.equal(st.zivoty, 2);
+});
+
+test("nezranitelnost: 1900 ms ve vybuchu nic, po 2000 ms dalsi zivot", () => {
+  const { st, rnd } = prazdnePatro();
+  st.porady = [{ i: idx(1, 2), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false }];
+  assert.ok(L.krok(st, NIC, rnd).includes("zivot"));
+  assert.equal(st.hrac.nezranitelny, L.NEZRANITELNOST_MS);
+  st.vybuchy = [{ bunky: [START], zbyva: 1e9 }];
+  let ud = drz(st, NIC, 1900, rnd);
+  assert.ok(!ud.includes("zivot"));
+  assert.equal(st.zivoty, 2);
+  ud = drz(st, NIC, 100, rnd);
+  eq(ud.filter((u) => u === "zivot"), ["zivot"]);
+  assert.equal(st.zivoty, 1);
+});
+
+test("ztrata zivota: start, bez porad a vybuchu, krabice, bonusy a staty zustanou", () => {
+  const rnd = lcg(9);
+  const st = L.novaHra(rnd);
+  st.kolegove = [kolega(9, 9), kolega(9, 11, "minutka", "up", 1.7)];
+  Object.assign(st.hrac, { x: 3, y: 1, rychlost: 4, maxPorad: 3, dosah: 2 });
+  st.mrizka[idx(1, 3)] = 0;
+  st.body = 300;
+  st.bonusy.push({ i: idx(5, 5), typ: "kava", skryty: false });
+  st.mrizka[idx(5, 5)] = 0;
+  st.porady = [{ i: idx(1, 2), zbyva: 2000, dosah: 2, hracUvnitr: false }];
+  st.vybuchy = [{ bunky: [idx(1, 3)], zbyva: 200 }];
+  const mrizka = js(st.mrizka);
+  const bonusy = js(st.bonusy);
+  const vytah = js(st.vytah);
+  const ud = L.krok(st, NIC, rnd);
+  eq(ud.filter((u) => u === "zivot"), ["zivot"]);
+  assert.equal(st.zivoty, 2);
+  const h = st.hrac;
+  eq([h.x, h.y, h.rychlost, h.maxPorad, h.dosah, h.nezranitelny], [1, 1, 4, 3, 2, L.NEZRANITELNOST_MS]);
+  eq(st.porady, []);
+  eq(st.vybuchy, []);
+  eq(st.mrizka, mrizka);
+  eq(st.bonusy, bonusy);
+  eq(st.vytah, vytah);
+  eq([st.body, st.patro], [300, 1]);
+  assert.equal(st.kolegove.length, 2);
+  eq(st.kolegove.map((k) => [k.typ, k.rychlost]), [["stazista", 1.5], ["minutka", 1.7]]);
+  overRozmisteni(st, "po ztrate zivota");
+});
+
+test("konec hry: po tretim zivotu konec jednou a krok uz nic nemeni", () => {
+  const { st, rnd } = prazdnePatro();
+  const ud = [];
+  for (let z = 0; z < 3; z++) {
+    st.vybuchy = [{ bunky: [bunka(st)], zbyva: 1e9 }];
+    ud.push(...drz(st, NIC, L.NEZRANITELNOST_MS + L.KROK_MS, rnd));
+  }
+  assert.equal(kolik(ud, "zivot"), 3);
+  assert.equal(kolik(ud, "konec"), 1);
+  assert.equal(st.zivoty, 0);
+  assert.equal(st.konec, true);
+  st.kolegove = [kolega(5, 5)];
+  const pred = js(st);
+  eq(drz(st, { smer: "right", porada: true }, 500, rnd), []);
+  eq(st, pred);
+});
+
+test("vytah: posledni kolega ho otevre jednou, otevreny posune patro", () => {
+  const { st, rnd } = prazdnePatro();
+  Object.assign(st.hrac, { rychlost: 4, maxPorad: 2, dosah: 3 });
+  st.zivoty = 2;
+  st.vytah = { i: idx(1, 3), odkryty: true, otevreny: false };
+  st.kolegove = [kolega(9, 10)];
+  st.porady = [{ i: idx(9, 9), zbyva: L.KROK_MS, dosah: 1, hracUvnitr: false }];
+  const ud = L.krok(st, NIC, rnd);
+  eq(ud.filter((u) => u === "kolega" || u === "vytah"), ["kolega", "vytah"]);
+  assert.equal(st.vytah.otevreny, true);
+  assert.equal(st.body, 100);
+  eq(st.kolegove, []);
+  assert.ok(!drz(st, NIC, 600, rnd).includes("vytah"));
+  const cesta = [];
+  jdiDokud(st, "right", (s) => s.patro === 2, rnd, cesta);
+  assert.equal(kolik(cesta, "patro"), 1);
+  assert.equal(st.body, 600);
+  assert.equal(st.kolegove.length, 4);
+  assert.equal(st.kolegove.filter((k) => k.typ === "minutka").length, 1);
+  overRozmisteni(st, "patro 2");
+  eq([st.hrac.x, st.hrac.y, st.hrac.rychlost, st.hrac.maxPorad, st.hrac.dosah, st.zivoty], [1, 1, 4, 2, 3, 2]);
+  eq([st.vytah.odkryty, st.vytah.otevreny], [false, false]);
+  assert.equal(st.mrizka[st.vytah.i], 2);
+});
+
+test("vytah: zavreny nic nedela", () => {
+  const { st, rnd } = prazdnePatro();
+  st.vytah = { i: idx(1, 3), odkryty: true, otevreny: false };
+  const ud = [];
+  jdiDokud(st, "right", (s) => s.hrac.x >= 4, rnd, ud);
+  assert.ok(!ud.includes("patro") && !ud.includes("vytah"));
+  eq([st.patro, st.body, st.vytah.otevreny], [1, 0, false]);
 });
 
 test("bonus: rozbita krabice odkryje dosah, sebrani zvysi dosah", () => {
@@ -373,6 +627,29 @@ test("bonus: rozbita krabice odkryje dosah, sebrani zvysi dosah", () => {
   assert.ok(ud.includes("bonus"));
   assert.equal(st.hrac.dosah, 2);
   eq(st.bonusy, []);
+});
+
+test("bonus: odkryty rozbitou krabici prezije ten samy vybuch", () => {
+  const { st, rnd } = prazdnePatro();
+  st.hrac.x = 9;
+  st.hrac.y = 9;
+  st.mrizka[idx(1, 4)] = 2;
+  st.bonusy = [{ i: idx(1, 4), typ: "kava", skryty: true }];
+  // Two meetings reach the crate in the same step, from both sides.
+  st.porady = [
+    { i: idx(1, 3), zbyva: L.KROK_MS, dosah: 2, hracUvnitr: false },
+    { i: idx(1, 5), zbyva: L.KROK_MS, dosah: 2, hracUvnitr: false }
+  ];
+  L.krok(st, NIC, rnd);
+  assert.equal(st.mrizka[idx(1, 4)], 0);
+  assert.ok(st.vybuchy.every((v) => v.bunky.includes(idx(1, 4))));
+  eq(st.bonusy, [{ i: idx(1, 4), typ: "kava", skryty: false }]);
+  // It stays for the whole time the blast is active.
+  for (let t = 0; t < L.VYBUCH_MS; t += L.KROK_MS) {
+    L.krok(st, NIC, rnd);
+    eq(st.bonusy, [{ i: idx(1, 4), typ: "kava", skryty: false }]);
+  }
+  eq(st.vybuchy, []);
 });
 
 test("bonus: maxima se dodrzi", () => {

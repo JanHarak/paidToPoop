@@ -4148,6 +4148,19 @@ body.detail-open { overflow: hidden; }
     left: { dx: -1, dy: 0 },
     right: { dx: 1, dy: 0 }
   };
+  var KLICE_SMERU = ["up", "down", "left", "right"];
+  var OPACNY = { up: "down", down: "up", left: "right", right: "left" };
+  var KOLEGU_MAX = 8;
+  var KOLEGA_RYCHLOST = 1.5;
+  var KOLEGA_RYCHLOST_PATRO = 0.1;
+  var KOLEGA_RYCHLOST_MAX = 2.9;
+  var MINUTKA_NAVIC = 0.2;
+  var MINUTKA_DOSAH = 5;
+  var ODSTUP_OD_STARTU = 5;
+  var SANCE_ODBOCENI = 0.3;
+  var DOTYK = 0.6;
+  var BODY_KOLEGA = 100;
+  var BODY_PATRO = 500;
 
   function jeZed(r, c) {
     return r === 0 || c === 0 || r === R - 1 || c === S - 1 || (r % 2 === 0 && c % 2 === 0);
@@ -4208,15 +4221,52 @@ body.detail-open { overflow: hidden; }
     st.vytah = { i: vytah, odkryty: false, otevreny: false };
   }
 
+  // Puts the given colleagues on random free cells (not crates, meetings or the
+  // elevator) at least ODSTUP_OD_STARTU path steps from start, crates ignored.
+  // Each lands on a different cell centre; any that do not fit are dropped.
+  function rozmisti(st, kolegove, rnd) {
+    var d = vzdalenosti(st, START_Y * S + START_X, true), mista = [], i, j, t, k;
+    for (i = 0; i < S * R; i++) {
+      if (st.mrizka[i] === 0 && i !== st.vytah.i && d[i] >= ODSTUP_OD_STARTU && !poradaNa(st, i)) mista.push(i);
+    }
+    var n = Math.min(kolegove.length, mista.length);
+    for (k = 0; k < n; k++) {
+      j = k + Math.floor(rnd() * (mista.length - k));
+      t = mista[k]; mista[k] = mista[j]; mista[j] = t;
+      kolegove[k].x = mista[k] % S;
+      kolegove[k].y = Math.floor(mista[k] / S);
+      kolegove[k].smer = KLICE_SMERU[Math.floor(rnd() * 4)];
+    }
+    kolegove.length = n;
+    return kolegove;
+  }
+
+  function noviKolegove(st, rnd) {
+    var pocet = Math.min(3 + (st.patro - 1), KOLEGU_MAX);
+    var minutek = Math.ceil(pocet * Math.min(0.1 * (st.patro - 1), 0.6));
+    var zaklad = Math.min(KOLEGA_RYCHLOST + KOLEGA_RYCHLOST_PATRO * (st.patro - 1), KOLEGA_RYCHLOST_MAX);
+    var kolegove = [];
+    for (var k = 0; k < pocet; k++) {
+      var minutka = k < minutek;
+      kolegove.push({
+        x: 0, y: 0, smer: "down",
+        typ: minutka ? "minutka" : "stazista",
+        rychlost: minutka ? Math.min(zaklad + MINUTKA_NAVIC, KOLEGA_RYCHLOST_MAX) : zaklad
+      });
+    }
+    return rozmisti(st, kolegove, rnd);
+  }
+
+  // The caller sets st.patro first; colleagues depend on it.
   function novePatro(st, rnd) {
     generuj(st, rnd);
     st.porady = [];
     st.vybuchy = [];
-    st.kolegove = [];
     st.hrac.x = START_X;
     st.hrac.y = START_Y;
     st.hrac.smer = "down";
     st.hrac.nezranitelny = 0;
+    st.kolegove = noviKolegove(st, rnd);
   }
 
   function novaHra(rnd) {
@@ -4240,10 +4290,10 @@ body.detail-open { overflow: hidden; }
     return st;
   }
 
-  // BFS path distances over the grid; -1 when unreachable. Only walls and
-  // (unless ignorujKrabice) crates block.
-  function vzdalenosti(st, odkud, ignorujKrabice) {
-    var d = [], fronta = [odkud], i, k, n, kod;
+  // BFS path distances over the grid from odkud; -1 when unreachable.
+  // blokuje(j) says whether a cell other than odkud is closed.
+  function bfs(odkud, blokuje) {
+    var d = [], fronta = [odkud], i, k, n;
     var sousede = [-S, S, -1, 1];
     for (i = 0; i < S * R; i++) d.push(-1);
     d[odkud] = 0;
@@ -4253,8 +4303,7 @@ body.detail-open { overflow: hidden; }
         var j = i + sousede[n];
         if (j < 0 || j >= S * R || d[j] >= 0) continue;
         if ((n >= 2) && Math.floor(j / S) !== Math.floor(i / S)) continue;
-        kod = st.mrizka[j];
-        if (kod === 1 || (kod === 2 && !ignorujKrabice)) continue;
+        if (blokuje(j)) continue;
         d[j] = d[i] + 1;
         fronta.push(j);
       }
@@ -4262,9 +4311,104 @@ body.detail-open { overflow: hidden; }
     return d;
   }
 
+  // Only walls and (unless ignorujKrabice) crates block.
+  function vzdalenosti(st, odkud, ignorujKrabice) {
+    return bfs(odkud, function (j) {
+      var kod = st.mrizka[j];
+      return kod === 1 || (kod === 2 && !ignorujKrabice);
+    });
+  }
+
+  // Colleagues cannot enter walls, crates, meetings or the elevator cell.
+  function volnoProKolegu(st, i) {
+    return st.mrizka[i] === 0 && i !== st.vytah.i && !poradaNa(st, i);
+  }
+
+  function soused(i, smer) {
+    return i + SMERY[smer].dy * S + SMERY[smer].dx;
+  }
+
+  // Wandering: keep going when possible, at an intersection turn with
+  // SANCE_ODBOCENI, when blocked pick a free side and turn back only if stuck.
+  function bloumej(st, kol, i, rnd) {
+    var volne = [], boky = [], k, s;
+    for (k = 0; k < 4; k++) {
+      s = KLICE_SMERU[k];
+      if (!volnoProKolegu(st, soused(i, s))) continue;
+      volne.push(s);
+      if (s !== kol.smer && s !== OPACNY[kol.smer]) boky.push(s);
+    }
+    if (!volne.length) return null;
+    if (volne.indexOf(kol.smer) >= 0) {
+      if (boky.length && rnd() < SANCE_ODBOCENI) return boky[Math.floor(rnd() * boky.length)];
+      return kol.smer;
+    }
+    if (boky.length) return boky[Math.floor(rnd() * boky.length)];
+    return volne[0];
+  }
+
+  // Direction chosen at a cell centre. cesta holds path distances to the
+  // manager (crates, meetings and the elevator block), or null.
+  function rozhodni(st, kol, cesta, rnd) {
+    var i = kol.y * S + kol.x, k, j;
+    if (kol.typ === "minutka" && cesta && cesta[i] > 0 && cesta[i] <= MINUTKA_DOSAH) {
+      for (k = 0; k < 4; k++) {
+        j = soused(i, KLICE_SMERU[k]);
+        if (cesta[j] === cesta[i] - 1 && volnoProKolegu(st, j)) return KLICE_SMERU[k];
+      }
+    }
+    return bloumej(st, kol, i, rnd);
+  }
+
+  // Moves a colleague by one step's distance, centre to centre. It decides only
+  // at centres; between cells, if the cell ahead got closed (a meeting), it
+  // turns back, and stays put when both ways are closed.
+  function pohniKolegu(st, kol, cesta, rnd) {
+    var zbyva = kol.rychlost * KROK_MS / 1000, s, k, poz, cil, i, smer;
+    for (var n = 0; n < 4 && zbyva > 1e-9; n++) {
+      if (kol.x === Math.round(kol.x) && kol.y === Math.round(kol.y)) {
+        smer = rozhodni(st, kol, cesta, rnd);
+        if (!smer) return;
+        kol.smer = smer;
+      }
+      s = SMERY[kol.smer];
+      k = s.dx || s.dy;
+      poz = s.dx ? kol.x : kol.y;
+      cil = k > 0 ? Math.floor(poz) + 1 : Math.ceil(poz) - 1;
+      i = s.dx ? kol.y * S + cil : cil * S + kol.x;
+      if (!volnoProKolegu(st, i)) {
+        // Only reachable between cells: the centre decision picks a free cell.
+        kol.smer = OPACNY[kol.smer];
+        k = -k;
+        cil = k > 0 ? Math.floor(poz) + 1 : Math.ceil(poz) - 1;
+        i = s.dx ? kol.y * S + cil : cil * S + kol.x;
+        if (!volnoProKolegu(st, i)) return;
+      }
+      if (zbyva >= Math.abs(cil - poz) - 1e-9) {
+        zbyva -= Math.abs(cil - poz);
+        poz = cil;
+      } else {
+        poz += k * zbyva;
+        zbyva = 0;
+      }
+      if (s.dx) kol.x = poz; else kol.y = poz;
+    }
+  }
+
+  function pohniKolegy(st, rnd) {
+    var h = st.hrac, cesta = null, k;
+    for (k = 0; k < st.kolegove.length; k++) {
+      if (st.kolegove[k].typ !== "minutka") continue;
+      cesta = bfs(bunkaHrace(h), function (j) { return !volnoProKolegu(st, j); });
+      break;
+    }
+    for (k = 0; k < st.kolegove.length; k++) pohniKolegu(st, st.kolegove[k], cesta, rnd);
+  }
+
   // Moves the manager one step. One axis is always on a corridor line: moving
   // along it needs the cross axis aligned; when it is not, corner assist snaps
-  // toward the nearest line if it is within ROH and the corridor ahead is open.
+  // toward the nearest line if it is within ROH and the corridor ahead is open,
+  // and what is left of the step distance after aligning goes forward.
   function pohni(st, smer) {
     var h = st.hrac;
     var s = SMERY[smer];
@@ -4277,11 +4421,21 @@ body.detail-open { overflow: hidden; }
     var bR = Math.round(b);
     var dalsi = vodorovne ? bR * S + aR + k : (aR + k) * S + bR;
     var volno = volnoProHrace(st, dalsi);
+    var vpred = d;
     if (b !== bR) {
-      if (Math.abs(b - bR) > ROH || !volno) return;
-      b = Math.abs(b - bR) <= d ? bR : b + (bR > b ? d : -d);
-    } else {
-      var an = a + k * d;
+      var odchylka = Math.abs(b - bR);
+      if (odchylka > ROH || !volno) return;
+      if (odchylka <= d + 1e-9) {
+        b = bR;
+        vpred = Math.max(0, d - odchylka);
+      } else {
+        b += bR > b ? d : -d;
+        vpred = 0;
+      }
+    }
+    // Forward only once aligned: off the line the next cell would overlap a pillar.
+    if (b === bR && vpred > 0) {
+      var an = a + k * vpred;
       if (!volno && (an - aR) * k > 0) an = (a - aR) * k > 0 ? a : aR;
       a = an;
     }
@@ -4355,7 +4509,7 @@ body.detail-open { overflow: hidden; }
       if (st.vybuchy[k].zbyva <= 0) st.vybuchy.splice(k, 1);
     }
 
-    // 2. Input: lay a meeting on the current cell, then move the manager.
+    // 2. Input: lay a meeting on the current cell, move the manager, then colleagues.
     if (vstup && vstup.porada) {
       i = bunkaHrace(h);
       if (st.porady.length < h.maxPorad && !poradaNa(st, i) && i !== st.vytah.i) {
@@ -4369,6 +4523,7 @@ body.detail-open { overflow: hidden; }
     }
     i = bunkaHrace(h);
     for (k = 0; k < st.porady.length; k++) if (st.porady[k].i !== i) st.porady[k].hracUvnitr = false;
+    pohniKolegy(st, rnd);
 
     // 3. Fuses: a meeting whose fuse ran out or that sits in an active blast detonates.
     fronta = [];
@@ -4387,10 +4542,65 @@ body.detail-open { overflow: hidden; }
     // 5. Pickups.
     seber(st, ud);
 
-    // 6. Hit check. Task 1 only reports it; lives are handled later.
-    if (h.nezranitelny === 0 && veVybuchu(st, bunkaHrace(h))) ud.push("zasah");
+    // 6. Hits: colleagues in blasts leave (once each), then the manager.
+    zasahniKolegy(st, ud);
+    if (h.nezranitelny === 0 && (veVybuchu(st, bunkaHrace(h)) || dotyk(st))) {
+      ztratZivot(st, rnd, ud);
+      return ud;
+    }
+
+    // 7. Elevator: entering it open goes up a floor at once.
+    if (st.vytah.otevreny && bunkaHrace(h) === st.vytah.i) {
+      st.body += BODY_PATRO;
+      st.patro += 1;
+      novePatro(st, rnd);
+      ud.push("patro");
+    }
 
     return ud;
+  }
+
+  function zasahniKolegy(st, ud) {
+    var bylo = st.kolegove.length;
+    st.kolegove = st.kolegove.filter(function (kol) {
+      if (!veVybuchu(st, Math.round(kol.y) * S + Math.round(kol.x))) return true;
+      st.body += BODY_KOLEGA;
+      ud.push("kolega");
+      return false;
+    });
+    if (bylo > 0 && !st.kolegove.length && !st.vytah.otevreny) {
+      st.vytah.otevreny = true;
+      ud.push("vytah");
+    }
+  }
+
+  function dotyk(st) {
+    var h = st.hrac;
+    for (var k = 0; k < st.kolegove.length; k++) {
+      var dx = st.kolegove[k].x - h.x, dy = st.kolegove[k].y - h.y;
+      if (dx * dx + dy * dy <= DOTYK * DOTYK) return true;
+    }
+    return false;
+  }
+
+  // One life per step. The floor stays (crates, bonuses), the rest restarts.
+  function ztratZivot(st, rnd, ud) {
+    var h = st.hrac;
+    st.zivoty -= 1;
+    ud.push("zivot");
+    if (st.zivoty <= 0) {
+      st.zivoty = 0;
+      st.konec = true;
+      ud.push("konec");
+      return;
+    }
+    h.x = START_X;
+    h.y = START_Y;
+    h.smer = "down";
+    h.nezranitelny = NEZRANITELNOST_MS;
+    st.porady = [];
+    st.vybuchy = [];
+    rozmisti(st, st.kolegove, rnd);
   }
 
   function nezapCele(v) {
