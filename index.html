@@ -645,6 +645,8 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 .hry-detail .hra-btn { margin-top: 1rem; padding: .7rem 2rem; font-size: 1.05rem; }
 .pisk-obtiznost { width: auto; margin: 1rem 0 0; }
 .sachy-seg { width: auto; margin: .8rem 0 0; }
+.splachni-seg { width: auto; margin: .8rem 0 0; }
+.splachni-seg .seg-btn { padding-left: .6rem; padding-right: .6rem; white-space: nowrap; }
 .hry-detail .hra-btn-sek { margin-top: .6rem; background: transparent; color: var(--ink); border: 2px solid var(--line); }
 .hry-detail .hra-btn-sek[hidden] { display: none; }
 .seg-btn[aria-pressed="true"] {
@@ -1212,6 +1214,10 @@ body.detail-open { overflow: hidden; }
             <span class="hry-nazev">Šachy</span>
             <span class="hry-pod">Zahraj si proti počítači</span>
           </button>
+          <button class="hry-polozka" type="button" data-hra="splachni" aria-pressed="false">
+            <span class="hry-nazev">Spláchni to!</span>
+            <span class="hry-pod">Spoj tři stejné otravnosti</span>
+          </button>
         </div>
         <div class="hry-detaily">
           <div class="hry-detail" data-hra="rulicka">
@@ -1250,6 +1256,26 @@ body.detail-open { overflow: hidden; }
               <div class="sachy-volba-tlacitka">
                 <button type="button" id="sachyNovaAno">Začít novou</button>
                 <button type="button" class="vedlejsi" id="sachyNovaNe">Zpět</button>
+              </div>
+            </div>
+          </div>
+          <div class="hry-detail" data-hra="splachni" hidden>
+            <p class="hra-panel-title">Spláchni to!</p>
+            <p class="hra-panel-text">Prohazuj sousední věci z kanceláře. Tři a víc stejných v řadě spláchneš. Stopky sezení běží dál.</p>
+            <div class="seg splachni-seg" role="group" aria-label="Režim">
+              <button class="seg-btn splachni-rezim" type="button" data-rezim="tahy" aria-pressed="true">Tahy</button>
+              <button class="seg-btn splachni-rezim" type="button" data-rezim="cas" aria-pressed="false">Na čas</button>
+              <button class="seg-btn splachni-rezim" type="button" data-rezim="nekonecna" aria-pressed="false">Nekonečná</button>
+            </div>
+            <p class="sachy-pozn" id="splachniRezimPopis">25 tahů na co nejvíc bodů.</p>
+            <p class="hry-stat" id="splachniRekord">Rekord: 0</p>
+            <button class="hra-btn" id="splachniHrajBtn" type="button">Zahraj si</button>
+            <button class="hra-btn hra-btn-sek" id="splachniNovaBtn" type="button" hidden>Nová hra</button>
+            <div class="sachy-volba sachy-volba-detail" id="splachniPotvrzeni" role="group" aria-labelledby="splachniPotvrzeniTitul" hidden>
+              <p id="splachniPotvrzeniTitul">Rozehraná hra se zahodí. Začít novou?</p>
+              <div class="sachy-volba-tlacitka">
+                <button type="button" id="splachniNovaAno">Začít novou</button>
+                <button type="button" class="vedlejsi" id="splachniNovaNe">Zpět</button>
               </div>
             </div>
           </div>
@@ -4035,6 +4061,8 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
+  // Temporary: Task 3 wires the game and removes this rule.
+  if (!window.SplachniLogika) window.HrySeznam.odeber("splachni");
 })();
 </script>
 <script id="hra-ui">
