@@ -3574,6 +3574,368 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="splachni-logika">
+(function () {
+  var N = 8;
+  var DRUHU = 6;
+  var HOUBA_KOD = 30;
+  var MAX_KROKU = 60;
+
+  function druh(kod) {
+    if (kod === HOUBA_KOD) return -1;
+    return kod % 10;
+  }
+
+  function platnyKod(v) {
+    return typeof v === "number" && (
+      (v >= 0 && v <= 5) || (v >= 10 && v <= 15) || (v >= 20 && v <= 25) || v === HOUBA_KOD) &&
+      Math.floor(v) === v;
+  }
+
+  // Maximal runs of 3+ of the same druh. A sponge (-1) and empty cells never match.
+  function najdiRady(d) {
+    var rady = [];
+    var smer, x, y, i, k, start, delka, bunky, j;
+    for (smer = 0; smer < 2; smer++) {
+      for (y = 0; y < N; y++) {
+        x = 0;
+        while (x < N) {
+          i = smer === 0 ? y * N + x : x * N + y;
+          k = d[i] == null ? -1 : druh(d[i]);
+          start = x;
+          x++;
+          while (x < N) {
+            j = smer === 0 ? y * N + x : x * N + y;
+            if (k < 0 || d[j] == null || druh(d[j]) !== k) break;
+            x++;
+          }
+          delka = x - start;
+          if (k >= 0 && delka >= 3) {
+            bunky = [];
+            for (j = start; j < x; j++) bunky.push(smer === 0 ? y * N + j : j * N + y);
+            rady.push({ bunky: bunky, smer: smer === 0 ? "h" : "v", druh: k });
+          }
+        }
+      }
+    }
+    return rady;
+  }
+
+  function sousede(a, b) {
+    if (typeof a !== "number" || typeof b !== "number") return false;
+    if (Math.floor(a) !== a || Math.floor(b) !== b) return false;
+    if (a < 0 || b < 0 || a >= N * N || b >= N * N) return false;
+    if (Math.abs(a - b) === N) return true;
+    return Math.abs(a - b) === 1 && Math.floor(a / N) === Math.floor(b / N);
+  }
+
+  // Is cell i part of a run of 3+ (row or column)?
+  function radaPres(d, i) {
+    var k = druh(d[i]);
+    if (k < 0) return false;
+    var x = i % N, y = Math.floor(i / N), n, t;
+    n = 1;
+    for (t = x - 1; t >= 0 && druh(d[y * N + t]) === k; t--) n++;
+    for (t = x + 1; t < N && druh(d[y * N + t]) === k; t++) n++;
+    if (n >= 3) return true;
+    n = 1;
+    for (t = y - 1; t >= 0 && druh(d[t * N + x]) === k; t--) n++;
+    for (t = y + 1; t < N && druh(d[t * N + x]) === k; t++) n++;
+    return n >= 3;
+  }
+
+  function napoveda(d) {
+    var i, b, s, t, ok;
+    for (i = 0; i < N * N; i++) {
+      for (s = 0; s < 2; s++) {
+        b = s === 0 ? i + 1 : i + N;
+        if (s === 0 && i % N === N - 1) continue;
+        if (b >= N * N) continue;
+        if (d[i] === HOUBA_KOD || d[b] === HOUBA_KOD) return [i, b];
+        if (druh(d[i]) === druh(d[b])) continue;
+        t = d[i]; d[i] = d[b]; d[b] = t;
+        ok = radaPres(d, i) || radaPres(d, b);
+        t = d[i]; d[i] = d[b]; d[b] = t;
+        if (ok) return [i, b];
+      }
+    }
+    return null;
+  }
+
+  function maTah(d) {
+    return napoveda(d.slice()) !== null;
+  }
+
+  // Small LCG used only when the given rnd keeps producing unusable boards.
+  function zalozniRnd(seed) {
+    var s = (seed * 2654435761) % 4294967296;
+    return function () {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+  }
+
+  function vygeneruj(rnd) {
+    var d = [], i, x, y, k, p, t;
+    for (i = 0; i < N * N; i++) {
+      x = i % N; y = Math.floor(i / N);
+      k = Math.floor(rnd() * DRUHU);
+      if (!(k >= 0 && k < DRUHU)) k = 0;
+      for (t = 0; t < DRUHU; t++) {
+        p = (k + t) % DRUHU;
+        if (x >= 2 && d[i - 1] === p && d[i - 2] === p) continue;
+        if (y >= 2 && d[i - N] === p && d[i - 2 * N] === p) continue;
+        break;
+      }
+      d.push(p);
+    }
+    return d;
+  }
+
+  function novaDeska(rnd) {
+    var pokus, d, r = rnd;
+    for (pokus = 0; pokus < 200; pokus++) {
+      if (pokus === 20) r = zalozniRnd(Math.floor(rnd() * 1000000) + 1);
+      d = vygeneruj(r);
+      if (maTah(d)) return d;
+    }
+    return d;
+  }
+
+  function zamichej(deska, rnd) {
+    var pokus, d, i, j, t;
+    for (pokus = 0; pokus < 50; pokus++) {
+      d = deska.slice();
+      for (i = d.length - 1; i > 0; i--) {
+        j = Math.floor(rnd() * (i + 1));
+        if (!(j >= 0 && j <= i)) j = i;
+        t = d[i]; d[i] = d[j]; d[j] = t;
+      }
+      if (najdiRady(d).length === 0 && maTah(d)) return d;
+    }
+    return novaDeska(rnd);
+  }
+
+  // Most frequent druh on the board (ties: lowest), used by a sponge hit by another special.
+  function nejcastejsiDruh(d) {
+    var c = [0, 0, 0, 0, 0, 0], i, k, best = 0;
+    for (i = 0; i < d.length; i++) {
+      k = d[i] == null ? -1 : druh(d[i]);
+      if (k >= 0) c[k]++;
+    }
+    for (k = 1; k < DRUHU; k++) if (c[k] > c[best]) best = k;
+    return best;
+  }
+
+  // Adds cells to the clear set and activates specials hit (chains).
+  // chran: cells that must stay (specials created in this step).
+  function rozsir(d, start, chran) {
+    var v = {}, fronta = [], vysl = [], i, c, kod, x, y, t, k;
+    function pridej(j) {
+      if (v[j] || chran[j] || d[j] == null) return;
+      v[j] = true;
+      fronta.push(j);
+    }
+    for (i = 0; i < start.length; i++) pridej(start[i]);
+    while (fronta.length) {
+      c = fronta.shift();
+      vysl.push(c);
+      kod = d[c];
+      x = c % N; y = Math.floor(c / N);
+      if (kod >= 10 && kod <= 15) {
+        for (t = 0; t < N; t++) pridej(y * N + t);
+      } else if (kod >= 20 && kod <= 25) {
+        for (t = 0; t < N; t++) pridej(t * N + x);
+      } else if (kod === HOUBA_KOD) {
+        k = nejcastejsiDruh(d);
+        for (t = 0; t < N * N; t++) if (d[t] != null && druh(d[t]) === k) pridej(t);
+      }
+    }
+    return vysl;
+  }
+
+  // Specials created from the runs of one step.
+  function vytvorSpecialy(d, rady, tahBunky) {
+    var vznik = [], obsazeno = {}, pouzita = [], i, j, r, s, c, kod, kandidati;
+    function vTahu(bunky) {
+      for (var q = 0; q < tahBunky.length; q++) {
+        if (bunky.indexOf(tahBunky[q]) >= 0) return tahBunky[q];
+      }
+      return -1;
+    }
+    function umisti(preferovane, vsechny, kod) {
+      var seznam = preferovane.concat(vsechny), q, m;
+      for (q = 0; q < seznam.length; q++) {
+        m = seznam[q];
+        if (m < 0 || obsazeno[m]) continue;
+        if (d[m] >= 10) continue; // never overwrite an existing special
+        obsazeno[m] = true;
+        vznik.push({ i: m, kod: kod });
+        return;
+      }
+    }
+    // Crossings of an h and a v run.
+    for (i = 0; i < rady.length; i++) {
+      r = rady[i];
+      if (r.smer !== "h" || pouzita[i]) continue;
+      for (j = 0; j < rady.length; j++) {
+        s = rady[j];
+        if (s.smer !== "v" || pouzita[j] || s.druh !== r.druh) continue;
+        c = -1;
+        for (var q = 0; q < r.bunky.length; q++) {
+          if (s.bunky.indexOf(r.bunky[q]) >= 0) { c = r.bunky[q]; break; }
+        }
+        if (c < 0) continue;
+        pouzita[i] = true; pouzita[j] = true;
+        kandidati = r.bunky.concat(s.bunky);
+        umisti([vTahu(kandidati), c], kandidati, HOUBA_KOD);
+        break;
+      }
+    }
+    for (i = 0; i < rady.length; i++) {
+      r = rady[i];
+      if (pouzita[i] || r.bunky.length < 5) continue;
+      pouzita[i] = true;
+      umisti([vTahu(r.bunky), r.bunky[Math.floor(r.bunky.length / 2)]], r.bunky, HOUBA_KOD);
+    }
+    for (i = 0; i < rady.length; i++) {
+      r = rady[i];
+      if (pouzita[i] || r.bunky.length !== 4) continue;
+      pouzita[i] = true;
+      kod = (r.smer === "h" ? 10 : 20) + r.druh;
+      umisti([vTahu(r.bunky), r.bunky[1]], r.bunky, kod);
+    }
+    return vznik;
+  }
+
+  // Applies the clear, places created specials, then gravity and refill. Mutates d.
+  function dokonciKrok(d, splach, vznik, rnd) {
+    var pady = [], nove = [], i, x, y, cil, k;
+    for (i = 0; i < splach.length; i++) d[splach[i]] = null;
+    for (i = 0; i < vznik.length; i++) d[vznik[i].i] = vznik[i].kod;
+    for (x = 0; x < N; x++) {
+      cil = N - 1;
+      for (y = N - 1; y >= 0; y--) {
+        i = y * N + x;
+        if (d[i] == null) continue;
+        if (cil !== y) {
+          pady.push({ z: i, na: cil * N + x, kod: d[i] });
+          d[cil * N + x] = d[i];
+          d[i] = null;
+        }
+        cil--;
+      }
+    }
+    for (i = 0; i < N * N; i++) {
+      if (d[i] != null) continue;
+      k = Math.floor(rnd() * DRUHU);
+      if (!(k >= 0 && k < DRUHU)) k = 0;
+      d[i] = k;
+      nove.push({ i: i, kod: k });
+    }
+    return { pady: pady, nove: nove };
+  }
+
+  function tah(deska, a, b, rnd) {
+    var neplatny = { platny: false, deska: deska.slice(), body: 0, kroky: [] };
+    if (!sousede(a, b)) return neplatny;
+    var d = deska.slice(), t, kroky = [], celkem = 0, retez = 1, splach, vznik, rady, chran, i, k, krok, zbytek, body;
+    t = d[a]; d[a] = d[b]; d[b] = t;
+
+    if (d[a] === HOUBA_KOD || d[b] === HOUBA_KOD) {
+      var start = [];
+      if (d[a] === HOUBA_KOD && d[b] === HOUBA_KOD) {
+        for (i = 0; i < N * N; i++) start.push(i);
+      } else {
+        var houba = d[a] === HOUBA_KOD ? a : b;
+        var jina = houba === a ? b : a;
+        k = druh(d[jina]);
+        start.push(houba);
+        for (i = 0; i < N * N; i++) if (druh(d[i]) === k) start.push(i);
+      }
+      // The swapped sponge itself is consumed, not activated again.
+      var bezHouby = d.slice();
+      for (i = 0; i < start.length; i++) if (d[start[i]] === HOUBA_KOD && (start[i] === a || start[i] === b)) bezHouby[start[i]] = 0;
+      splach = rozsir(bezHouby, start, {});
+      vznik = [];
+    } else {
+      rady = najdiRady(d);
+      if (!rady.length) return neplatny;
+      splach = null;
+    }
+
+    while (kroky.length < MAX_KROKU) {
+      if (splach === null) {
+        rady = najdiRady(d);
+        if (!rady.length) break;
+        vznik = vytvorSpecialy(d, rady, retez === 1 ? [a, b] : []);
+        chran = {};
+        for (i = 0; i < vznik.length; i++) chran[vznik[i].i] = true;
+        var zaklad = [];
+        for (i = 0; i < rady.length; i++) zaklad = zaklad.concat(rady[i].bunky);
+        splach = rozsir(d, zaklad, chran);
+      }
+      body = 10 * splach.length * retez;
+      for (i = 0; i < vznik.length; i++) body += vznik[i].kod === HOUBA_KOD ? 100 : 50;
+      zbytek = dokonciKrok(d, splach, vznik, rnd);
+      krok = { splach: splach, vznik: vznik, pady: zbytek.pady, nove: zbytek.nove, body: body, retez: retez };
+      kroky.push(krok);
+      celkem += body;
+      retez++;
+      splach = null;
+    }
+
+    if (najdiRady(d).length || !maTah(d)) {
+      d = zamichej(d, rnd);
+      krok = kroky[kroky.length - 1];
+      krok.zamichano = true;
+      krok.deska = d.slice();
+    }
+    return { platny: true, deska: d, body: celkem, kroky: kroky };
+  }
+
+  function nezapNum(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+  }
+
+  function parseUlozeni(raw) {
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!o || typeof o !== "object" || o instanceof Array) o = {};
+    var rek = o.rekordy && typeof o.rekordy === "object" ? o.rekordy : {};
+    var nek = null, n = o.nekonecna, i, ok;
+    if (n && typeof n === "object" && n.deska instanceof Array && n.deska.length === N * N &&
+        typeof n.body === "number" && n.body >= 0 && Math.floor(n.body) === n.body && isFinite(n.body)) {
+      ok = true;
+      for (i = 0; i < n.deska.length; i++) if (!platnyKod(n.deska[i])) { ok = false; break; }
+      if (ok && najdiRady(n.deska).length === 0 && maTah(n.deska)) {
+        nek = { deska: n.deska.slice(), body: n.body };
+      }
+    }
+    return {
+      rezim: o.rezim === "cas" || o.rezim === "nekonecna" ? o.rezim : "tahy",
+      rekordy: { tahy: nezapNum(rek.tahy), cas: nezapNum(rek.cas), nekonecna: nezapNum(rek.nekonecna) },
+      nekonecna: nek
+    };
+  }
+
+  window.SplachniLogika = {
+    N: N,
+    DRUHU: DRUHU,
+    EMOJI: ["📎", "☕", "📧", "📊", "🗓️", "🖨️"],
+    ZACHOD: "🚽",
+    HOUBA: "🧽",
+    druh: druh,
+    novaDeska: novaDeska,
+    najdiRady: najdiRady,
+    maTah: maTah,
+    napoveda: napoveda,
+    tah: tah,
+    zamichej: zamichej,
+    parseUlozeni: parseUlozeni
+  };
+})();
+</script>
 <script id="hry-seznam">
 (function () {
   var KEY = "zachodova-hry-vyber-v1";
