@@ -1498,7 +1498,7 @@ body.detail-open { overflow: hidden; }
           <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
         </div>
         <button class="flush" id="flush" type="button">Jdu na záchod</button>
-        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku.</div>
+        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.</div>
       </div>
     </section>
 
@@ -2883,7 +2883,7 @@ body.detail-open { overflow: hidden; }
     Object.keys(els).forEach(function (k) { els[k].value = DEFAULTS[k]; });
     amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
     setMode("md", true);
-    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku.";
+    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.";
     render();
   });
 
