@@ -1347,6 +1347,10 @@ body.detail-open { overflow: hidden; }
             <span class="hry-nazev">Spláchni to!</span>
             <span class="hry-pod">Spoj tři stejné otravnosti</span>
           </button>
+          <button class="hry-polozka" type="button" data-hra="porada" aria-pressed="false">
+            <span class="hry-nazev">Svolej poradu!</span>
+            <span class="hry-pod">Zavři kolegy v poradě</span>
+          </button>
         </div>
         <div class="hry-detaily">
           <div class="hry-detail" data-hra="rulicka">
@@ -1407,6 +1411,12 @@ body.detail-open { overflow: hidden; }
                 <button type="button" class="vedlejsi" id="splachniNovaNe">Zpět</button>
               </div>
             </div>
+          </div>
+          <div class="hry-detail" data-hra="porada" hidden>
+            <p class="hra-panel-title">Svolej poradu!</p>
+            <p class="hra-panel-text">Jsi manažer. Pokládej porady, rozbíjej krabice a zavři všechny kolegy v poradě. Pak jeď výtahem o patro výš. Pozor, porada zasáhne i tebe. Stopky sezení běží dál.</p>
+            <p class="hry-stat" id="poradaRekord">Rekord: zatím žádný</p>
+            <button class="hra-btn" id="poradaHrajBtn" type="button">Zahraj si</button>
           </div>
         </div>
       </div>
@@ -4758,6 +4768,10 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
+})();
+// Temporary (Task 4 removes it): hide the entry while the game logic is missing.
+(function () {
+  if (!window.PoradaLogika && window.HrySeznam) window.HrySeznam.odeber("porada");
 })();
 </script>
 <script id="hra-ui">

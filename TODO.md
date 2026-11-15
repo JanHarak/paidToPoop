@@ -10,3 +10,5 @@
 ## Hry
 
 - [ ] **Silný šachový soupeř.** Teď jsou úrovně Lehká a Těžká (střední síla, vlastní engine). Podle zpětné vazby přidat silnou úroveň, třeba Stockfish (WASM) načtený až při výběru této úrovně.
+
+- [ ] **Svolej poradu: aréna proti počítačovým manažerům** (1 až 3 soupeři, poslední přeživší vyhrává). Původní představa uživatele, odloženo.
