@@ -4121,6 +4121,316 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="porada-logika">
+(function () {
+  var S = 13;
+  var R = 11;
+  var KROK_MS = 20;
+  var ROZBUSKA_MS = 2500;
+  var VYBUCH_MS = 500;
+  var NEZRANITELNOST_MS = 2000;
+  var ZIVOTU = 3;
+  var RYCHLOST = 3;
+  var RYCHLOST_MAX = 5.5;
+  var KAVA = 0.5;
+  var MAX_PORAD = 5;
+  var MAX_DOSAH = 6;
+  var HUSTOTA_MIN = 0.4;
+  var HUSTOTA_ROZPETI = 0.1;
+  var SANCE_BONUSU = 0.22;
+  var TYPY_BONUSU = ["kava", "porada", "dosah"];
+  var ROH = 0.45;
+  var START_X = 1;
+  var START_Y = 1;
+  var SMERY = {
+    up: { dx: 0, dy: -1 },
+    down: { dx: 0, dy: 1 },
+    left: { dx: -1, dy: 0 },
+    right: { dx: 1, dy: 0 }
+  };
+
+  function jeZed(r, c) {
+    return r === 0 || c === 0 || r === R - 1 || c === S - 1 || (r % 2 === 0 && c % 2 === 0);
+  }
+
+  function jeStart(r, c) {
+    return (r === 1 && c === 1) || (r === 1 && c === 2) || (r === 2 && c === 1);
+  }
+
+  function bunkaHrace(h) {
+    return Math.round(h.y) * S + Math.round(h.x);
+  }
+
+  function poradaNa(st, i) {
+    for (var k = 0; k < st.porady.length; k++) if (st.porady[k].i === i) return st.porady[k];
+    return null;
+  }
+
+  function veVybuchu(st, i) {
+    for (var k = 0; k < st.vybuchy.length; k++) if (st.vybuchy[k].bunky.indexOf(i) >= 0) return true;
+    return false;
+  }
+
+  // Walls, crates and meetings block the manager, except the meeting just laid.
+  function volnoProHrace(st, i) {
+    var kod = st.mrizka[i];
+    if (kod === 1 || kod === 2) return false;
+    var p = poradaNa(st, i);
+    return !p || p.hracUvnitr;
+  }
+
+  // Fills mrizka, bonusy and vytah. Uses rnd in a fixed order, so it is deterministic.
+  function generuj(st, rnd) {
+    var m = [], vhodne = [], r, c, i, j, t;
+    for (r = 0; r < R; r++) {
+      for (c = 0; c < S; c++) {
+        m.push(jeZed(r, c) ? 1 : 0);
+        if (!jeZed(r, c) && !jeStart(r, c)) vhodne.push(r * S + c);
+      }
+    }
+    for (i = vhodne.length - 1; i > 0; i--) {
+      j = Math.floor(rnd() * (i + 1));
+      t = vhodne[i]; vhodne[i] = vhodne[j]; vhodne[j] = t;
+    }
+    var pocet = Math.round(vhodne.length * (HUSTOTA_MIN + HUSTOTA_ROZPETI * rnd()));
+    var krabice = vhodne.slice(0, pocet);
+    for (i = 0; i < krabice.length; i++) m[krabice[i]] = 2;
+    var vytah = krabice[Math.floor(rnd() * krabice.length)];
+    var bonusy = [];
+    for (i = 0; i < krabice.length; i++) {
+      if (krabice[i] === vytah) continue;
+      if (rnd() < SANCE_BONUSU) {
+        bonusy.push({ i: krabice[i], typ: TYPY_BONUSU[Math.floor(rnd() * TYPY_BONUSU.length)], skryty: true });
+      }
+    }
+    st.mrizka = m;
+    st.bonusy = bonusy;
+    st.vytah = { i: vytah, odkryty: false, otevreny: false };
+  }
+
+  function novePatro(st, rnd) {
+    generuj(st, rnd);
+    st.porady = [];
+    st.vybuchy = [];
+    st.kolegove = [];
+    st.hrac.x = START_X;
+    st.hrac.y = START_Y;
+    st.hrac.smer = "down";
+    st.hrac.nezranitelny = 0;
+  }
+
+  function novaHra(rnd) {
+    var st = {
+      mrizka: null,
+      patro: 1,
+      zivoty: ZIVOTU,
+      body: 0,
+      konec: false,
+      hrac: {
+        x: START_X, y: START_Y, smer: "down",
+        rychlost: RYCHLOST, maxPorad: 1, dosah: 1, nezranitelny: 0
+      },
+      porady: [],
+      vybuchy: [],
+      bonusy: [],
+      vytah: null,
+      kolegove: []
+    };
+    novePatro(st, rnd);
+    return st;
+  }
+
+  // BFS path distances over the grid; -1 when unreachable. Only walls and
+  // (unless ignorujKrabice) crates block.
+  function vzdalenosti(st, odkud, ignorujKrabice) {
+    var d = [], fronta = [odkud], i, k, n, kod;
+    var sousede = [-S, S, -1, 1];
+    for (i = 0; i < S * R; i++) d.push(-1);
+    d[odkud] = 0;
+    for (k = 0; k < fronta.length; k++) {
+      i = fronta[k];
+      for (n = 0; n < 4; n++) {
+        var j = i + sousede[n];
+        if (j < 0 || j >= S * R || d[j] >= 0) continue;
+        if ((n >= 2) && Math.floor(j / S) !== Math.floor(i / S)) continue;
+        kod = st.mrizka[j];
+        if (kod === 1 || (kod === 2 && !ignorujKrabice)) continue;
+        d[j] = d[i] + 1;
+        fronta.push(j);
+      }
+    }
+    return d;
+  }
+
+  // Moves the manager one step. One axis is always on a corridor line: moving
+  // along it needs the cross axis aligned; when it is not, corner assist snaps
+  // toward the nearest line if it is within ROH and the corridor ahead is open.
+  function pohni(st, smer) {
+    var h = st.hrac;
+    var s = SMERY[smer];
+    var d = h.rychlost * KROK_MS / 1000;
+    var vodorovne = s.dx !== 0;
+    var k = vodorovne ? s.dx : s.dy;
+    var a = vodorovne ? h.x : h.y;
+    var b = vodorovne ? h.y : h.x;
+    var aR = Math.round(a);
+    var bR = Math.round(b);
+    var dalsi = vodorovne ? bR * S + aR + k : (aR + k) * S + bR;
+    var volno = volnoProHrace(st, dalsi);
+    if (b !== bR) {
+      if (Math.abs(b - bR) > ROH || !volno) return;
+      b = Math.abs(b - bR) <= d ? bR : b + (bR > b ? d : -d);
+    } else {
+      var an = a + k * d;
+      if (!volno && (an - aR) * k > 0) an = (a - aR) * k > 0 ? a : aR;
+      a = an;
+    }
+    if (vodorovne) { h.x = a; h.y = b; } else { h.y = a; h.x = b; }
+  }
+
+  function pridejUdalost(ud, u) {
+    if (ud.indexOf(u) < 0) ud.push(u);
+  }
+
+  // Detonates the given meetings (already removed from st.porady) and every
+  // meeting their blasts reach, all in this step, each with its own range.
+  function odpal(st, fronta, ud) {
+    var zasazene = [], krabice = [], k, n, i, j, p, q, bunky, s;
+    var smery = [SMERY.up, SMERY.down, SMERY.left, SMERY.right];
+    for (k = 0; k < fronta.length; k++) {
+      p = fronta[k];
+      bunky = [p.i];
+      for (n = 0; n < 4; n++) {
+        s = smery[n];
+        for (j = 1; j <= p.dosah; j++) {
+          i = p.i + (s.dy * S + s.dx) * j;
+          if (st.mrizka[i] === 1) break;
+          bunky.push(i);
+          if (st.mrizka[i] === 2 || krabice.indexOf(i) >= 0) {
+            if (st.mrizka[i] === 2) { st.mrizka[i] = 0; krabice.push(i); }
+            break;
+          }
+          q = poradaNa(st, i);
+          if (q) {
+            st.porady.splice(st.porady.indexOf(q), 1);
+            fronta.push(q);
+          }
+        }
+      }
+      st.vybuchy.push({ bunky: bunky, zbyva: VYBUCH_MS });
+      zasazene = zasazene.concat(bunky);
+    }
+    // Open bonuses in the blast vanish; the ones under crates are revealed after.
+    st.bonusy = st.bonusy.filter(function (b) { return b.skryty || zasazene.indexOf(b.i) < 0; });
+    for (k = 0; k < krabice.length; k++) {
+      for (n = 0; n < st.bonusy.length; n++) if (st.bonusy[n].i === krabice[k]) st.bonusy[n].skryty = false;
+      if (st.vytah.i === krabice[k]) st.vytah.odkryty = true;
+    }
+    if (fronta.length) pridejUdalost(ud, "vybuch");
+    if (krabice.length) pridejUdalost(ud, "krabice");
+  }
+
+  function seber(st, ud) {
+    var h = st.hrac, i = bunkaHrace(h), k, b;
+    for (k = 0; k < st.bonusy.length; k++) {
+      b = st.bonusy[k];
+      if (b.i !== i || b.skryty) continue;
+      if (b.typ === "kava") h.rychlost = Math.min(RYCHLOST_MAX, h.rychlost + KAVA);
+      else if (b.typ === "porada") h.maxPorad = Math.min(MAX_PORAD, h.maxPorad + 1);
+      else if (b.typ === "dosah") h.dosah = Math.min(MAX_DOSAH, h.dosah + 1);
+      st.bonusy.splice(k, 1);
+      pridejUdalost(ud, "bonus");
+      return;
+    }
+  }
+
+  function krok(st, vstup, rnd) {
+    var ud = [], h = st.hrac, k, p, i, fronta;
+    if (st.konec) return ud;
+
+    // 1. Timers: invulnerability and blasts from earlier steps.
+    h.nezranitelny = Math.max(0, h.nezranitelny - KROK_MS);
+    for (k = st.vybuchy.length - 1; k >= 0; k--) {
+      st.vybuchy[k].zbyva -= KROK_MS;
+      if (st.vybuchy[k].zbyva <= 0) st.vybuchy.splice(k, 1);
+    }
+
+    // 2. Input: lay a meeting on the current cell, then move the manager.
+    if (vstup && vstup.porada) {
+      i = bunkaHrace(h);
+      if (st.porady.length < h.maxPorad && !poradaNa(st, i) && i !== st.vytah.i) {
+        st.porady.push({ i: i, zbyva: ROZBUSKA_MS, dosah: h.dosah, hracUvnitr: true });
+        ud.push("porada");
+      }
+    }
+    if (vstup && SMERY[vstup.smer]) {
+      h.smer = vstup.smer;
+      pohni(st, vstup.smer);
+    }
+    i = bunkaHrace(h);
+    for (k = 0; k < st.porady.length; k++) if (st.porady[k].i !== i) st.porady[k].hracUvnitr = false;
+
+    // 3. Fuses: a meeting whose fuse ran out or that sits in an active blast detonates.
+    fronta = [];
+    for (k = st.porady.length - 1; k >= 0; k--) {
+      p = st.porady[k];
+      p.zbyva -= KROK_MS;
+      if (p.zbyva <= 0 || veVybuchu(st, p.i)) {
+        st.porady.splice(k, 1);
+        fronta.unshift(p);
+      }
+    }
+
+    // 4. Blasts (with chains), crates and bonuses in them.
+    if (fronta.length) odpal(st, fronta, ud);
+
+    // 5. Pickups.
+    seber(st, ud);
+
+    // 6. Hit check. Task 1 only reports it; lives are handled later.
+    if (h.nezranitelny === 0 && veVybuchu(st, bunkaHrace(h))) ud.push("zasah");
+
+    return ud;
+  }
+
+  function nezapCele(v) {
+    return typeof v === "number" && isFinite(v) && v >= 0 && Math.floor(v) === v ? v : 0;
+  }
+
+  function parseUlozeni(raw) {
+    var o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
+    if (!o || typeof o !== "object" || o instanceof Array) o = {};
+    return { rekordPatro: nezapCele(o.rekordPatro), rekordBody: nezapCele(o.rekordBody) };
+  }
+
+  function lepsi(a, b) {
+    if (a.rekordPatro !== b.rekordPatro) return a.rekordPatro > b.rekordPatro;
+    return a.rekordBody > b.rekordBody;
+  }
+
+  window.PoradaLogika = {
+    S: S,
+    R: R,
+    KROK_MS: KROK_MS,
+    ROZBUSKA_MS: ROZBUSKA_MS,
+    VYBUCH_MS: VYBUCH_MS,
+    NEZRANITELNOST_MS: NEZRANITELNOST_MS,
+    ZIVOTU: ZIVOTU,
+    RYCHLOST: RYCHLOST,
+    RYCHLOST_MAX: RYCHLOST_MAX,
+    KAVA: KAVA,
+    MAX_PORAD: MAX_PORAD,
+    MAX_DOSAH: MAX_DOSAH,
+    novaHra: novaHra,
+    novePatro: novePatro,
+    krok: krok,
+    vzdalenosti: vzdalenosti,
+    parseUlozeni: parseUlozeni,
+    lepsi: lepsi
+  };
+})();
+</script>
 <script id="hry-seznam">
 (function () {
   var KEY = "zachodova-hry-vyber-v1";
