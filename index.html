@@ -5430,7 +5430,8 @@ body.detail-open { overflow: hidden; }
   function nacti() { try { return L.parse(localStorage.getItem(KEY)); } catch (e) { return L.parse(null); } }
   function uloz(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
   function blokovano() {
-    // An open game (chess, gomoku) blocks too, so the banner never covers the board.
+    // An open game (chess, gomoku, Rulicka) blocks too, so the banner never covers the board or its controls.
+    if (window.Hra && window.Hra.isOpen && window.Hra.isOpen()) return true;
     if (window.Sachy && window.Sachy.isOpen && window.Sachy.isOpen()) return true;
     if (window.Pisk && window.Pisk.isOpen && window.Pisk.isOpen()) return true;
     return document.documentElement.classList.contains("zamceno") || document.body.classList.contains("detail-open") || (warnModal && !warnModal.hidden);
