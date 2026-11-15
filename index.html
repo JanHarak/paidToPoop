@@ -6007,7 +6007,7 @@ body.detail-open { overflow: hidden; }
     var VYCHOZI_STAV = "Prohoď dvě sousední věci.";
 
     function cislo(n) {
-      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); // non-breaking space, never wraps
     }
     function trvani(ms) {
       var reduce = false;
@@ -6163,7 +6163,7 @@ body.detail-open { overflow: hidden; }
         zbyvaEl.textContent = "Tahů: " + hra.tahu;
         zbyvaEl.hidden = false;
       } else if (hra.rezim === "cas") {
-        zbyvaEl.textContent = S.fmtTime(Math.ceil(hra.zbyvaMs / 1000) * 1000);
+        zbyvaEl.textContent = "Zbývá " + S.fmtTime(Math.ceil(hra.zbyvaMs / 1000) * 1000);
         zbyvaEl.hidden = false;
       } else {
         zbyvaEl.hidden = true;
@@ -6310,6 +6310,7 @@ body.detail-open { overflow: hidden; }
             bezi = false;
             cells[a].classList.remove("hybe");
             cells[bb].classList.remove("hybe");
+            zkontrolujKonec(true); // time may have run out during the bounce
           });
         });
         return;
@@ -6379,6 +6380,10 @@ body.detail-open { overflow: hidden; }
     function tickCas() {
       var ted = performance.now(), delta = Math.min(1000, Math.max(0, ted - posledni));
       posledni = ted;
+      if (open && hra && hra.rezim === "cas" && hra.zbyvaMs <= 0 && !hra.konec) {
+        try { zkontrolujKonec(true); } catch (err) { fail(err); }
+        return;
+      }
       if (!casBezi()) return;
       try {
         hra.zbyvaMs = Math.max(0, hra.zbyvaMs - delta);
@@ -6554,7 +6559,14 @@ body.detail-open { overflow: hidden; }
       vybrano = vybrano === i ? -1 : i;
       oznaceni();
     }
-    var tah = null, potlacKlik = false;
+    var tah = null, potlacKlik = false, potlacId = 0;
+    // Ignores the click that follows a drag or tap; expires so it never swallows a later
+    // keyboard or screen-reader click.
+    function potlacijKlik() {
+      potlacKlik = true;
+      if (potlacId) clearTimeout(potlacId);
+      potlacId = setTimeout(function () { potlacKlik = false; potlacId = 0; }, 400);
+    }
     function bunka(e) {
       var t = e.target && e.target.closest ? e.target.closest(".splachni-dlazdice") : null;
       return t && deska.contains(t) ? Number(t.getAttribute("data-i")) : -1;
@@ -6577,7 +6589,7 @@ body.detail-open { overflow: hidden; }
       if (Math.abs(dx) >= Math.abs(dy)) cil = dx > 0 ? (i % N < N - 1 ? i + 1 : -1) : (i % N > 0 ? i - 1 : -1);
       else cil = dy > 0 ? i + N : i - N;
       tah = null;
-      potlacKlik = true;
+      potlacijKlik();
       if (cil < 0 || cil >= N * N) return;
       try {
         setRoving(i);
@@ -6595,7 +6607,7 @@ body.detail-open { overflow: hidden; }
       if (!tah || e.pointerId !== tah.id) return;
       var i = tah.i, r = cells[i].getBoundingClientRect();
       tah = null;
-      potlacKlik = true;
+      potlacijKlik();
       if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
       try { klik(i); } catch (err) { fail(err); }
     });
