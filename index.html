@@ -480,6 +480,65 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 }
 .hra-btn:hover { background: var(--porcelain); }
 .denik-zapsat { margin: 1rem auto 0; }
+.panel[hidden] { display: none; }
+.pohled-tabs { max-width: 26rem; margin: 0 0 1.25rem; box-shadow: inset 0 0 0 1px var(--line); }
+#denikH:focus { outline: none; }
+#denikH:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+#denikPanel .timer-block { margin-bottom: 1.3rem; }
+.denik-prazdno { margin: 0 0 1rem; color: var(--muted); }
+.denik-prazdno[hidden] { display: none; }
+.denik-den { margin-bottom: 1rem; }
+.denik-den-hlava {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .2rem .8rem;
+  margin: 0 0 .2rem;
+  padding-bottom: .4rem;
+  border-bottom: 2px solid var(--line);
+  font-size: 1rem;
+}
+.denik-den-nadpis { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; font-size: 1.05rem; }
+.denik-den-soucet { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.denik-rady { margin: 0; padding: 0; list-style: none; }
+.denik-rada {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-height: 44px;
+  border-bottom: 2px dashed var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.denik-rada:last-child { border-bottom: 0; }
+.denik-cas { font-weight: 700; min-width: 3.2em; }
+.denik-min { color: var(--muted); }
+.denik-castka { margin-left: auto; font-weight: 700; text-align: right; }
+.denik-rucne {
+  padding: .05rem .5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .75rem;
+}
+.denik-smaz {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.denik-smaz:hover { background: var(--brass-soft); }
+.denik-dalsi, .denik-smazat-vse { margin: .6rem auto 0; }
+.denik-dalsi[hidden], .denik-smazat[hidden] { display: none; }
+.denik-smazat-vse { background: transparent; border-color: var(--line); }
+.rows-vyuc li { flex-wrap: wrap; }
+.rows-vyuc .v { font-size: 1rem; }
+.rows-prumer { margin-top: .6rem; padding-top: .3rem; border-top: 2px solid var(--line); }
 .step:disabled { opacity: .4; cursor: default; }
 .step:disabled:hover { border-color: var(--line); }
 .denik-lista {
@@ -1358,14 +1417,15 @@ body.detail-open { overflow: hidden; }
     <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
   </header>
 
-  <div class="grid">
-    <section class="panel" aria-labelledby="in-h">
-      <h2 id="in-h">Tvoje údaje</h2>
+  <div class="seg pohled-tabs" id="pohledTabs" role="tablist" aria-label="Zobrazení">
+    <button type="button" role="tab" class="seg-btn" id="modeMd" aria-selected="true" tabindex="0">MD sazba</button>
+    <button type="button" role="tab" class="seg-btn" id="modeSal" aria-selected="false" tabindex="-1">Měsíční plat</button>
+    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-selected="false" tabindex="-1">Deník</button>
+  </div>
 
-      <div class="seg" role="radiogroup" aria-label="Způsob odměny">
-        <button type="button" role="radio" class="seg-btn" id="modeMd" aria-checked="true">MD sazba</button>
-        <button type="button" role="radio" class="seg-btn" id="modeSal" aria-checked="false">Měsíční plat</button>
-      </div>
+  <div class="grid">
+    <section class="panel" id="vstupPanel" aria-labelledby="in-h">
+      <h2 id="in-h">Tvoje údaje</h2>
 
       <div class="field">
         <label for="md" id="mdLabel">MD sazba</label>
@@ -1426,7 +1486,7 @@ body.detail-open { overflow: hidden; }
       </div>
     </section>
 
-    <section class="panel results" aria-labelledby="out-h">
+    <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h">
       <h2 id="out-h">Výdělek na záchodě</h2>
       <div class="today">
         <div class="label">Dnes</div>
@@ -1447,6 +1507,29 @@ body.detail-open { overflow: hidden; }
         <p>To je <strong id="fMd"></strong> celých pracovních dní.</p>
       </div>
       <button class="reset" id="reset" type="button">Vrátit výchozí hodnoty</button>
+    </section>
+
+    <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
+      <h2 id="denikH" tabindex="-1">Deník</h2>
+      <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
+      <div id="denikSeznam"></div>
+      <button class="hra-btn denik-dalsi" id="denikDalsi" type="button" hidden>Zobrazit starší</button>
+      <div class="denik-smazat" id="denikSmazatBlok" hidden>
+        <button class="hra-btn denik-smazat-vse" id="denikSmazatVse" type="button">Smazat celý deník</button>
+        <div class="sachy-volba sachy-volba-detail" id="denikSmazatPotvrdit" role="group" aria-labelledby="denikSmazatTitul" hidden>
+          <p id="denikSmazatTitul">Smazat všechny zápisy z deníku? Nejde to vrátit.</p>
+          <div class="sachy-volba-tlacitka">
+            <button type="button" id="denikSmazatAno">Smazat vše</button>
+            <button type="button" class="vedlejsi" id="denikSmazatNe">Zpět</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel results" id="vyuctovaniPanel" aria-labelledby="vyuc-h" hidden>
+      <h2 id="vyuc-h">Vyúčtování</h2>
+      <ul class="rows rows-vyuc" id="vyuctovaniRady"></ul>
+      <ul class="rows rows-vyuc rows-prumer" id="vyuctovaniPrumer"></ul>
     </section>
   </div>
   <section class="panel feed" id="feed" aria-labelledby="feedTitle">
@@ -2182,6 +2265,7 @@ body.detail-open { overflow: hidden; }
   var posledniSmazany = null;
   var timerStart = null, timerTick = null;
   var mode = "md";
+  var pohled = "md";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
 
   function load() {
@@ -2191,6 +2275,7 @@ body.detail-open { overflow: hidden; }
       var s = JSON.parse(raw);
       Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
+      if (s.pohled === "denik") pohled = "denik";
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
         if (s.amounts.sal !== undefined) amounts.sal = s.amounts.sal;
@@ -2203,7 +2288,7 @@ body.detail-open { overflow: hidden; }
   function save() {
     try {
       amounts[mode] = els.md.value;
-      var s = { count: count, mode: mode, amounts: amounts };
+      var s = { count: count, mode: mode, pohled: pohled, amounts: amounts };
       Object.keys(els).forEach(function (k) { s[k] = els[k].value; });
       localStorage.setItem(KEY, JSON.stringify(s));
     } catch (e) {}
@@ -2320,8 +2405,149 @@ body.detail-open { overflow: hidden; }
     if (dnes.length) smazZapis(dnes[dnes.length - 1].id);
   }
 
-  // Task 3 replaces this with the diary redraw; render() calls it every time.
-  var renderDenik = function () {};
+  /* Deník view: list of entries and the diary settlement. */
+  var DENIK_DNI = DL.STRANKA_DNI;
+  var denikDni = DENIK_DNI;
+  var denikHtml = null, vyucHtml = null;
+  var timerBlock = document.querySelector(".timer-block");
+  var timerDomov = timerBlock.parentNode;
+  var denikSeznam = $("denikSeznam"), denikH = $("denikH");
+  var smazatPotvrdit = $("denikSmazatPotvrdit"), smazatVse = $("denikSmazatVse");
+
+  function esc(t) {
+    return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function pad2(v) { return v < 10 ? "0" + v : String(v); }
+  function casZapisu(ms) {
+    var d = new Date(ms);
+    return d.getHours() + ":" + pad2(d.getMinutes());
+  }
+  function minTxt(min) { return DL.fmtMin(min).replace(/\u00a0/g, " "); }
+  function pocetTxt(c) { return c + " " + visitsWord(c); }
+  function soucetTxt(sou) {
+    return pocetTxt(sou.pocet) + " \u00b7 " + DL.fmtMin(sou.min) + " \u00b7 " + DL.formatCastky(sou.castky, fmtCur, els.cur.value);
+  }
+
+  function renderDenik() {
+    if (pohled !== "denik") return;
+    var now = Date.now();
+    var pr = DL.poDnech(zapisy, now, denikDni);
+    var h = "", i, j;
+    for (i = 0; i < pr.skupiny.length; i++) {
+      var g = pr.skupiny[i];
+      h += '<div class="denik-den"><h3 class="denik-den-hlava"><span class="denik-den-nadpis">' + esc(g.nadpis) +
+        '</span><span class="denik-den-soucet">' + esc(pocetTxt(g.zapisy.length) + " \u00b7 " + DL.formatCastky(g.souhrn.castky, fmtCur, els.cur.value)) +
+        '</span></h3><ul class="denik-rady">';
+      for (j = 0; j < g.zapisy.length; j++) {
+        var z = g.zapisy[j], cas = casZapisu(z.start);
+        h += '<li class="denik-rada" data-id="' + esc(z.id) + '"><span class="denik-cas">' + cas + '</span>' +
+          '<span class="denik-min">' + esc(DL.fmtMin(z.min)) + '</span>' +
+          (z.zdroj === "rucne" ? '<span class="denik-rucne">ručně</span>' : '') +
+          '<span class="denik-castka">' + esc(fmtCur(z.castka, z.mena)) + '</span>' +
+          '<button type="button" class="denik-smaz" aria-label="' + esc("Smazat zápis " + cas + ", " + minTxt(z.min)) + '">\ud83d\uddd1</button></li>';
+      }
+      h += '</ul></div>';
+    }
+    // Redraw only on a real change, so a minute tick does not steal focus from a row button.
+    if (h !== denikHtml) { denikHtml = h; denikSeznam.innerHTML = h; }
+    var prazdny = zapisy.length === 0;
+    $("denikPrazdno").hidden = !prazdny;
+    $("denikDalsi").hidden = !pr.dalsi;
+    $("denikSmazatBlok").hidden = prazdny;
+    if (prazdny) smazatPotvrdit.hidden = true;
+
+    var v = DL.vyuctovani(zapisy, now);
+    var cur = els.cur.value;
+    var rady = [["Dnes", v.dnes], ["Tento týden", v.tyden], ["Tento měsíc", v.mesic], ["Celkem", v.celkem]];
+    var vh = "";
+    for (i = 0; i < rady.length; i++) {
+      vh += '<li><span class="k">' + rady[i][0] + '</span><span class="v">' + esc(soucetTxt(rady[i][1])) + '</span></li>';
+    }
+    var ph = '<li><span class="k">Průměrná návštěva</span><span class="v">' + esc(DL.fmtMin(v.prumerMin)) + '</span></li>' +
+      '<li><span class="k">Průměr na den</span><span class="v">' + esc(DL.formatCastky(v.prumerNaDen, fmtCur, cur)) + '</span></li>';
+    if (vh + ph !== vyucHtml) {
+      vyucHtml = vh + ph;
+      $("vyuctovaniRady").innerHTML = vh;
+      $("vyuctovaniPrumer").innerHTML = ph;
+    }
+  }
+
+  denikSeznam.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest(".denik-smaz") : null;
+    if (!b) return;
+    var rada = b.closest(".denik-rada");
+    var id = rada.getAttribute("data-id");
+    var vse = denikSeznam.querySelectorAll(".denik-rada");
+    var idx = Array.prototype.indexOf.call(vse, rada);
+    var sousedni = vse[idx + 1] || vse[idx - 1];
+    var sousedniId = sousedni ? sousedni.getAttribute("data-id") : null;
+    smazZapis(id);
+    var cil = null;
+    if (sousedniId !== null) {
+      var radyNove = denikSeznam.querySelectorAll(".denik-rada");
+      for (var k = 0; k < radyNove.length; k++) {
+        if (radyNove[k].getAttribute("data-id") === sousedniId) { cil = radyNove[k].querySelector(".denik-smaz"); break; }
+      }
+    }
+    (cil || denikH).focus();
+  });
+  $("denikDalsi").addEventListener("click", function () {
+    denikDni += DENIK_DNI;
+    renderDenik();
+  });
+  function smazatZpet() {
+    smazatPotvrdit.hidden = true;
+    smazatVse.focus();
+  }
+  smazatVse.addEventListener("click", function () {
+    smazatPotvrdit.hidden = false;
+    $("denikSmazatNe").focus();
+  });
+  $("denikSmazatNe").addEventListener("click", smazatZpet);
+  smazatPotvrdit.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); smazatZpet(); }
+  });
+  $("denikSmazatAno").addEventListener("click", function () {
+    zapisy = [];
+    posledniSmazany = null;
+    schovejListu();
+    ulozDenik();
+    smazatPotvrdit.hidden = true;
+    render();
+    denikH.focus();
+  });
+
+  var PANELY = { md: ["vstupPanel", "vysledkyPanel"], denik: ["denikPanel", "vyuctovaniPanel"] };
+  function uzijPohled() {
+    var denik = pohled === "denik";
+    var i;
+    for (i = 0; i < PANELY.md.length; i++) $(PANELY.md[i]).hidden = denik;
+    for (i = 0; i < PANELY.denik.length; i++) $(PANELY.denik[i]).hidden = !denik;
+    if (denik) {
+      denikH.parentNode.insertBefore(timerBlock, denikH.nextSibling);
+    } else {
+      timerDomov.appendChild(timerBlock);
+      smazatPotvrdit.hidden = true;
+      denikDni = DENIK_DNI;
+      denikHtml = null;
+      vyucHtml = null;
+    }
+    ukazZalozky();
+  }
+  function ukazZalozky() {
+    var aktivni = pohled === "denik" ? "tabDenik" : (mode === "sal" ? "modeSal" : "modeMd");
+    ["modeMd", "modeSal", "tabDenik"].forEach(function (id) {
+      var on = id === aktivni;
+      $(id).setAttribute("aria-selected", String(on));
+      $(id).tabIndex = on ? 0 : -1;
+    });
+  }
+  function prepniPohled(p) {
+    if (p !== "denik" && mode !== p) setMode(p);
+    pohled = p;
+    uzijPohled();
+    render();
+  }
 
   function render() {
     var now = Date.now();
@@ -2543,11 +2769,26 @@ body.detail-open { overflow: hidden; }
     $("mdHint").textContent = m === "sal"
       ? "Hrubý měsíční plat. Na den ho rozpočítám podle pracovních dní v měsíci."
       : "Kolik fakturuješ za jeden pracovní den.";
-    $("modeMd").setAttribute("aria-checked", String(m === "md"));
-    $("modeSal").setAttribute("aria-checked", String(m === "sal"));
+    ukazZalozky();
   }
-  $("modeMd").addEventListener("click", function () { if (mode !== "md") { setMode("md"); render(); } });
-  $("modeSal").addEventListener("click", function () { if (mode !== "sal") { setMode("sal"); render(); } });
+  var POHLEDY = ["md", "sal", "denik"], POHLED_IDS = { md: "modeMd", sal: "modeSal", denik: "tabDenik" };
+  Object.keys(POHLED_IDS).forEach(function (k) {
+    $(POHLED_IDS[k]).addEventListener("click", function () {
+      var aktualni = pohled === "denik" ? "denik" : mode;
+      if (aktualni !== k) prepniPohled(k);
+    });
+  });
+  $("pohledTabs").addEventListener("keydown", function (e) {
+    var i = POHLEDY.indexOf(pohled === "denik" ? "denik" : mode), n = POHLEDY.length, j;
+    if (e.key === "ArrowRight") j = (i + 1) % n;
+    else if (e.key === "ArrowLeft") j = (i + n - 1) % n;
+    else if (e.key === "Home") j = 0;
+    else if (e.key === "End") j = n - 1;
+    else return;
+    e.preventDefault();
+    prepniPohled(POHLEDY[j]);
+    $(POHLED_IDS[POHLEDY[j]]).focus();
+  });
 
   /* Feed */
   var FEEDS = {
@@ -2829,6 +3070,8 @@ body.detail-open { overflow: hidden; }
   nactiDenik();
   load();
   setMode(mode, true);
+  if (pohled !== "denik") pohled = mode;
+  uzijPohled();
   render();
 
   try {
