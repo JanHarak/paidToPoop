@@ -531,7 +531,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 @media (max-width: 480px) {
   .hra-hlava { gap: .3rem .5rem; padding: .4rem .5rem; }
   .hra-hlava h2 { font-size: 1rem; flex: 1 1 0; min-width: 0; }
-  .hra-hlava .hra-info, .hra-hlava #piskSkore { order: 5; flex-basis: 100%; gap: 0 .6rem; }
+  .hra-hlava .hra-info, .hra-hlava #piskSkore, .hra-hlava #sachySkore { order: 5; flex-basis: 100%; gap: 0 .6rem; }
   .hra-hlava span { font-size: .85rem; }
 }
 /* Money rain */
@@ -712,10 +712,10 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   flex: none;
   height: min(72vh, 520px);
 }
-#hraCela svg, #piskCela svg { display: block; margin: 0 auto; }
-#hraCela .ikona-zmensit, #piskCela .ikona-zmensit { display: none; }
-#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
-#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit { display: block; }
+#hraCela svg, #piskCela svg, #sachyCela svg { display: block; margin: 0 auto; }
+#hraCela .ikona-zmensit, #piskCela .ikona-zmensit, #sachyCela .ikona-zmensit { display: none; }
+#hraCela[aria-pressed="true"] .ikona-roztahnout, #piskCela[aria-pressed="true"] .ikona-roztahnout, #sachyCela[aria-pressed="true"] .ikona-roztahnout { display: none; }
+#hraCela[aria-pressed="true"] .ikona-zmensit, #piskCela[aria-pressed="true"] .ikona-zmensit, #sachyCela[aria-pressed="true"] .ikona-zmensit { display: block; }
 /* Gomoku: a scrollable grid of buttons */
 .hra-hlava #piskSkore { color: var(--ink); font-weight: 700; }
 .hra-hlava #piskStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
@@ -785,6 +785,130 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 @media (hover: hover) {
   .pisk-bunka:empty:hover { background: var(--grout); }
 }
+/* Chess: a square board of 64 buttons. In dark mode the page colours would make the
+   squares nearly equal and swap how white and black pieces look, so the board keeps
+   its own mid tones there. */
+.sachy {
+  --sachy-svetle: var(--porcelain);
+  --sachy-tmave: var(--grout);
+  --sachy-bila: var(--porcelain);
+  --sachy-cerna: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sachy {
+    --sachy-svetle: #8fb0b5;
+    --sachy-tmave: #557f86;
+    --sachy-bila: #ffffff;
+    --sachy-cerna: #0e3b43;
+  }
+}
+:root[data-theme="dark"] .sachy {
+  --sachy-svetle: #8fb0b5;
+  --sachy-tmave: #557f86;
+  --sachy-bila: #ffffff;
+  --sachy-cerna: #0e3b43;
+}
+.hra-hlava #sachySkore { color: var(--ink); font-weight: 700; }
+.hra-hlava #sachyStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
+.hra-hlava #sachyVzdat { font-size: .9rem; padding: 0 .8rem; }
+.hra-hlava #sachyVzdat[hidden] { display: none; }
+#sachyStav { margin: 0; font-weight: 700; }
+.sachy-plocha {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem;
+  container-type: size;
+}
+.hra-inline .sachy-plocha { flex: none; container-type: normal; }
+.sachy-deska {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  width: min(100%, 72vh);
+  aspect-ratio: 1 / 1;
+  container-type: inline-size;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.sachy:not(.hra-inline) .sachy-deska { width: min(100cqw, 100cqh); }
+.sachy-radek { display: contents; }
+.sachy-pole {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--sachy-tmave);
+  color: var(--sachy-cerna);
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", system-ui, sans-serif;
+  font-size: 2rem;
+  font-size: 9.5cqw;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sachy-pole.svetle { background: var(--sachy-svetle); }
+.sachy-pole.posledni { background: var(--brass-soft); }
+.sachy-pole.sach { background-image: radial-gradient(circle, var(--brass) 0, var(--brass) 30%, transparent 72%); }
+.sachy-pole.fb {
+  color: var(--sachy-bila);
+  text-shadow: 1px 0 0 var(--sachy-cerna), -1px 0 0 var(--sachy-cerna), 0 1px 0 var(--sachy-cerna), 0 -1px 0 var(--sachy-cerna),
+    1px 1px 0 var(--sachy-cerna), -1px -1px 0 var(--sachy-cerna), 1px -1px 0 var(--sachy-cerna), -1px 1px 0 var(--sachy-cerna);
+}
+.sachy-pole.fc { color: var(--sachy-cerna); }
+.sachy-pole.vyber { box-shadow: inset 0 0 0 4px var(--brass); }
+.sachy-pole.cil::after, .sachy-pole.cil-bere::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+}
+.sachy-pole.cil::after { width: 28%; height: 28%; background: var(--sachy-cerna); opacity: .35; }
+.sachy-pole.cil-bere::after { inset: 5%; border: 4px solid var(--sachy-cerna); opacity: .35; }
+.sachy-pole:focus-visible { outline: 3px solid var(--sachy-cerna); outline-offset: -3px; }
+.sachy-volba {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  padding: .9rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.sachy-volba[hidden] { display: none; }
+.sachy-volba p { margin: 0 0 .6rem; font-weight: 700; }
+.sachy-volba-tlacitka { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
+.sachy-volba button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: .3rem .8rem;
+  border: 2px solid var(--brass);
+  border-radius: 999px;
+  background: var(--brass-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sachy-volba button.vedlejsi { border-color: var(--line); background: var(--porcelain); }
 .seg-btn { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .news-list { display: flex; flex-direction: column; }
@@ -1178,6 +1302,41 @@ body.detail-open { overflow: hidden; }
   </div>
   <div class="pisk-pole" id="piskPole">
     <div class="pisk-mrizka" id="piskMrizka" role="grid" aria-label="Hrací pole 25 × 25"></div>
+  </div>
+</div>
+
+<div id="sachy" class="vrstva sachy" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sachyTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="sachyTitul">Šachy</h2>
+    <span id="sachySkore">Výhry 0 · Prohry 0</span>
+    <span id="sachyStopky" hidden>0:00</span>
+    <button id="sachyCela" type="button" aria-label="Celá obrazovka" title="Celá obrazovka" aria-pressed="false"><svg class="ikona-roztahnout" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 7V2h5M11 2h5v5M16 11v5h-5M7 16H2v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ikona-zmensit" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M7 2v5H2M16 7h-5V2M11 16v-5h5M2 11h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="sachyVzdat" type="button">Vzdát</button>
+    <button id="sachyZavrit" type="button" aria-label="Ukončit hru" title="Ukončit hru">×</button>
+  </div>
+  <div class="pisk-lista">
+    <p id="sachyStav" role="status">Jsi na tahu</p>
+    <button id="sachyNova" class="pisk-nova" type="button" hidden>Nová partie</button>
+  </div>
+  <div class="sachy-plocha" id="sachyPlocha">
+    <div class="sachy-deska" id="sachyDeska" role="grid" aria-label="Šachovnice"></div>
+    <div class="sachy-volba" id="sachyProm" role="group" aria-labelledby="sachyPromTitul" hidden>
+      <p id="sachyPromTitul">Proměnit pěšce na</p>
+      <div class="sachy-volba-tlacitka">
+        <button type="button" data-prom="q" aria-label="Dáma" title="Dáma">D</button>
+        <button type="button" data-prom="r" aria-label="Věž" title="Věž">V</button>
+        <button type="button" data-prom="b" aria-label="Střelec" title="Střelec">S</button>
+        <button type="button" data-prom="n" aria-label="Jezdec" title="Jezdec">J</button>
+        <button type="button" class="vedlejsi" id="sachyPromZrusit">Zrušit</button>
+      </div>
+    </div>
+    <div class="sachy-volba" id="sachyVzdatPotvrdit" role="group" aria-labelledby="sachyVzdatTitul" hidden>
+      <p id="sachyVzdatTitul">Opravdu se vzdát?</p>
+      <div class="sachy-volba-tlacitka">
+        <button type="button" id="sachyVzdatAno">Vzdát</button>
+        <button type="button" class="vedlejsi" id="sachyVzdatNe">Hrát dál</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3465,8 +3624,6 @@ body.detail-open { overflow: hidden; }
     vyber: vyber,
     vybrana: function () { return selected; }
   };
-  // Temporary: until the chess UI exists, hide the entry when its logic is missing.
-  if (!window.SachyLogika) odeber("sachy");
 })();
 </script>
 <script id="hra-ui">
@@ -4602,6 +4759,589 @@ body.detail-open { overflow: hidden; }
     statText();
     obtUI();
     window.Pisk = { isOpen: function () { return open; } };
+  }
+})();
+</script>
+<script id="sachy-ui">
+(function () {
+  var HS = window.HrySeznam;
+  var failed = false;
+  function hideEntry(err, msg) {
+    if (failed) return;
+    failed = true;
+    if (HS) HS.odeber("sachy");
+    if (window.console) console.error(msg, err);
+  }
+  try {
+    init();
+  } catch (err) {
+    hideEntry(err, "Sachy se nenacetly");
+  }
+
+  function init() {
+    var L = window.SachyLogika, V = window.Vrstvy, Z = window.zachod, S = window.Stopky;
+    if (!L || !V || !Z || !S || !HS) throw new Error("chybi zavislosti sachu");
+    var $ = function (id) {
+      var el = document.getElementById(id);
+      if (!el) throw new Error("chybi #" + id);
+      return el;
+    };
+    var KEY = "zachodova-sachy-v1";
+    var sachyEl = $("sachy"), deska = $("sachyDeska"), stav = $("sachyStav"), nova = $("sachyNova");
+    var skore = $("sachySkore"), stopky = $("sachyStopky"), cela = $("sachyCela"), zavrit = $("sachyZavrit");
+    var vzdat = $("sachyVzdat"), prom = $("sachyProm"), promZrusit = $("sachyPromZrusit");
+    var potvrdit = $("sachyVzdatPotvrdit"), vzdatAno = $("sachyVzdatAno"), vzdatNe = $("sachyVzdatNe");
+    var hrajBtn = $("sachyHrajBtn"), novaBtn = $("sachyNovaBtn"), statEl = $("sachyStat"), slot = $("hraSlot");
+    var logikaSrc = $("sachy-logika").textContent;
+    var barvaBtns = document.querySelectorAll(".sachy-barva[data-barva]");
+    var obtBtns = document.querySelectorAll(".sachy-obt[data-obt]");
+    var promBtns = prom.querySelectorAll("[data-prom]");
+    var SLOUPCE = "abcdefgh";
+    var ZNAKY = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+    var NAZVY = { k: "král", q: "dáma", r: "věž", b: "střelec", n: "jezdec", p: "pěšec" };
+    var ZENSKE = { q: true, r: true };
+    var DUVOD = { pat: "pat", material: "nedostatek materiálu", opakovani: "trojí opakování", "50tahu": "pravidlo 50 tahů" };
+
+    // ---- saved data ----
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    var ulozeni = L.parseUlozeni(raw);
+    // hra: {partie, barva, obtiznost, konec, vysledek, pcZapis}
+    var hra = null;
+    if (ulozeni.partie) {
+      var obnovena = L.zTahu(ulozeni.partie.tahy);
+      if (obnovena && !L.stav(obnovena).konec) {
+        hra = {
+          partie: obnovena, barva: ulozeni.partie.barva, obtiznost: ulozeni.partie.obtiznost,
+          konec: false, vysledek: "", pcZapis: null
+        };
+        var t = obnovena.tahy;
+        if (t.length && obnovena.pos.tah === hra.barva) {
+          // the last move was the computer's, announce it again
+          var pred = L.zTahu(t.slice(0, t.length - 1));
+          if (pred) hra.pcZapis = L.zapis(pred.pos, t[t.length - 1]);
+        }
+      } else {
+        ulozeni.partie = null;
+      }
+    }
+    function save() {
+      ulozeni.partie = hra && !hra.konec
+        ? { barva: hra.barva, obtiznost: hra.obtiznost, tahy: hra.partie.tahy.slice() }
+        : null;
+      try { localStorage.setItem(KEY, JSON.stringify(ulozeni)); } catch (e) {}
+    }
+    function rozehrana() {
+      return !!(hra && !hra.konec);
+    }
+    function detailUI() {
+      statEl.textContent = "Výhry " + ulozeni.vyhry + " · Prohry " + ulozeni.prohry + " · Remízy " + ulozeni.remizy;
+      var i;
+      for (i = 0; i < barvaBtns.length; i++) {
+        barvaBtns[i].setAttribute("aria-pressed", String(barvaBtns[i].getAttribute("data-barva") === ulozeni.barva));
+      }
+      for (i = 0; i < obtBtns.length; i++) {
+        obtBtns[i].setAttribute("aria-pressed", String(obtBtns[i].getAttribute("data-obt") === ulozeni.obtiznost));
+      }
+      hrajBtn.textContent = rozehrana() ? "Pokračovat" : "Zahraj si";
+      novaBtn.hidden = !rozehrana();
+    }
+    function skoreText() {
+      skore.textContent = "Výhry " + ulozeni.vyhry + " · Prohry " + ulozeni.prohry;
+    }
+    // Colour and difficulty are preferences for the next new game only.
+    for (var bb = 0; bb < barvaBtns.length; bb++) {
+      barvaBtns[bb].addEventListener("click", function () {
+        ulozeni.barva = this.getAttribute("data-barva") === "c" ? "c" : "b";
+        save();
+        detailUI();
+      });
+    }
+    for (var ob = 0; ob < obtBtns.length; ob++) {
+      obtBtns[ob].addEventListener("click", function () {
+        ulozeni.obtiznost = this.getAttribute("data-obt") === "tezka" ? "tezka" : "lehka";
+        save();
+        detailUI();
+      });
+    }
+
+    // ---- board cells, built once, ordered by the player's colour ----
+    var cells = [], shownText = [], shownLabel = [], rows = [], orientace = "";
+    for (var r = 0; r < 8; r++) {
+      var row = document.createElement("div");
+      row.className = "sachy-radek";
+      row.setAttribute("role", "row");
+      rows.push(row);
+      deska.appendChild(row);
+    }
+    for (var sq = 0; sq < 64; sq++) {
+      var c = document.createElement("button");
+      c.type = "button";
+      c.className = "sachy-pole";
+      c.setAttribute("role", "gridcell");
+      c.setAttribute("data-i", String(sq));
+      c.tabIndex = -1;
+      cells.push(c);
+      shownText.push(null);
+      shownLabel.push(null);
+    }
+    function nazev(i) {
+      return SLOUPCE.charAt(i & 7) + ((i >> 3) + 1);
+    }
+    // display row/column (0 = top/left) for a square, and back
+    function naDisplej(i) {
+      var rank = i >> 3, file = i & 7;
+      return orientace === "c" ? { r: rank, c: 7 - file } : { r: 7 - rank, c: file };
+    }
+    function zDispleje(dr, dc) {
+      return orientace === "c" ? dr * 8 + (7 - dc) : (7 - dr) * 8 + dc;
+    }
+    function orient() {
+      var o = hra ? hra.barva : "b";
+      if (o === orientace) return;
+      orientace = o;
+      for (var dr = 0; dr < 8; dr++) {
+        for (var dc = 0; dc < 8; dc++) rows[dr].appendChild(cells[zDispleje(dr, dc)]);
+      }
+    }
+
+    // ---- game state ----
+    var vybrano = -1, cile = {}, focusIdx = 12, open = false, full = false, endAfterFull = false;
+    var stopkyId = 0, pending = 0, hledaniId = 0, cekaNaWorker = 0, promTahy = null;
+
+    function pcNaTahu() {
+      return rozehrana() && hra.partie.pos.tah !== hra.barva;
+    }
+    function kralVSachu(pos) {
+      if (!L.vSachu(pos)) return -1;
+      for (var i = 0; i < 64; i++) {
+        var k = L.kusNa(pos, i);
+        if (k && k.typ === "k" && k.barva === pos.tah) return i;
+      }
+      return -1;
+    }
+    function statusText(pos, sachKral) {
+      if (hra.konec) return hra.vysledek;
+      if (pos.tah !== hra.barva) return "Počítač přemýšlí…";
+      if (hra.pcZapis) return "Počítač: " + hra.pcZapis + ". " + (sachKral >= 0 ? "Šach!" : "Jsi na tahu");
+      return sachKral >= 0 ? "Šach!" : "Jsi na tahu";
+    }
+    function render() {
+      var pos = hra.partie.pos, posl = hra.partie.posledni, sachKral = kralVSachu(pos);
+      for (var i = 0; i < 64; i++) {
+        var kus = L.kusNa(pos, i), cell = cells[i];
+        var text = kus ? ZNAKY[kus.typ] + "︎" : "";
+        if (shownText[i] !== text) {
+          shownText[i] = text;
+          cell.textContent = text;
+        }
+        var lbl = nazev(i) + ", " + (kus
+          ? (kus.barva === "b" ? (ZENSKE[kus.typ] ? "bílá " : "bílý ") : (ZENSKE[kus.typ] ? "černá " : "černý ")) + NAZVY[kus.typ]
+          : "prázdné") +
+          (i === vybrano ? ", vybráno" : "") + (cile[i] ? ", možný tah" : "") + (i === sachKral ? ", šach" : "");
+        if (shownLabel[i] !== lbl) {
+          shownLabel[i] = lbl;
+          cell.setAttribute("aria-label", lbl);
+        }
+        var cls = "sachy-pole " + (((i >> 3) + (i & 7)) & 1 ? "svetle" : "tmave") +
+          (kus ? " f" + kus.barva : "") +
+          (posl && (posl.z === i || posl.na === i) ? " posledni" : "") +
+          (i === sachKral ? " sach" : "") +
+          (i === vybrano ? " vyber" : "") +
+          (cile[i] ? (kus ? " cil-bere" : " cil") : "");
+        if (cell.className !== cls) cell.className = cls;
+        var sel = i === vybrano ? "true" : "false";
+        if (cell.getAttribute("aria-selected") !== sel) cell.setAttribute("aria-selected", sel);
+      }
+      var t = statusText(pos, sachKral);
+      if (stav.textContent !== t) stav.textContent = t;
+      nova.hidden = !hra.konec;
+      vzdat.hidden = hra.konec;
+    }
+    function setRoving(i) {
+      if (cells[focusIdx]) cells[focusIdx].tabIndex = -1;
+      focusIdx = i;
+      cells[i].tabIndex = 0;
+    }
+    function focusEl(el) {
+      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    }
+    function focusCell() {
+      focusEl(cells[focusIdx]);
+    }
+    function zrusVyber() {
+      vybrano = -1;
+      cile = {};
+    }
+    function skryjVolby() {
+      prom.hidden = true;
+      potvrdit.hidden = true;
+      promTahy = null;
+    }
+
+    // ---- computer ----
+    function clearPending() {
+      if (pending) clearTimeout(pending);
+      pending = 0;
+    }
+    function schedule() {
+      clearPending();
+      var id = ++hledaniId;
+      pending = setTimeout(function () {
+        pending = 0;
+        hledej(id);
+      }, 400);
+    }
+    var worker = null, workerVadny = false;
+    function ziskejWorker() {
+      if (worker || workerVadny) return worker;
+      try {
+        if (typeof Worker !== "function" || typeof Blob !== "function" || !window.URL || !URL.createObjectURL) {
+          throw new Error("worker neni");
+        }
+        var src = "var window=self;\n" + logikaSrc + "\nwindow.SachyLogika.spustVWorkeru();";
+        var url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+        worker = new Worker(url);
+        worker.onmessage = function (e) {
+          var d = e && e.data ? e.data : {};
+          if (!cekaNaWorker || d.id !== cekaNaWorker) return;
+          cekaNaWorker = 0;
+          if (typeof d.tah === "string") pouzijTah(d.id, d.tah);
+          else hledejVHlavnim(d.id);
+        };
+        worker.onerror = function (e) {
+          if (e && e.preventDefault) e.preventDefault();
+          workerVadny = true;
+          try { worker.terminate(); } catch (x) {}
+          worker = null;
+          var id = cekaNaWorker;
+          cekaNaWorker = 0;
+          if (id) hledejVHlavnim(id);
+        };
+      } catch (e) {
+        worker = null;
+        workerVadny = true;
+      }
+      return worker;
+    }
+    function hledej(id) {
+      if (id !== hledaniId || !open || !pcNaTahu()) return;
+      var w = ziskejWorker();
+      if (w) {
+        try {
+          cekaNaWorker = id;
+          w.postMessage({ id: id, tahy: hra.partie.tahy.slice(), uroven: hra.obtiznost });
+          return;
+        } catch (e) {
+          cekaNaWorker = 0;
+          workerVadny = true;
+          worker = null;
+        }
+      }
+      hledejVHlavnim(id);
+    }
+    function hledejVHlavnim(id) {
+      setTimeout(function () {
+        if (id !== hledaniId || !open || !pcNaTahu()) return;
+        var p = hra.partie, tah;
+        try {
+          tah = L.nejlepsiTah(p.pos, { uroven: hra.obtiznost, casMs: 800, rnd: Math.random, klice: p.klice });
+        } catch (err) {
+          fail(err);
+          return;
+        }
+        pouzijTah(id, tah);
+      }, 0);
+    }
+    function pouzijTah(id, tah) {
+      if (id !== hledaniId || !open || !pcNaTahu()) return;
+      try {
+        var z = typeof tah === "string" ? L.zapis(hra.partie.pos, tah) : null;
+        if (!z || !L.partieTah(hra.partie, tah)) throw new Error("pocitac nema tah");
+        hra.pcZapis = z;
+        save();
+        if (!zkontrolujKonec()) render();
+      } catch (err) {
+        fail(err);
+      }
+    }
+
+    // ---- lifecycle ----
+    function novaHra() {
+      clearPending();
+      hledaniId++;
+      cekaNaWorker = 0;
+      hra = {
+        partie: L.novaPartie(), barva: ulozeni.barva, obtiznost: ulozeni.obtiznost,
+        konec: false, vysledek: "", pcZapis: null
+      };
+      zrusVyber();
+      skryjVolby();
+      save();
+    }
+    function ukonci(vysledek, pricti) {
+      clearPending();
+      hledaniId++;
+      cekaNaWorker = 0;
+      hra.konec = true;
+      hra.vysledek = vysledek;
+      ulozeni[pricti]++;
+      zrusVyber();
+      skryjVolby();
+      save();
+      skoreText();
+      render();
+      focusEl(nova);
+    }
+    function zkontrolujKonec() {
+      var st = L.stav(hra.partie);
+      if (!st.konec) return false;
+      if (st.duvod === "mat") {
+        if (st.vitez === hra.barva) ukonci("Mat, vyhrál jsi!", "vyhry");
+        else ukonci("Mat, prohrál jsi", "prohry");
+      } else {
+        ukonci("Remíza: " + (DUVOD[st.duvod] || st.duvod), "remizy");
+      }
+      return true;
+    }
+    function fail(err) {
+      clearPending();
+      hledaniId++;
+      try { if (open) closeGame(); } catch (e) {}
+      hideEntry(err, "Sachy spadly");
+    }
+
+    // ---- player input ----
+    function muzeHrat() {
+      return open && rozehrana() && hra.partie.pos.tah === hra.barva && !pending && !cekaNaWorker &&
+        prom.hidden && potvrdit.hidden;
+    }
+    function hrajTah(uci) {
+      if (!L.partieTah(hra.partie, uci)) return;
+      zrusVyber();
+      hra.pcZapis = null;
+      save();
+      if (zkontrolujKonec()) return;
+      render();
+      schedule();
+    }
+    function klik(i) {
+      if (!muzeHrat()) return;
+      try {
+        setRoving(i);
+        if (vybrano >= 0 && cile[i]) {
+          if (cile[i].length > 1) {
+            promTahy = cile[i];
+            prom.hidden = false;
+            focusEl(promBtns[0]);
+          } else {
+            hrajTah(cile[i][0]);
+          }
+          return;
+        }
+        var kus = L.kusNa(hra.partie.pos, i), bylo = vybrano;
+        zrusVyber();
+        if (kus && kus.barva === hra.barva && i !== bylo) {
+          var vsechny = L.tahy(hra.partie.pos), od = nazev(i);
+          for (var k = 0; k < vsechny.length; k++) {
+            if (vsechny[k].slice(0, 2) !== od) continue;
+            var na = SLOUPCE.indexOf(vsechny[k].charAt(2)) + (Number(vsechny[k].charAt(3)) - 1) * 8;
+            (cile[na] = cile[na] || []).push(vsechny[k]);
+          }
+          vybrano = i;
+        }
+        render();
+      } catch (err) {
+        fail(err);
+      }
+    }
+    function zavriProm() {
+      prom.hidden = true;
+      promTahy = null;
+      focusCell();
+    }
+    for (var pb = 0; pb < promBtns.length; pb++) {
+      promBtns[pb].addEventListener("click", function () {
+        if (!promTahy) return;
+        var znak = this.getAttribute("data-prom"), vybrany = null;
+        for (var k = 0; k < promTahy.length; k++) if (promTahy[k].charAt(4) === znak) vybrany = promTahy[k];
+        prom.hidden = true;
+        promTahy = null;
+        focusCell();
+        if (vybrany && muzeHrat()) {
+          try { hrajTah(vybrany); } catch (err) { fail(err); }
+        }
+      });
+    }
+    promZrusit.addEventListener("click", zavriProm);
+    vzdat.addEventListener("click", function () {
+      if (!open || !rozehrana()) return;
+      prom.hidden = true;
+      promTahy = null;
+      potvrdit.hidden = false;
+      focusEl(vzdatNe);
+    });
+    vzdatNe.addEventListener("click", function () {
+      potvrdit.hidden = true;
+      focusCell();
+    });
+    vzdatAno.addEventListener("click", function () {
+      potvrdit.hidden = true;
+      if (!open || !rozehrana()) return;
+      ukonci("Vzdal ses", "prohry");
+    });
+
+    // ---- stopwatch line ----
+    function tickStopky() {
+      var start = Z.timerStart();
+      if (start === null || start === undefined) {
+        stopky.hidden = true;
+        return;
+      }
+      var ms = S.elapsedMs(start, Date.now());
+      stopky.textContent = "Sedíš " + S.fmtTime(ms) + " · " + Z.money(Z.earned(ms));
+      stopky.hidden = false;
+    }
+
+    // ---- open / close, mirroring #pisk-ui ----
+    function setMode(isFull) {
+      full = isFull;
+      sachyEl.classList.toggle("hra-inline", !isFull);
+      if (isFull) {
+        sachyEl.setAttribute("role", "dialog");
+        sachyEl.setAttribute("aria-modal", "true");
+      } else {
+        sachyEl.removeAttribute("role");
+        sachyEl.removeAttribute("aria-modal");
+      }
+      cela.setAttribute("aria-pressed", String(isFull));
+      cela.setAttribute("aria-label", isFull ? "Zmenšit hru" : "Celá obrazovka");
+      cela.title = cela.getAttribute("aria-label");
+    }
+    function closeGame() {
+      if (!open) return;
+      if (full) { endAfterFull = true; V.close(sachyEl); return; }
+      open = false;
+      clearPending();
+      hledaniId++; // a late answer is dropped; the computer moves after reopening
+      cekaNaWorker = 0;
+      zrusVyber();
+      skryjVolby();
+      if (stopkyId) clearInterval(stopkyId);
+      stopkyId = 0;
+      sachyEl.hidden = true;
+      HS.zobrazMenu();
+      detailUI();
+      focusMenu();
+    }
+    function focusMenu() {
+      // after a failure the entry may already be gone, so fall back to what is visible
+      var t = hrajBtn.offsetParent ? hrajBtn : null;
+      var menu = document.getElementById("hryMenu");
+      var sels = [".hry-detail .hra-btn", ".hry-polozka"];
+      for (var s = 0; s < sels.length && !t && menu; s++) {
+        var list = menu.querySelectorAll(sels[s]);
+        for (var k = 0; k < list.length && !t; k++) if (list[k].offsetParent) t = list[k];
+      }
+      if (t) t.focus();
+    }
+    function vychoziPole() {
+      return hra && hra.barva === "c" ? 52 : 12; // e7 / e2
+    }
+    function openGame(znovu) {
+      if (open) return;
+      if (znovu || !rozehrana()) {
+        novaHra();
+        setRoving(vychoziPole());
+      }
+      open = true;
+      setMode(false);
+      slot.appendChild(sachyEl);
+      HS.skryjMenu();
+      sachyEl.hidden = false;
+      skoreText();
+      tickStopky();
+      stopkyId = setInterval(tickStopky, 1000);
+      orient();
+      render();
+      if (pcNaTahu()) schedule();
+      focusCell();
+      if (sachyEl.scrollIntoView) sachyEl.scrollIntoView({ block: "nearest" });
+    }
+    function onFullClose() {
+      // Vrstvy hid the element; put it back into the tab.
+      setMode(false);
+      slot.appendChild(sachyEl);
+      sachyEl.hidden = false;
+      if (endAfterFull) {
+        endAfterFull = false;
+        closeGame();
+      } else {
+        focusCell();
+        if (sachyEl.scrollIntoView) sachyEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+    function toggleFull() {
+      if (!open) return;
+      if (full) { V.close(sachyEl); return; }
+      setMode(true);
+      document.body.appendChild(sachyEl);
+      V.open(sachyEl, { onClose: onFullClose, initialFocus: cells[focusIdx] });
+    }
+
+    hrajBtn.addEventListener("click", function () { openGame(false); });
+    novaBtn.addEventListener("click", function () { openGame(true); });
+    cela.addEventListener("click", toggleFull);
+    zavrit.addEventListener("click", closeGame);
+    nova.addEventListener("click", function () {
+      if (!open) return;
+      novaHra();
+      orient();
+      setRoving(vychoziPole());
+      render();
+      if (pcNaTahu()) schedule();
+      focusCell();
+    });
+
+    // ---- controls ----
+    deska.addEventListener("click", function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(".sachy-pole") : null;
+      if (t) klik(Number(t.getAttribute("data-i")));
+    });
+    var KROK = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    deska.addEventListener("keydown", function (e) {
+      if (!open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (sachyEl.closest("[inert]")) return;
+      if (full && V.top() !== sachyEl) return;
+      var d = KROK[e.key];
+      if (d) {
+        e.preventDefault();
+        var p = naDisplej(focusIdx);
+        var x = Math.min(7, Math.max(0, p.c + d[0]));
+        var y = Math.min(7, Math.max(0, p.r + d[1]));
+        setRoving(zDispleje(y, x));
+        focusCell();
+      } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault(); // instead of the button's own click, so it acts once
+        if (!e.repeat) klik(focusIdx);
+      }
+    });
+    deska.addEventListener("focusin", function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(".sachy-pole") : null;
+      if (t) setRoving(Number(t.getAttribute("data-i")));
+    });
+    sachyEl.addEventListener("keydown", function (e) {
+      // Escape closes an open choice inline; in fullscreen Vrstvy leaves fullscreen instead
+      if (e.key !== "Escape" || full || !open) return;
+      if (sachyEl.closest("[inert]")) return;
+      if (!prom.hidden) { e.preventDefault(); zavriProm(); }
+      else if (!potvrdit.hidden) { e.preventDefault(); potvrdit.hidden = true; focusCell(); }
+    });
+
+    orient();
+    setRoving(vychoziPole());
+    detailUI();
+    window.Sachy = { isOpen: function () { return open; } };
   }
 })();
 </script>
