@@ -481,7 +481,11 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 .hra-btn:hover { background: var(--porcelain); }
 .denik-zapsat { margin: 1rem auto 0; }
 .panel[hidden] { display: none; }
-.pohled-tabs { max-width: 26rem; margin: 0 0 1.25rem; box-shadow: inset 0 0 0 1px var(--line); }
+.pohled-tabs { margin: 0 0 1.25rem; box-shadow: inset 0 0 0 1px var(--line); }
+/* Same width as the "Tvoje údaje" column: 1fr of the 1fr + 1.1fr grid minus its 1.25rem gap. */
+@media (min-width: 820px) {
+  .pohled-tabs { width: calc((100% - 1.25rem) / 2.1); }
+}
 #denikH:focus { outline: none; }
 #denikH:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 #denikPanel .timer-block { margin-bottom: 1.3rem; }
