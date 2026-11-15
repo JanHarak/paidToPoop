@@ -1123,6 +1123,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   aspect-ratio: 13 / 11;
   max-height: 72vh;
 }
+.hra-inline .porada-pole { padding: 0; }
 #poradaPlatno { display: block; touch-action: none; border-radius: 6px; }
 #poradaPlatno:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 #poradaKonec { background: rgba(8, 24, 28, .25); }
@@ -7395,7 +7396,7 @@ body.detail-open { overflow: hidden; }
     var EMOJI_FONT = "\"Apple Color Emoji\", \"Segoe UI Emoji\", \"Noto Color Emoji\", system-ui, sans-serif";
 
     function cislo(n) {
-      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); // non-breaking space, never wraps
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); // non-breaking space, never wraps
     }
 
     // ---- record ----
@@ -7422,7 +7423,7 @@ body.detail-open { overflow: hidden; }
     var predHrac = null, predKolegove = [], odchody = [];
     var tile = 24, dpr = 1, col = {};
     var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-    var ro = window.ResizeObserver ? new window.ResizeObserver(function () { resize(); }) : null;
+    var ro = window.ResizeObserver ? new window.ResizeObserver(function () { bezpecnyResize(); }) : null;
 
     function zacni() {
       stav = L.novaHra(Math.random);
@@ -7504,15 +7505,15 @@ body.detail-open { overflow: hidden; }
           }
         }
       }
-      if (ma("vytah")) hlaska = "Výtah je otevřený!";
+      if (ma("vytah")) hlaska = ma("patro") ? "Patro " + stav.patro + ". Výtah je otevřený!" : "Výtah je otevřený!";
       if (ma("zivot")) hlaska = "Přišel jsi o život";
       if (ma("patro")) {
         odchody = [];
         ulozRekord();
-        hlaska = "Patro " + stav.patro;
+        if (!ma("vytah")) hlaska = "Patro " + stav.patro;
       }
       if (ma("konec")) {
-        novyRekord = L.lepsi({ rekordPatro: stav.patro, rekordBody: stav.body }, rekordNaZacatku);
+        novyRekord = L.lepsi({ rekordPatro: stav.patro, rekordBody: stav.body }, rekordNaZacatku) && (stav.patro >= 2 || stav.body > 0);
         ulozRekord();
         chciPoradu = false;
         hlaska = vysledek() + (novyRekord ? ". Nový rekord!" : "");
@@ -7577,6 +7578,9 @@ body.detail-open { overflow: hidden; }
     }
 
     // ---- layout: 13 x 11 cells scaled to the box ----
+    function bezpecnyResize() {
+      try { resize(); } catch (err) { fail(err); }
+    }
     function resize() {
       if (!open) return;
       var cs = getComputedStyle(pole);
@@ -8030,7 +8034,7 @@ body.detail-open { overflow: hidden; }
       if (stopkyId) clearInterval(stopkyId);
       stopkyId = 0;
       if (ro) ro.disconnect();
-      else window.removeEventListener("resize", resize);
+      else window.removeEventListener("resize", bezpecnyResize);
       hraEl.hidden = true;
       HS.zobrazMenu();
       rekordText();
@@ -8063,7 +8067,7 @@ body.detail-open { overflow: hidden; }
       stopkyId = setInterval(tickStopky, 1000);
       resize();
       if (ro) ro.observe(pole);
-      else window.addEventListener("resize", resize);
+      else window.addEventListener("resize", bezpecnyResize);
       focusEl(canvas);
       if (hraEl.scrollIntoView) hraEl.scrollIntoView({ block: "nearest" });
       startLoop();
@@ -8113,15 +8117,23 @@ body.detail-open { overflow: hidden; }
       pauza = !pauza;
       lastT = 0;
       chciPoradu = false;
-      hud();
-      kresli();
+      try {
+        hud();
+        kresli();
+      } catch (err) {
+        fail(err);
+      }
     });
 
     // ---- theme changes ----
     function themeChanged() {
       if (!open) return;
-      readColors();
-      kresli();
+      try {
+        readColors();
+        kresli();
+      } catch (err) {
+        fail(err);
+      }
     }
     if (darkMq) {
       if (darkMq.addEventListener) darkMq.addEventListener("change", themeChanged);
@@ -8132,7 +8144,8 @@ body.detail-open { overflow: hidden; }
     }
 
     rekordText();
-    window.Porada = { isOpen: function () { return open; } };  }
+    window.Porada = { isOpen: function () { return open; } };
+  }
 })();
 </script>
 <script id="instalace-ui">
