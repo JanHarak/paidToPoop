@@ -1938,6 +1938,7 @@ body.detail-open { overflow: hidden; }
     <button id="profilZavrit" type="button" aria-label="Zavřít profil" title="Zavřít profil">×</button>
   </div>
   <div class="profil-telo"><div class="profil-obsah">
+    <p class="denik-varovani" id="profilVarovani" hidden>Uložený profil se nepodařilo načíst. Nic nepřepíšu, dokud tu něco nezměníš.</p>
     <div class="profil-nahled">
       <div class="profil-nahled-avatar" id="profilNahledAvatar" aria-hidden="true"></div>
       <div class="profil-nahled-jmeno prazdne" id="profilNahledJmeno">Bez přezdívky</div>
@@ -2523,6 +2524,7 @@ body.detail-open { overflow: hidden; }
   }
   var listeners = [];
   var poskozen = false;
+  var varovani = document.getElementById("profilVarovani");
   var profil = PL.vychozi();
 
   function readStore(key) {
@@ -2596,20 +2598,30 @@ body.detail-open { overflow: hidden; }
     profil = prectiFormular();
     ulozit();
     poskozen = false;
+    kresliVarovani();
     kresliIkonu();
     kresliNahled();
     kresliRezim();
     oznam();
   }
 
+  function kresliVarovani() {
+    varovani.hidden = !poskozen;
+  }
+
   function otevri(opener) {
+    kresliVarovani();
+    if (window.Vrstvy.top() !== null) return;
     zapisFormular();
     kresliNahled();
     window.Vrstvy.open(vrstva, { returnFocus: opener || btn, initialFocus: fPrezdivka });
   }
 
   vrstva.addEventListener("input", priZmene);
-  vrstva.addEventListener("change", priZmene);
+  vrstva.addEventListener("change", function () {
+    priZmene();
+    zapisFormular();
+  });
   btn.addEventListener("click", function () { otevri(btn); });
   document.getElementById("profilZavrit").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
   document.getElementById("profilHotovo").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
@@ -2620,6 +2632,7 @@ body.detail-open { overflow: hidden; }
     if (r.poskozeno) return;
     profil = r.profil;
     poskozen = false;
+    kresliVarovani();
     kresliIkonu();
     kresliNahled();
     if (!vrstva.hidden) zapisFormular();
@@ -2805,7 +2818,6 @@ body.detail-open { overflow: hidden; }
     obnovZUloziste();
     zapisy.push(z);
     ulozDenik();
-    bump();
     render();
     return z;
   }
@@ -2819,7 +2831,6 @@ body.detail-open { overflow: hidden; }
     zapisy = r.zapisy;
     posledniSmazany = r.odebrany;
     ulozDenik();
-    bump();
     render();
     ukazListu("Smazáno", true, navrat);
     if (zKlavesnice) vratitBtn.focus();
@@ -2836,7 +2847,6 @@ body.detail-open { overflow: hidden; }
     for (var i = 0; i < zapisy.length; i++) if (zapisy[i].id === z.id) jiz = true;
     if (!jiz) zapisy.push(z);
     ulozDenik();
-    bump();
     render();
     if (mel) {
       var cil = null;
@@ -3031,7 +3041,7 @@ body.detail-open { overflow: hidden; }
   function render() {
     var now = Date.now();
     lastDay = DL.zacatekDne(now);
-    var md = num(els.md), hours = num(els.hours), mins = num(els.mins);
+    var hours = num(els.hours), mins = num(els.mins);
     var dm = num(els.dm), dy = num(els.dy);
     var perMin = rateMin();
     var perVisit = perMin * mins;
@@ -3040,6 +3050,7 @@ body.detail-open { overflow: hidden; }
 
     $("count").textContent = count;
     if (count === 0 && document.activeElement === $("minus")) $("plus").focus();
+    if (count >= 99 && document.activeElement === $("plus")) $("minus").focus();
     $("minus").disabled = count === 0;
     $("plus").disabled = count >= 99;
     $("rDay").textContent = money(perDay);
@@ -3248,8 +3259,9 @@ body.detail-open { overflow: hidden; }
         note.textContent = "Moc krátké, do deníku nezapsáno.";
         render();
       } else {
-        pridejZapis(elapsedMin, "stopky", startMs, Profil.zaMinutu(), Profil.aktualni().mena);
-        note.textContent = Profil.zaMinutu() === 0
+        var zaMin = Profil.zaMinutu(), menaZapisu = Profil.aktualni().mena;
+        pridejZapis(elapsedMin, "stopky", startMs, zaMin, menaZapisu);
+        note.textContent = zaMin === 0
           ? "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno bez částky. Nastav si sazbu v profilu."
           : "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
       }
@@ -3592,8 +3604,8 @@ body.detail-open { overflow: hidden; }
 
   window.zachod = {
     timerStart: function () { return timerStart; },
-    earned: function (ms) { return rateMin() * ms / 60000; },
-    money: money,
+    earned: function (ms) { return Profil.zaMinutu() * ms / 60000; },
+    money: function (v) { return fmtCur(v, Profil.aktualni().mena); },
     zapisy: function () { return zapisy; }
   };
 })();
