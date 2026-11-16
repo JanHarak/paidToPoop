@@ -405,6 +405,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   --profil-vel: 2.75rem;
   --profil-vpravo: max(.6rem, calc((100vw - 980px) / 2 + .5rem));
 }
+/* Red bar while the stopwatch runs. */
+.clock.bezi { background: #d93a2b; color: #fff; }
 .clock {
   position: fixed;
   /* Vertically centred against the profile icon. */
@@ -2020,7 +2022,7 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
       <div class="field">
-        <label for="profilHodiny">Délka pracovního dne, hod</label>
+        <label for="profilHodiny">Délka pracovního dne (v hod)</label>
         <div class="input-row"><input type="number" id="profilHodiny" inputmode="decimal" min="0" max="24" step="any"></div>
       </div>
       <div class="field" id="profilDniPole">
@@ -3268,15 +3270,22 @@ body.detail-open { overflow: hidden; }
   }
 
   var clockEl = $("clock");
+  var uzkaLista = null;
+  try { uzkaLista = window.matchMedia("(max-width: 360px)"); } catch (e) {}
   function tickClock() {
     var now = Date.now();
     var t = ZK.formatClock(new Date(now));
     // While the stopwatch runs, the clock also shows its time and earnings.
-    if (timerStart !== null) {
+    var bezi = timerStart !== null;
+    if (bezi) {
       var ms = Stopky.elapsedMs(timerStart, now);
-      t += " | " + Stopky.fmtTime(ms) + " | " + fmtCur(Profil.zaMinutu() * ms / 60000, Profil.aktualni().mena);
+      // On the narrowest phones the year goes, so the longer running text still fits.
+      if (uzkaLista && uzkaLista.matches) t = t.replace(/ \d{4} ·/, " ·");
+      // Stopwatch and banknote icons in front of the measured time and the money.
+      t += " | ⏱️ " + Stopky.fmtTime(ms) + " | 💵 " + fmtCur(Profil.zaMinutu() * ms / 60000, Profil.aktualni().mena);
     }
     if (clockEl.textContent !== t) clockEl.textContent = t;
+    clockEl.classList.toggle("bezi", bezi);
   }
   tickClock();
   setInterval(tickClock, 1000);
