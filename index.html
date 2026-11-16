@@ -308,6 +308,10 @@ header p {
   color: var(--ink);
   font-size: 1.4rem;
   line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 .step:hover { border-color: var(--brass); }
@@ -1532,12 +1536,12 @@ body.detail-open { overflow: hidden; }
   </header>
 
   <div class="seg pohled-tabs" id="pohledTabs" role="tablist" aria-label="Zobrazení">
-    <button type="button" role="tab" class="seg-btn" id="tabKalk" aria-controls="pohledPanel" aria-selected="true" tabindex="0">Kalkulačka</button>
-    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Deník</button>
+    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="true" tabindex="0">Deník</button>
+    <button type="button" role="tab" class="seg-btn" id="tabKalk" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Kalkulačka</button>
   </div>
 
-  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="tabKalk">
-    <section class="panel" id="vstupPanel" aria-labelledby="in-h">
+  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="tabDenik">
+    <section class="panel" id="vstupPanel" aria-labelledby="in-h" hidden>
       <h2 id="in-h">Tvoje údaje</h2>
 
       <fieldset class="field zpusob">
@@ -1603,14 +1607,9 @@ body.detail-open { overflow: hidden; }
           <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
         </div>
       </div>
-
-      <div class="field timer-block">
-        <button class="flush" id="flush" type="button">Jdu na záchod</button>
-        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.</div>
-      </div>
     </section>
 
-    <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h">
+    <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h" hidden>
       <h2 id="out-h">Výdělek na záchodě</h2>
       <div class="today">
         <div class="label">Dnes</div>
@@ -1633,9 +1632,13 @@ body.detail-open { overflow: hidden; }
       <button class="reset" id="reset" type="button">Vrátit výchozí hodnoty</button>
     </section>
 
-    <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
+    <section class="panel" id="denikPanel" aria-labelledby="denikH">
       <h2 id="denikH" tabindex="-1">Deník</h2>
       <p class="denik-varovani" id="denikVarovani" hidden>Uložený deník se nepodařilo načíst. Nic nepřepíšu, dokud nezapíšeš.</p>
+      <div class="field timer-block">
+        <button class="flush" id="flush" type="button">Jdu na záchod</button>
+        <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.</div>
+      </div>
       <p class="denik-profil" id="denikProfil"><span id="denikProfilText"></span> <button type="button" class="denik-profil-upravit" id="denikProfilUpravit">Upravit</button></p>
       <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
       <div id="denikSeznam"></div>
@@ -1652,7 +1655,7 @@ body.detail-open { overflow: hidden; }
       </div>
     </section>
 
-    <section class="panel results" id="vyuctovaniPanel" aria-labelledby="vyuc-h" hidden>
+    <section class="panel results" id="vyuctovaniPanel" aria-labelledby="vyuc-h">
       <h2 id="vyuc-h">Vyděláno</h2>
       <ul class="rows rows-vyuc" id="vyuctovaniRady"></ul>
       <ul class="rows rows-vyuc rows-prumer" id="vyuctovaniPrumer"></ul>
@@ -2676,7 +2679,7 @@ body.detail-open { overflow: hidden; }
   var posledniSmazany = null;
   var timerStart = null, timerTick = null;
   var mode = "md";
-  var pohled = "kalk";
+  var pohled = "denik";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
 
   function load() {
@@ -2686,7 +2689,8 @@ body.detail-open { overflow: hidden; }
       var s = JSON.parse(raw);
       Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
-      pohled = s.pohled === "denik" ? "denik" : "kalk";
+      // Older saves used "md" or "sal" for the calculator view.
+      pohled = s.pohled === "kalk" || s.pohled === "md" || s.pohled === "sal" ? "kalk" : "denik";
       if (typeof s.count === "number" && s.count % 1 === 0 && s.count >= 0 && s.count <= 99) count = s.count;
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
@@ -2888,8 +2892,6 @@ body.detail-open { overflow: hidden; }
   var DENIK_DNI = DL.STRANKA_DNI;
   var denikDni = DENIK_DNI;
   var denikHtml = null, vyucHtml = null;
-  var timerBlock = document.querySelector(".timer-block");
-  var timerDomov = timerBlock.parentNode;
   var denikSeznam = $("denikSeznam"), denikH = $("denikH");
   var denikPocetSkupin = 0;
   var smazatPotvrdit = $("denikSmazatPotvrdit"), smazatVse = $("denikSmazatVse");
@@ -3022,11 +3024,7 @@ body.detail-open { overflow: hidden; }
     var i;
     for (i = 0; i < PANELY.kalk.length; i++) $(PANELY.kalk[i]).hidden = denik;
     for (i = 0; i < PANELY.denik.length; i++) $(PANELY.denik[i]).hidden = !denik;
-    if (denik) {
-      var profilRadek = $("denikProfil");
-      profilRadek.parentNode.insertBefore(timerBlock, profilRadek);
-    } else {
-      timerDomov.appendChild(timerBlock);
+    if (!denik) {
       smazatPotvrdit.hidden = true;
       denikDni = DENIK_DNI;
       denikHtml = null;
@@ -3036,7 +3034,7 @@ body.detail-open { overflow: hidden; }
   }
   function ukazZalozky() {
     var aktivni = pohled === "denik" ? "tabDenik" : "tabKalk";
-    ["tabKalk", "tabDenik"].forEach(function (id) {
+    ["tabDenik", "tabKalk"].forEach(function (id) {
       var on = id === aktivni;
       $(id).setAttribute("aria-selected", String(on));
       $(id).tabIndex = on ? 0 : -1;
@@ -3203,7 +3201,7 @@ body.detail-open { overflow: hidden; }
     var back = warnPrevFocus;
     warnPrevFocus = null;
     if (back && back !== document.body && document.body.contains(back) && !(back.closest && back.closest("[inert]"))) back.focus();
-    else $("flush").focus();
+    else $(pohled === "denik" ? "flush" : "tabDenik").focus();
   }
 
   function checkWarning() {
@@ -3302,7 +3300,7 @@ body.detail-open { overflow: hidden; }
   }
   $("zpusobMd").addEventListener("change", function () { if (this.checked) { setMode("md"); render(); } });
   $("zpusobSal").addEventListener("change", function () { if (this.checked) { setMode("sal"); render(); } });
-  var POHLEDY = ["kalk", "denik"], POHLED_IDS = { kalk: "tabKalk", denik: "tabDenik" };
+  var POHLEDY = ["denik", "kalk"], POHLED_IDS = { kalk: "tabKalk", denik: "tabDenik" };
   Object.keys(POHLED_IDS).forEach(function (k) {
     $(POHLED_IDS[k]).addEventListener("click", function () {
       if (pohled !== k) prepniPohled(k);
