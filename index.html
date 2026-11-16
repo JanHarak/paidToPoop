@@ -965,6 +965,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   --sachy-tmave: var(--grout);
   --sachy-bila: var(--porcelain);
   --sachy-cerna: var(--ink);
+  --sachy-posledni: var(--brass-soft);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .sachy,
@@ -973,6 +974,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
     --sachy-tmave: #557f86;
     --sachy-bila: #ffffff;
     --sachy-cerna: #0e3b43;
+    --sachy-posledni: #d8c48e;
   }
 }
 :root[data-theme="dark"] .sachy,
@@ -981,6 +983,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   --sachy-tmave: #557f86;
   --sachy-bila: #ffffff;
   --sachy-cerna: #0e3b43;
+  --sachy-posledni: #d8c48e;
 }
 .hra-hlava #sachySkore { color: var(--ink); font-weight: 700; }
 .hra-hlava #sachyStopky { flex-basis: 100%; order: 9; font-size: .8rem; }
@@ -1034,7 +1037,7 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
   user-select: none;
 }
 .sachy-pole.svetle { background: var(--sachy-svetle); }
-.sachy-pole.posledni { background: var(--brass-soft); }
+.sachy-pole.posledni { background: var(--sachy-posledni); }
 .sachy-pole.sach { background-image: radial-gradient(circle, var(--brass) 0, var(--brass) 30%, transparent 72%); }
 .sachy-pole.fb, .sachy-ikona.fb {
   color: var(--sachy-bila);
