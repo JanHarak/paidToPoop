@@ -234,6 +234,8 @@ header p {
   padding: .6rem .75rem;
   outline: none;
 }
+/* Currency picker keeps its natural width, the amount takes the rest (calculator and profile). */
+.input-row select { flex: none; width: auto; }
 .input-row .unit {
   display: flex;
   align-items: center;
@@ -475,7 +477,6 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .profil-rezim { display: flex; gap: .4rem; margin-bottom: 1rem; }
 .profil-rezim .profil-volba { flex: 1; }
 .profil-rezim .profil-volba span { font-size: .95rem; font-weight: 700; }
-.profil .input-row select { flex: none; width: auto; }
 .profil-pozn { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
 .profil-hotovo {
   min-height: 44px; padding: 0 1.4rem; border: 2px solid var(--line); border-radius: 999px;
