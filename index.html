@@ -562,6 +562,10 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 .denik-zapsat { margin: 1rem auto 0; }
 .denik-zapsat:disabled { opacity: .45; cursor: not-allowed; }
 .denik-zapsat:disabled:hover { background: var(--brass-soft); }
+/* Short confirmation on the button itself after a manual diary entry. */
+.denik-zapsat.zapsano { border-color: #2e9e5b; background: rgba(46, 158, 91, .18); animation: zapsano-pop .35s ease-out; }
+@keyframes zapsano-pop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .denik-zapsat.zapsano { animation: none; } }
 .panel[hidden] { display: none; }
 .zpusob { border: 0; padding: 0; min-width: 0; }
 .zpusob legend { font-weight: 700; padding: 0; margin-bottom: .35rem; }
@@ -2886,7 +2890,23 @@ body.detail-open { overflow: hidden; }
       return;
     }
     var z = pridejZapis(mins, "rucne", Date.now(), rateMin(), els.cur.value);
-    if (z) ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
+    if (z) {
+      ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
+      potvrdZapis();
+    }
+  }
+  var zapsatBtn = $("denikZapsat"), zapsatTimer = null;
+  function potvrdZapis() {
+    clearTimeout(zapsatTimer);
+    zapsatBtn.classList.remove("zapsano");
+    void zapsatBtn.offsetWidth;   // restart the animation on a repeated click
+    zapsatBtn.classList.add("zapsano");
+    zapsatBtn.textContent = "✓ Zapsáno";
+    zapsatTimer = setTimeout(function () {
+      zapsatTimer = null;
+      zapsatBtn.classList.remove("zapsano");
+      zapsatBtn.textContent = "Zapsat do deníku";
+    }, 2000);
   }
 
   /* Deník view: list of entries and the diary settlement. */
