@@ -604,6 +604,17 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   border-radius: 12px;
 }
 .denik-varovani[hidden] { display: none; }
+.denik-profil { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; }
+.denik-profil-upravit {
+  font: inherit;
+  color: var(--ink);
+  background: var(--tile);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: .15rem .8rem;
+  min-height: 2.2rem;
+  cursor: pointer;
+}
 .denik-rucne {
   padding: .05rem .5rem;
   border: 1px solid var(--line);
@@ -1614,6 +1625,7 @@ body.detail-open { overflow: hidden; }
     <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
       <h2 id="denikH" tabindex="-1">Deník</h2>
       <p class="denik-varovani" id="denikVarovani" hidden>Uložený deník se nepodařilo načíst. Nic nepřepíšu, dokud nezapíšeš.</p>
+      <p class="denik-profil" id="denikProfil"><span id="denikProfilText"></span> <button type="button" class="denik-profil-upravit" id="denikProfilUpravit">Upravit</button></p>
       <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
       <div id="denikSeznam"></div>
       <button class="hra-btn denik-dalsi" id="denikDalsi" type="button" hidden>Zobrazit starší</button>
@@ -2787,9 +2799,8 @@ body.detail-open { overflow: hidden; }
     if (e.key === "Escape" && !listaSkryta()) { e.preventDefault(); schovejListu(true); }
   });
 
-  function pridejZapis(min, zdroj, start) {
-    var cur = els.cur.value;
-    var z = DL.novyZapis(start, min, rateMin() * min, cur, zdroj, noveId());
+  function pridejZapis(min, zdroj, start, zaMin, mena) {
+    var z = DL.novyZapis(start, min, zaMin * min, mena, zdroj, noveId());
     if (!z) return null;
     obnovZUloziste();
     zapisy.push(z);
@@ -2848,7 +2859,7 @@ body.detail-open { overflow: hidden; }
       ukazListu("Nejdřív vyplň průměr na návštěvu.", false);
       return;
     }
-    var z = pridejZapis(mins, "rucne", Date.now());
+    var z = pridejZapis(mins, "rucne", Date.now(), rateMin(), els.cur.value);
     if (z) ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
   }
 
@@ -2873,7 +2884,7 @@ body.detail-open { overflow: hidden; }
   function minTxt(min) { return DL.fmtMin(min).replace(/\u00a0/g, " "); }
   function pocetTxt(c) { return c + " " + visitsWord(c); }
   function soucetTxt(sou) {
-    return pocetTxt(sou.pocet) + " \u00b7 " + DL.fmtMin(sou.min) + " \u00b7 " + DL.formatCastky(sou.castky, fmtCur, els.cur.value);
+    return pocetTxt(sou.pocet) + " \u00b7 " + DL.fmtMin(sou.min) + " \u00b7 " + DL.formatCastky(sou.castky, fmtCur, Profil.aktualni().mena);
   }
 
   function renderDenik() {
@@ -2884,7 +2895,7 @@ body.detail-open { overflow: hidden; }
     for (i = 0; i < pr.skupiny.length; i++) {
       var g = pr.skupiny[i];
       h += '<div class="denik-den"><h3 class="denik-den-hlava"><span class="denik-den-nadpis">' + esc(g.nadpis) +
-        '</span><span class="denik-den-soucet">' + esc(pocetTxt(g.zapisy.length) + " \u00b7 " + DL.formatCastky(g.souhrn.castky, fmtCur, els.cur.value)) +
+        '</span><span class="denik-den-soucet">' + esc(pocetTxt(g.zapisy.length) + " \u00b7 " + DL.formatCastky(g.souhrn.castky, fmtCur, Profil.aktualni().mena)) +
         '</span></h3><ul class="denik-rady">';
       for (j = 0; j < g.zapisy.length; j++) {
         var z = g.zapisy[j], cas = casZapisu(z.start);
@@ -2908,13 +2919,16 @@ body.detail-open { overflow: hidden; }
     denikPocetSkupin = pr.skupiny.length;
     var prazdny = zapisy.length === 0;
     $("denikVarovani").hidden = !denikPoskozen;
+    var pr0 = Profil.aktualni();
+    $("denikProfilText").textContent = "Počítám podle profilu: " + (pr0.avatar ? pr0.avatar + " " : "") +
+      (pr0.prezdivka ? pr0.prezdivka + " · " : "") + fmtCur(pr0.castka, pr0.mena) + (pr0.mode === "sal" ? " / měsíc" : " / MD");
     $("denikPrazdno").hidden = !prazdny;
     dalsiBtn.hidden = !pr.dalsi;
     $("denikSmazatBlok").hidden = prazdny;
     if (prazdny) smazatPotvrdit.hidden = true;
 
     var v = DL.vyuctovani(zapisy, now);
-    var cur = els.cur.value;
+    var cur = Profil.aktualni().mena;
     var rady = [["Dnes", v.dnes], ["Tento týden", v.tyden], ["Tento měsíc", v.mesic], ["Celkem", v.celkem]];
     var vh = "";
     for (i = 0; i < rady.length; i++) {
@@ -2978,6 +2992,9 @@ body.detail-open { overflow: hidden; }
     denikH.focus();
   });
 
+  $("denikProfilUpravit").addEventListener("click", function () { Profil.otevri(this); });
+  Profil.poZmene(function () { render(); tickClock(); });
+
   var PANELY = { kalk: ["vstupPanel", "vysledkyPanel"], denik: ["denikPanel", "vyuctovaniPanel"] };
   function uzijPohled() {
     var denik = pohled === "denik";
@@ -2985,8 +3002,8 @@ body.detail-open { overflow: hidden; }
     for (i = 0; i < PANELY.kalk.length; i++) $(PANELY.kalk[i]).hidden = denik;
     for (i = 0; i < PANELY.denik.length; i++) $(PANELY.denik[i]).hidden = !denik;
     if (denik) {
-      var varovani = $("denikVarovani");
-      varovani.parentNode.insertBefore(timerBlock, varovani.nextSibling);
+      var profilRadek = $("denikProfil");
+      profilRadek.parentNode.insertBefore(timerBlock, profilRadek);
     } else {
       timerDomov.appendChild(timerBlock);
       smazatPotvrdit.hidden = true;
@@ -3123,7 +3140,7 @@ body.detail-open { overflow: hidden; }
     // While the stopwatch runs, the clock also shows its time and earnings.
     if (timerStart !== null) {
       var ms = Stopky.elapsedMs(timerStart, now);
-      t += " | " + Stopky.fmtTime(ms) + " | " + money(rateMin() * ms / 60000);
+      t += " | " + Stopky.fmtTime(ms) + " | " + fmtCur(Profil.zaMinutu() * ms / 60000, Profil.aktualni().mena);
     }
     if (clockEl.textContent !== t) clockEl.textContent = t;
   }
@@ -3198,8 +3215,8 @@ body.detail-open { overflow: hidden; }
     clearInterval(timerTick);
     var tick = function () {
       var elapsed = Stopky.elapsedMs(timerStart, Date.now());
-      var earned = rateMin() * (elapsed / 60000);
-      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + money(earned);
+      var earned = Profil.zaMinutu() * (elapsed / 60000);
+      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + fmtCur(earned, Profil.aktualni().mena);
       tickClock();
       checkWarning();
     };
@@ -3231,8 +3248,10 @@ body.detail-open { overflow: hidden; }
         note.textContent = "Moc krátké, do deníku nezapsáno.";
         render();
       } else {
-        pridejZapis(elapsedMin, "stopky", startMs);
-        note.textContent = "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
+        pridejZapis(elapsedMin, "stopky", startMs, Profil.zaMinutu(), Profil.aktualni().mena);
+        note.textContent = Profil.zaMinutu() === 0
+          ? "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno bez částky. Nastav si sazbu v profilu."
+          : "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
       }
     }
   });
