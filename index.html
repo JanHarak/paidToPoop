@@ -2889,19 +2889,30 @@ body.detail-open { overflow: hidden; }
       ukazListu("Nejdřív vyplň průměr na návštěvu.", false);
       return;
     }
-    var z = pridejZapis(mins, "rucne", Date.now(), rateMin(), els.cur.value);
-    if (z) {
-      ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
-      potvrdZapis();
+    // One entry per visit set in the counter (at least one).
+    var pocet = Math.max(1, count), start = Date.now(), nove = [], i, z;
+    for (i = 0; i < pocet; i++) {
+      z = DL.novyZapis(start, mins, rateMin() * mins, els.cur.value, "rucne", noveId());
+      if (!z) return;
+      nove.push(z);
     }
+    obnovZUloziste();
+    for (i = 0; i < nove.length; i++) zapisy.push(nove[i]);
+    ulozDenik();
+    render();
+    var text = pocet > 1
+      ? pocetTxt(pocet) + ", " + DL.fmtMin(z.min * pocet) + ", " + fmtCur(z.castka * pocet, z.mena)
+      : DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena);
+    ukazListu("Zapsáno do deníku: " + text, false);
+    potvrdZapis(pocet);
   }
   var zapsatBtn = $("denikZapsat"), zapsatTimer = null;
-  function potvrdZapis() {
+  function potvrdZapis(pocet) {
     clearTimeout(zapsatTimer);
     zapsatBtn.classList.remove("zapsano");
     void zapsatBtn.offsetWidth;   // restart the animation on a repeated click
     zapsatBtn.classList.add("zapsano");
-    zapsatBtn.textContent = "✓ Zapsáno";
+    zapsatBtn.textContent = pocet > 1 ? "✓ Zapsáno " + pocet + "×" : "✓ Zapsáno";
     zapsatTimer = setTimeout(function () {
       zapsatTimer = null;
       zapsatBtn.classList.remove("zapsano");
