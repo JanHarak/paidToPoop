@@ -165,7 +165,7 @@ body {
   padding: 2rem 1.25rem 3rem;
 }
 header { padding-top: 2.5rem; }
-/* Name day greeting: under the clock bar on narrow screens, left of it on wide ones. */
+/* Name day greeting: on the clock row while it fits there (class .vedle, set by script), else under it. */
 .svatek {
   display: inline-block;
   margin: 0 0 1rem;
@@ -178,19 +178,18 @@ header { padding-top: 2.5rem; }
   line-height: 1.4;
 }
 .svatek[hidden] { display: none; }
-@media (min-width: 1100px) {
-  .svatek {
-    position: fixed;
-    z-index: 6;
-    top: calc(.5rem + (var(--profil-vel) - 1.8rem) / 2 + env(safe-area-inset-top, 0px));
-    left: max(.6rem, calc((100vw - 980px) / 2 + .5rem));
-    max-width: calc(100vw - 2 * max(.6rem, calc((100vw - 980px) / 2 + .5rem)) - 28rem);
-    margin: 0;
-    border-radius: 999px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.svatek.vedle, .svatek.meri { white-space: nowrap; border-radius: 999px; }
+.svatek.vedle {
+  position: fixed;
+  z-index: 6;
+  top: calc(.5rem + (var(--profil-vel) - 1.8rem) / 2 + env(safe-area-inset-top, 0px));
+  left: max(.6rem, calc((100vw - 980px) / 2 + .5rem));
+  margin: 0;
+}
+/* Measuring the one-line width without showing it. */
+.svatek.meri { position: absolute; visibility: hidden; left: 0; top: 0; }
+@media (max-width: 360px) {
+  .svatek.vedle, .svatek.meri { font-size: .68rem; padding: .3rem .5rem; }
 }
 header h1 {
   font-family: "Bricolage Grotesque", system-ui, sans-serif;
@@ -2619,9 +2618,8 @@ body.detail-open { overflow: hidden; }
     var nick = typeof prezdivka === "string" ? prezdivka.trim() : "";
     var zacatek = nick ? "Ahoj " + nick + ", dnes" : "Dnes";
     if (!info.jmeno) return zacatek + " je státní svátek: " + info.svatek + ".";
-    var t = zacatek + " má svátek " + info.jmeno + ".";
-    if (info.svatek) t += " Je státní svátek: " + info.svatek + ".";
-    return t;
+    // A name wins; the state holiday is shown only on days without a name.
+    return zacatek + " má svátek " + info.jmeno + ".";
   }
   window.SvatekLogika = {
     KEY: "zachodova-svatek-v1",
@@ -2791,7 +2789,24 @@ body.detail-open { overflow: hidden; }
     var t = L.text(info, window.Profil ? window.Profil.aktualni().prezdivka : "");
     if (el.textContent !== t) { el.textContent = t; el.title = t; }
     el.hidden = !t;
+    umisti();
   }
+  // Puts the greeting on the clock row when it fits there in one line, otherwise under it.
+  var clock = document.getElementById("clock");
+  function umisti() {
+    if (el.hidden) return;
+    el.classList.remove("vedle");
+    el.classList.add("meri");
+    var w = el.getBoundingClientRect().width;
+    el.classList.remove("meri");
+    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    var okraj = Math.max(.6 * rem, (document.documentElement.clientWidth - 980) / 2 + .5 * rem);
+    var vejde = okraj + w + .5 * rem <= clock.getBoundingClientRect().left;
+    el.classList.toggle("vedle", vejde);
+  }
+  window.addEventListener("resize", umisti);
+  // The clock grows while the stopwatch runs, so watch its size too.
+  if (window.ResizeObserver) new ResizeObserver(umisti).observe(clock);
   function nactiZUloziste(k) {
     try {
       var s = JSON.parse(localStorage.getItem(L.KEY));

@@ -45,9 +45,8 @@ test("text: s přezdívkou a bez", () => {
   assert.equal(L.text({ jmeno: "Otmar", svatek: null }, "Jan"), "Ahoj Jan, dnes má svátek Otmar.");
   assert.equal(L.text({ jmeno: "Otmar", svatek: null }, ""), "Dnes má svátek Otmar.");
 });
-test("text: jméno a státní svátek", () => {
-  assert.equal(L.text({ jmeno: "Václav", svatek: "Den české státnosti" }, "Jan"),
-    "Ahoj Jan, dnes má svátek Václav. Je státní svátek: Den české státnosti.");
+test("text: jméno má přednost, státní svátek se pak neukazuje", () => {
+  assert.equal(L.text({ jmeno: "Václav", svatek: "Den české státnosti" }, "Jan"), "Ahoj Jan, dnes má svátek Václav.");
 });
 test("text: svátek bez jména", () => {
   assert.equal(L.text({ jmeno: null, svatek: "Den vítězství" }, "Jan"), "Ahoj Jan, dnes je státní svátek: Den vítězství.");
