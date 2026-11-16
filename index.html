@@ -165,6 +165,33 @@ body {
   padding: 2rem 1.25rem 3rem;
 }
 header { padding-top: 2.5rem; }
+/* Name day greeting: under the clock bar on narrow screens, left of it on wide ones. */
+.svatek {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: .3rem .85rem;
+  border-radius: 14px;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: .85rem;
+  line-height: 1.4;
+}
+.svatek[hidden] { display: none; }
+@media (min-width: 1100px) {
+  .svatek {
+    position: fixed;
+    z-index: 6;
+    top: calc(.5rem + (var(--profil-vel) - 1.8rem) / 2 + env(safe-area-inset-top, 0px));
+    left: max(.6rem, calc((100vw - 980px) / 2 + .5rem));
+    max-width: calc(100vw - 2 * max(.6rem, calc((100vw - 980px) / 2 + .5rem)) - 28rem);
+    margin: 0;
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
 header h1 {
   font-family: "Bricolage Grotesque", system-ui, sans-serif;
   font-weight: 800;
@@ -1552,6 +1579,7 @@ body.detail-open { overflow: hidden; }
 <div class="rain rain-r" aria-hidden="true"></div>
 <div class="wrap">
   <header>
+    <p class="svatek" id="svatek" hidden></p>
     <h1>Záchodová kalkulačka</h1>
     <p>Zadej svou MD sazbu nebo měsíční plat a kolik času trávíš na záchodě. Spočítám, kolik ti někdo zaplatí za čas strávený na porcelánu.</p>
   </header>
@@ -2563,6 +2591,48 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="svatek-logika">
+(function () {
+  var VELKE = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ";
+  // One or more capitalised words joined by " a " (Otmar, Adam a Eva); holiday titles have lowercase words.
+  var JMENO = new RegExp("^[" + VELKE + "][^\\s]*( a [" + VELKE + "][^\\s]*)*$");
+  function jeJmeno(t) {
+    return typeof t === "string" && JMENO.test(t);
+  }
+  function pad2(v) { return v < 10 ? "0" + v : String(v); }
+  function datumKlic(d) {
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+  function url(klic) {
+    return "https://svatkyapi.cz/api/day/" + klic;
+  }
+  // svatkyapi.cz puts the holiday title into "name" on days without a name day; keep only real names.
+  function zOdpovedi(o) {
+    if (!o || typeof o !== "object") return null;
+    if (o.name !== null && o.name !== undefined && typeof o.name !== "string") return null;
+    var svatek = o.isHoliday === true && typeof o.holidayName === "string" && o.holidayName ? o.holidayName : null;
+    var jmeno = jeJmeno(o.name) && o.name !== svatek ? o.name : null;
+    return { jmeno: jmeno, svatek: svatek };
+  }
+  function text(info, prezdivka) {
+    if (!info || (!info.jmeno && !info.svatek)) return "";
+    var nick = typeof prezdivka === "string" ? prezdivka.trim() : "";
+    var zacatek = nick ? "Ahoj " + nick + ", dnes" : "Dnes";
+    if (!info.jmeno) return zacatek + " je státní svátek: " + info.svatek + ".";
+    var t = zacatek + " má svátek " + info.jmeno + ".";
+    if (info.svatek) t += " Je státní svátek: " + info.svatek + ".";
+    return t;
+  }
+  window.SvatekLogika = {
+    KEY: "zachodova-svatek-v1",
+    jeJmeno: jeJmeno,
+    datumKlic: datumKlic,
+    url: url,
+    zOdpovedi: zOdpovedi,
+    text: text
+  };
+})();
+</script>
 <script id="profil-ui">
 (function () {
   var PL = window.ProfilLogika;
@@ -2711,6 +2781,57 @@ body.detail-open { overflow: hidden; }
     otevri: otevri,
     poZmene: function (fn) { if (typeof fn === "function") listeners.push(fn); }
   };
+})();
+</script>
+<script id="svatek-ui">
+(function () {
+  var L = window.SvatekLogika, el = document.getElementById("svatek");
+  var info = null, klic = null, nacitam = null;
+  function vykresli() {
+    var t = L.text(info, window.Profil ? window.Profil.aktualni().prezdivka : "");
+    if (el.textContent !== t) { el.textContent = t; el.title = t; }
+    el.hidden = !t;
+  }
+  function nactiZUloziste(k) {
+    try {
+      var s = JSON.parse(localStorage.getItem(L.KEY));
+      if (s && s.datum === k) return L.zOdpovedi(s.odpoved);
+    } catch (e) {}
+    return null;
+  }
+  // Loads today's name day once per day; on failure the greeting just stays hidden.
+  function obnov() {
+    var k = L.datumKlic(new Date());
+    if (k === klic) return;
+    klic = k;
+    info = nactiZUloziste(k);
+    vykresli();
+    if (info || nacitam === k || !window.fetch) return;
+    nacitam = k;
+    var ctl = window.AbortController ? new AbortController() : null;
+    var casovac = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    fetch(L.url(k), ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (o) {
+      var i = L.zOdpovedi(o);
+      if (!i || k !== klic) return;
+      info = i;
+      try { localStorage.setItem(L.KEY, JSON.stringify({ datum: k, odpoved: o })); } catch (e) {}
+      vykresli();
+    }).catch(function () {
+      if (k === klic) klic = null;   // try again on the next check
+    }).then(function () {
+      clearTimeout(casovac);
+      if (nacitam === k) nacitam = null;
+    });
+  }
+  obnov();
+  setInterval(obnov, 60000);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") obnov();
+  });
+  if (window.Profil) window.Profil.poZmene(vykresli);
 })();
 </script>
 <script>
