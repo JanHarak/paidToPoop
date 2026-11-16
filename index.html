@@ -397,7 +397,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .clock {
   position: fixed;
   top: calc(.75rem + env(safe-area-inset-top, 0px));
-  right: calc(max(44px, calc((100vw - 980px) / 2)) + .5rem);
+  right: calc(max(44px, calc((100vw - 980px) / 2)) + .5rem + 2.1rem + .4rem);
   z-index: 6;
   background: var(--porcelain);
   box-shadow: var(--shadow);
@@ -410,10 +410,73 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   white-space: nowrap;
   pointer-events: none;
 }
+/* Profile icon, right of the clock */
+.profil-btn {
+  position: fixed;
+  top: calc(.75rem + env(safe-area-inset-top, 0px));
+  right: calc(max(44px, calc((100vw - 980px) / 2)) + .5rem);
+  z-index: 6;
+  width: 2.1rem;
+  height: 2.1rem;
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.profil-btn::after { content: ""; position: absolute; inset: -.4rem; }
+.profil-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.profil-btn svg { display: block; }
 /* With the stopwatch shown in the clock, keep it on screen on the narrowest phones. */
 @media (max-width: 360px) {
-  .clock { font-size: .72rem; padding: .3rem .6rem; }
+  .clock { font-size: .68rem; padding: .3rem .5rem; right: calc(44px + .5rem + 2.1rem + .3rem); }
 }
+/* Profile layer */
+.profil-telo { flex: 1; overflow-y: auto; padding: 1rem .75rem 2rem; }
+.profil-obsah { max-width: 520px; margin: 0 auto; }
+.profil-nahled { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.2rem; }
+.profil-nahled-avatar {
+  width: 4rem; height: 4rem; border-radius: 50%;
+  background: var(--porcelain); box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; line-height: 1; color: var(--ink); flex: none;
+}
+.profil-nahled-jmeno { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; font-size: 1.25rem; overflow-wrap: anywhere; }
+.profil-nahled-jmeno.prazdne { color: var(--muted); font-weight: 400; }
+.profil fieldset { border: 0; margin: 0 0 1.1rem; padding: 0; min-width: 0; }
+.profil legend { font-weight: 700; padding: 0; margin-bottom: .45rem; }
+.profil-avatary { display: flex; flex-wrap: wrap; gap: .4rem; }
+.profil-volba { position: relative; display: block; }
+.profil-volba input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.profil-volba span {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 0 .7rem; box-sizing: border-box;
+  border: 2px solid var(--line); border-radius: 999px;
+  background: var(--porcelain); color: var(--ink); font-size: 1.4rem; line-height: 1;
+}
+.profil-volba span.text { font-size: .95rem; font-weight: 700; }
+.profil-volba input:checked + span { border-color: var(--brass); box-shadow: var(--shadow); }
+.profil-volba input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
+.profil-rezim { display: flex; gap: .4rem; margin-bottom: 1rem; }
+.profil-rezim .profil-volba { flex: 1; }
+.profil-rezim .profil-volba span { font-size: .95rem; font-weight: 700; }
+.profil .input-row select { flex: none; width: auto; }
+.profil-pozn { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+.profil-hotovo {
+  min-height: 44px; padding: 0 1.4rem; border: 2px solid var(--line); border-radius: 999px;
+  background: var(--porcelain); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+}
+.profil-hotovo:hover { border-color: var(--brass); }
+.profil [hidden] { display: none; }
 /* Warning (20 min) */
 .warn-tint {
   position: fixed;
@@ -1429,6 +1492,7 @@ body.detail-open { overflow: hidden; }
 </head>
 <body>
 <div class="clock" id="clock" aria-live="off"></div>
+<button type="button" class="profil-btn" id="profilBtn" aria-label="Profil" title="Profil"><span id="profilBtnAvatar" aria-hidden="true"></span></button>
 <div class="rain rain-l" aria-hidden="true"></div>
 <div class="rain rain-r" aria-hidden="true"></div>
 <div class="wrap">
@@ -1836,6 +1900,61 @@ body.detail-open { overflow: hidden; }
     </div>
     <button type="button" id="poradaTlacitko">Svolat poradu</button>
   </div>
+</div>
+
+<div id="profil" class="vrstva profil" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profilTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="profilTitul">Profil</h2>
+    <button id="profilZavrit" type="button" aria-label="Zavřít profil" title="Zavřít profil">×</button>
+  </div>
+  <div class="profil-telo"><div class="profil-obsah">
+    <div class="profil-nahled">
+      <div class="profil-nahled-avatar" id="profilNahledAvatar" aria-hidden="true"></div>
+      <div class="profil-nahled-jmeno prazdne" id="profilNahledJmeno">Bez přezdívky</div>
+    </div>
+    <div class="field">
+      <label for="profilPrezdivka">Přezdívka</label>
+      <div class="input-row"><input type="text" id="profilPrezdivka" maxlength="24" autocomplete="nickname"></div>
+    </div>
+    <fieldset>
+      <legend>Avatar</legend>
+      <div class="profil-avatary">
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value=""><span class="text">Žádný</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🧻" aria-label="Toaletní papír"><span aria-hidden="true">🧻</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🚽" aria-label="Záchod"><span aria-hidden="true">🚽</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="👑" aria-label="Koruna"><span aria-hidden="true">👑</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🦆" aria-label="Kachnička"><span aria-hidden="true">🦆</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="💩" aria-label="Hovínko"><span aria-hidden="true">💩</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🐻" aria-label="Medvěd"><span aria-hidden="true">🐻</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🦄" aria-label="Jednorožec"><span aria-hidden="true">🦄</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🚀" aria-label="Raketa"><span aria-hidden="true">🚀</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Pro deník</legend>
+      <div class="profil-rezim">
+        <label class="profil-volba"><input type="radio" name="profilMode" value="md"><span>MD sazba</span></label>
+        <label class="profil-volba"><input type="radio" name="profilMode" value="sal"><span>Měsíční plat</span></label>
+      </div>
+      <div class="field">
+        <label for="profilCastka" id="profilCastkaPopisek">MD sazba</label>
+        <div class="input-row">
+          <input type="number" id="profilCastka" inputmode="decimal" min="0" step="any">
+          <select id="profilMena" aria-label="Měna"><option value="CZK">Kč</option><option value="EUR">€</option><option value="USD">$</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="profilHodiny">Délka pracovního dne, hod</label>
+        <div class="input-row"><input type="number" id="profilHodiny" inputmode="decimal" min="0" max="24" step="any"></div>
+      </div>
+      <div class="field" id="profilDniPole">
+        <label for="profilDni">Pracovních dní / měsíc</label>
+        <div class="input-row"><input type="number" id="profilDni" inputmode="numeric" min="0" max="31" step="1"></div>
+      </div>
+      <p class="profil-pozn">Podle toho se počítají zápisy ze stopek. Starší zápisy se nemění.</p>
+    </fieldset>
+    <button type="button" class="profil-hotovo" id="profilHotovo">Hotovo</button>
+  </div></div>
 </div>
 
 <div id="instalace" role="region" aria-labelledby="instalaceTitle" hidden>
@@ -2348,6 +2467,144 @@ body.detail-open { overflow: hidden; }
     KEY: KEY, AVATARY: AVATARY, MENY: MENY, MAX_PREZDIVKA: MAX_PREZDIVKA,
     vychozi: vychozi, normalizuj: normalizuj, parse: parse, zKalkulacky: zKalkulacky,
     serializuj: serializuj, zaMinutu: zaMinutu
+  };
+})();
+</script>
+<script id="profil-ui">
+(function () {
+  var PL = window.ProfilLogika;
+  var CALC_KEY = "zachodova-kalkulacka-v1";
+  var btn = document.getElementById("profilBtn");
+  var btnAvatar = document.getElementById("profilBtnAvatar");
+  var vrstva = document.getElementById("profil");
+  var nahledAvatar = document.getElementById("profilNahledAvatar");
+  var nahledJmeno = document.getElementById("profilNahledJmeno");
+  var fPrezdivka = document.getElementById("profilPrezdivka");
+  var fCastka = document.getElementById("profilCastka");
+  var fMena = document.getElementById("profilMena");
+  var fHodiny = document.getElementById("profilHodiny");
+  var fDni = document.getElementById("profilDni");
+  var fDniPole = document.getElementById("profilDniPole");
+  var popisek = document.getElementById("profilCastkaPopisek");
+  var avatarRadia = document.getElementsByName("profilAvatar");
+  var modeRadia = document.getElementsByName("profilMode");
+  function ikonaSvg(px) {
+    return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="3.2" fill="currentColor"/><path d="M2.5 16c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8z" fill="currentColor"/></svg>';
+  }
+  var listeners = [];
+  var poskozen = false;
+  var profil = PL.vychozi();
+
+  function readStore(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function ulozit() {
+    try { localStorage.setItem(PL.KEY, PL.serializuj(profil)); } catch (e) {}
+  }
+
+  function start() {
+    var r = PL.parse(readStore(PL.KEY));
+    if (r.chybi) {
+      profil = PL.zKalkulacky(readStore(CALC_KEY));
+      ulozit();
+    } else if (r.poskozeno) {
+      profil = PL.vychozi();
+      poskozen = true;
+    } else {
+      profil = r.profil;
+    }
+  }
+
+  function cisloText(n) {
+    return n > 0 ? String(n) : "";
+  }
+
+  function kresliIkonu() {
+    if (profil.avatar) btnAvatar.textContent = profil.avatar;
+    else btnAvatar.innerHTML = ikonaSvg(18);
+    var t = profil.prezdivka ? "Profil: " + profil.prezdivka : "Profil";
+    btn.setAttribute("aria-label", t);
+    btn.title = t;
+  }
+  function kresliNahled() {
+    if (profil.avatar) nahledAvatar.textContent = profil.avatar;
+    else nahledAvatar.innerHTML = ikonaSvg(32);
+    nahledJmeno.textContent = profil.prezdivka || "Bez přezdívky";
+    nahledJmeno.className = "profil-nahled-jmeno" + (profil.prezdivka ? "" : " prazdne");
+  }
+  function kresliRezim() {
+    var sal = profil.mode === "sal";
+    fDniPole.hidden = !sal;
+    popisek.textContent = sal ? "Měsíční plat" : "MD sazba";
+  }
+  function zapisFormular() {
+    var i;
+    fPrezdivka.value = profil.prezdivka;
+    for (i = 0; i < avatarRadia.length; i++) avatarRadia[i].checked = avatarRadia[i].value === profil.avatar;
+    for (i = 0; i < modeRadia.length; i++) modeRadia[i].checked = modeRadia[i].value === profil.mode;
+    fCastka.value = cisloText(profil.castka);
+    fMena.value = profil.mena;
+    fHodiny.value = cisloText(profil.hodiny);
+    fDni.value = cisloText(profil.dni);
+    kresliRezim();
+  }
+  function prectiFormular() {
+    var i, av = "", mode = "md";
+    for (i = 0; i < avatarRadia.length; i++) if (avatarRadia[i].checked) av = avatarRadia[i].value;
+    for (i = 0; i < modeRadia.length; i++) if (modeRadia[i].checked) mode = modeRadia[i].value;
+    return PL.normalizuj({
+      prezdivka: fPrezdivka.value, avatar: av, mode: mode,
+      castka: fCastka.value, mena: fMena.value, hodiny: fHodiny.value, dni: fDni.value
+    });
+  }
+  function oznam() {
+    for (var i = 0; i < listeners.length; i++) {
+      try { listeners[i](); } catch (e) {}
+    }
+  }
+  function priZmene() {
+    profil = prectiFormular();
+    ulozit();
+    poskozen = false;
+    kresliIkonu();
+    kresliNahled();
+    kresliRezim();
+    oznam();
+  }
+
+  function otevri(opener) {
+    zapisFormular();
+    kresliNahled();
+    window.Vrstvy.open(vrstva, { returnFocus: opener || btn, initialFocus: fPrezdivka });
+  }
+
+  vrstva.addEventListener("input", priZmene);
+  vrstva.addEventListener("change", priZmene);
+  btn.addEventListener("click", function () { otevri(btn); });
+  document.getElementById("profilZavrit").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
+  document.getElementById("profilHotovo").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
+
+  window.addEventListener("storage", function (e) {
+    if (e.key !== null && e.key !== PL.KEY) return;
+    var r = PL.parse(readStore(PL.KEY));
+    if (r.poskozeno) return;
+    profil = r.profil;
+    poskozen = false;
+    kresliIkonu();
+    kresliNahled();
+    if (!vrstva.hidden) zapisFormular();
+    oznam();
+  });
+
+  start();
+  kresliIkonu();
+  kresliNahled();
+
+  window.Profil = {
+    aktualni: function () { return PL.normalizuj(profil); },
+    zaMinutu: function () { return PL.zaMinutu(PL.normalizuj(profil)); },
+    otevri: otevri,
+    poZmene: function (fn) { if (typeof fn === "function") listeners.push(fn); }
   };
 })();
 </script>
