@@ -1536,12 +1536,12 @@ body.detail-open { overflow: hidden; }
   </header>
 
   <div class="seg pohled-tabs" id="pohledTabs" role="tablist" aria-label="Zobrazení">
-    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="true" tabindex="0">Deník</button>
-    <button type="button" role="tab" class="seg-btn" id="tabKalk" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Kalkulačka</button>
+    <button type="button" role="tab" class="seg-btn" id="tabKalk" aria-controls="pohledPanel" aria-selected="true" tabindex="0">Kalkulačka</button>
+    <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Deník</button>
   </div>
 
-  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="tabDenik">
-    <section class="panel" id="vstupPanel" aria-labelledby="in-h" hidden>
+  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="tabKalk">
+    <section class="panel" id="vstupPanel" aria-labelledby="in-h">
       <h2 id="in-h">Tvoje údaje</h2>
 
       <fieldset class="field zpusob">
@@ -1609,7 +1609,7 @@ body.detail-open { overflow: hidden; }
       </div>
     </section>
 
-    <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h" hidden>
+    <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h">
       <h2 id="out-h">Výdělek na záchodě</h2>
       <div class="today">
         <div class="label">Dnes</div>
@@ -1632,7 +1632,7 @@ body.detail-open { overflow: hidden; }
       <button class="reset" id="reset" type="button">Vrátit výchozí hodnoty</button>
     </section>
 
-    <section class="panel" id="denikPanel" aria-labelledby="denikH">
+    <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
       <h2 id="denikH" tabindex="-1">Deník</h2>
       <p class="denik-varovani" id="denikVarovani" hidden>Uložený deník se nepodařilo načíst. Nic nepřepíšu, dokud nezapíšeš.</p>
       <div class="field timer-block">
@@ -1655,7 +1655,7 @@ body.detail-open { overflow: hidden; }
       </div>
     </section>
 
-    <section class="panel results" id="vyuctovaniPanel" aria-labelledby="vyuc-h">
+    <section class="panel results" id="vyuctovaniPanel" aria-labelledby="vyuc-h" hidden>
       <h2 id="vyuc-h">Vyděláno</h2>
       <ul class="rows rows-vyuc" id="vyuctovaniRady"></ul>
       <ul class="rows rows-vyuc rows-prumer" id="vyuctovaniPrumer"></ul>
@@ -2679,7 +2679,7 @@ body.detail-open { overflow: hidden; }
   var posledniSmazany = null;
   var timerStart = null, timerTick = null;
   var mode = "md";
-  var pohled = "denik";
+  var pohled = "kalk";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
 
   function load() {
@@ -2689,8 +2689,7 @@ body.detail-open { overflow: hidden; }
       var s = JSON.parse(raw);
       Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
-      // Older saves used "md" or "sal" for the calculator view.
-      pohled = s.pohled === "kalk" || s.pohled === "md" || s.pohled === "sal" ? "kalk" : "denik";
+      pohled = s.pohled === "denik" ? "denik" : "kalk";
       if (typeof s.count === "number" && s.count % 1 === 0 && s.count >= 0 && s.count <= 99) count = s.count;
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
@@ -3034,7 +3033,7 @@ body.detail-open { overflow: hidden; }
   }
   function ukazZalozky() {
     var aktivni = pohled === "denik" ? "tabDenik" : "tabKalk";
-    ["tabDenik", "tabKalk"].forEach(function (id) {
+    ["tabKalk", "tabDenik"].forEach(function (id) {
       var on = id === aktivni;
       $(id).setAttribute("aria-selected", String(on));
       $(id).tabIndex = on ? 0 : -1;
@@ -3300,7 +3299,7 @@ body.detail-open { overflow: hidden; }
   }
   $("zpusobMd").addEventListener("change", function () { if (this.checked) { setMode("md"); render(); } });
   $("zpusobSal").addEventListener("change", function () { if (this.checked) { setMode("sal"); render(); } });
-  var POHLEDY = ["denik", "kalk"], POHLED_IDS = { kalk: "tabKalk", denik: "tabDenik" };
+  var POHLEDY = ["kalk", "denik"], POHLED_IDS = { kalk: "tabKalk", denik: "tabDenik" };
   Object.keys(POHLED_IDS).forEach(function (k) {
     $(POHLED_IDS[k]).addEventListener("click", function () {
       if (pohled !== k) prepniPohled(k);
