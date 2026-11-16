@@ -623,6 +623,19 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 }
 .denik-varovani[hidden] { display: none; }
 .denik-profil { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; }
+/* "nebo měř čas" separator in the calculator */
+.nebo { display: flex; align-items: center; gap: .7rem; margin: .4rem 0 0; color: var(--muted); font-size: .9rem; }
+.nebo::before, .nebo::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.flush:disabled { opacity: .45; cursor: not-allowed; }
+.profil-vyzva { margin: .6rem 0 0; text-align: center; color: var(--muted); font-size: .9rem; }
+.profil-vyzva .denik-profil-upravit { margin-top: .4rem; }
+/* Result of a trial measurement in the calculator results */
+.mereni { margin-top: 1rem; padding: .9rem 1rem; border: 2px dashed var(--line); border-radius: 14px; text-align: center; }
+.mereni-text { font-weight: 700; }
+.mereni-text:focus { outline: none; }
+.mereni .hra-btn { margin: .7rem auto 0; }
+.mereni .hra-btn:disabled { opacity: .6; cursor: default; }
+.mereni .hra-btn:disabled:hover { background: var(--brass-soft); }
 .denik-profil-upravit {
   font: inherit;
   color: var(--ink);
@@ -1613,6 +1626,13 @@ body.detail-open { overflow: hidden; }
           <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
         </div>
       </div>
+
+      <div class="field timer-block">
+        <p class="nebo">nebo měř čas</p>
+        <button class="flush" id="flushKalk" type="button">Jdu na záchod</button>
+        <div class="timer-note" id="timerNoteKalk">Změří čas podle sazby z profilu. Do deníku se samo nic nezapíše, výsledek uvidíš ve výdělku.</div>
+        <p class="profil-vyzva" id="profilVyzvaKalk" hidden>Nejdřív si nastav sazbu v profilu.<br><button type="button" class="denik-profil-upravit" id="profilVyzvaKalkBtn">Nastavit profil</button></p>
+      </div>
     </section>
 
     <section class="panel results" id="vysledkyPanel" aria-labelledby="out-h">
@@ -1629,6 +1649,10 @@ body.detail-open { overflow: hidden; }
         <li><span class="k">Za rok</span><span class="v" id="rYear"></span></li>
       </ul>
       <button class="hra-btn denik-zapsat" id="denikZapsat" type="button">Zapsat do deníku</button>
+      <div class="mereni" id="mereni" hidden>
+        <div class="mereni-text" id="mereniText" tabindex="-1"></div>
+        <button class="hra-btn" id="mereniZapsat" type="button">Zapsat měření do deníku</button>
+      </div>
       <div class="facts">
         <p>Tvoje denní sazba je <strong id="fRate"></strong>.</p>
         <p>Na záchodě strávíš <strong id="fPct"></strong> pracovní doby.</p>
@@ -1644,6 +1668,7 @@ body.detail-open { overflow: hidden; }
       <div class="field timer-block">
         <button class="flush" id="flush" type="button">Jdu na záchod</button>
         <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.</div>
+        <p class="profil-vyzva" id="profilVyzvaDenik" hidden>Nejdřív si nastav sazbu v profilu.<br><button type="button" class="denik-profil-upravit" id="profilVyzvaDenikBtn">Nastavit profil</button></p>
       </div>
       <p class="denik-profil" id="denikProfil"><span id="denikProfilText"></span> <button type="button" class="denik-profil-upravit" id="denikProfilUpravit">Upravit</button></p>
       <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
@@ -2255,8 +2280,23 @@ body.detail-open { overflow: hidden; }
     s = s % 60;
     return m + ":" + (s < 10 ? "0" : "") + s;
   }
+  // Where the running stopwatch was started: "kalk" is a trial measurement, anything else the diary.
+  function zdroj(raw) {
+    return raw === "kalk" ? "kalk" : "denik";
+  }
+  function konecne(v) { return typeof v === "number" && isFinite(v); }
+  // A stored trial measurement from the calculator, or null when it is not usable.
+  function mereni(o) {
+    if (!o || typeof o !== "object") return null;
+    if (!konecne(o.start) || !konecne(o.min) || !konecne(o.castka)) return null;
+    if (o.min <= 0 || o.castka < 0 || typeof o.mena !== "string" || !o.mena) return null;
+    return { start: o.start, min: o.min, castka: o.castka, mena: o.mena, zapsano: o.zapsano === true };
+  }
   window.Stopky = {
     KEY: "zachodova-stopky-v1",
+    ZDROJ_KEY: "zachodova-stopky-zdroj-v1",
+    zdroj: zdroj,
+    mereni: mereni,
     MAX_AGE_MS: MAX_AGE_MS,
     FUTURE_TOLERANCE_MS: FUTURE_TOLERANCE_MS,
     restoreStart: restoreStart,
@@ -2684,6 +2724,10 @@ body.detail-open { overflow: hidden; }
   var lastDay = 0;
   var posledniSmazany = null;
   var timerStart = null, timerTick = null;
+  var timerZdroj = "denik";   // where the running stopwatch was started ("kalk" = trial measurement)
+  var mereniData = null;      // last trial measurement from the calculator
+  var NOTE_DENIK = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.";
+  var NOTE_KALK = "Změří čas podle sazby z profilu. Do deníku se samo nic nezapíše, výsledek uvidíš ve výdělku.";
   var mode = "md";
   var pohled = "kalk";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
@@ -2697,6 +2741,7 @@ body.detail-open { overflow: hidden; }
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
       pohled = s.pohled === "denik" ? "denik" : "kalk";
       if (typeof s.count === "number" && s.count % 1 === 0 && s.count >= 0 && s.count <= 99) count = s.count;
+      mereniData = Stopky.mereni(s.mereni);
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
         if (s.amounts.sal !== undefined) amounts.sal = s.amounts.sal;
@@ -2709,7 +2754,7 @@ body.detail-open { overflow: hidden; }
   function save() {
     try {
       amounts[mode] = els.md.value;
-      var s = { count: count, mode: mode, pohled: pohled, amounts: amounts };
+      var s = { count: count, mode: mode, pohled: pohled, amounts: amounts, mereni: mereniData };
       Object.keys(els).forEach(function (k) { s[k] = els[k].value; });
       localStorage.setItem(KEY, JSON.stringify(s));
     } catch (e) {}
@@ -3111,9 +3156,42 @@ body.detail-open { overflow: hidden; }
     $("fHours").textContent = n(yearHours, 1) + " hodin";
     $("fMd").textContent = hours > 0 ? n(yearHours / hours, 1) : "0";
     $("fRate").textContent = money(dayRate());
+    renderMereni();
+    aktualizujStopky();
     save();
     renderDenik();
   }
+
+  // Both stopwatch buttons need a profile rate to start; a running stopwatch can always be stopped.
+  function aktualizujStopky() {
+    var bez = timerStart === null && !(Profil.zaMinutu() > 0);
+    [["flush", "profilVyzvaDenik"], ["flushKalk", "profilVyzvaKalk"]].forEach(function (d) {
+      $(d[0]).disabled = bez;
+      $(d[1]).hidden = !bez;
+    });
+  }
+  function renderMereni() {
+    var box = $("mereni");
+    box.hidden = !mereniData;
+    if (!mereniData) return;
+    var t = "Změřeno: " + Stopky.fmtTime(mereniData.min * 60000) + " · " + fmtCur(mereniData.castka, mereniData.mena) + " (podle profilu)";
+    if ($("mereniText").textContent !== t) $("mereniText").textContent = t;
+    var b = $("mereniZapsat");
+    b.disabled = mereniData.zapsano;
+    b.textContent = mereniData.zapsano ? "✓ Zapsáno" : "Zapsat měření do deníku";
+  }
+  $("mereniZapsat").addEventListener("click", function () {
+    var m = mereniData;
+    if (!m || m.zapsano) return;
+    var z = pridejZapis(m.min, "stopky", m.start, m.castka / m.min, m.mena);
+    if (!z) return;
+    m.zapsano = true;
+    render();
+    $("mereniText").focus();   // the button is now disabled
+    ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
+  });
+  $("profilVyzvaKalkBtn").addEventListener("click", function () { Profil.otevri(this); });
+  $("profilVyzvaDenikBtn").addEventListener("click", function () { Profil.otevri(this); });
 
   window.addEventListener("storage", function (e) {
     if (e.key !== null && e.key !== DL.KEY) return;
@@ -3237,7 +3315,7 @@ body.detail-open { overflow: hidden; }
     var back = warnPrevFocus;
     warnPrevFocus = null;
     if (back && back !== document.body && document.body.contains(back) && !(back.closest && back.closest("[inert]"))) back.focus();
-    else $(pohled === "denik" ? "flush" : "tabDenik").focus();
+    else $(pohled === "denik" ? "flush" : "flushKalk").focus();
   }
 
   function checkWarning() {
@@ -3262,17 +3340,22 @@ body.detail-open { overflow: hidden; }
     if (document.visibilityState === "visible") checkWarning();
   });
 
+  var FLUSHE = ["flush", "flushKalk"];
   function startTimer(start) {
-    var btn = $("flush"), note = $("timerNote");
     timerStart = start;
-    btn.textContent = "Hotovo, spláchnout";
-    btn.classList.add("timing");
+    FLUSHE.forEach(function (id) {
+      $(id).textContent = "Hotovo, spláchnout";
+      $(id).classList.add("timing");
+    });
+    aktualizujStopky();
     startRain();
     clearInterval(timerTick);
     var tick = function () {
       var elapsed = Stopky.elapsedMs(timerStart, Date.now());
       var earned = Profil.zaMinutu() * (elapsed / 60000);
-      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + fmtCur(earned, Profil.aktualni().mena);
+      var t = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + fmtCur(earned, Profil.aktualni().mena);
+      $("timerNote").textContent = t;
+      $("timerNoteKalk").textContent = t;
       tickClock();
       checkWarning();
     };
@@ -3280,45 +3363,76 @@ body.detail-open { overflow: hidden; }
     timerTick = setInterval(tick, 250);
   }
 
-  $("flush").addEventListener("click", function () {
-    var btn = $("flush"), note = $("timerNote");
+  function stiskStopek(odkud) {
     if (timerStart === null) {
+      if (!(Profil.zaMinutu() > 0)) return;
       var start = Date.now();
       warned = false;
-      try { localStorage.setItem(Stopky.KEY, String(start)); } catch (e) {}
+      timerZdroj = odkud;
+      try {
+        localStorage.setItem(Stopky.KEY, String(start));
+        localStorage.setItem(Stopky.ZDROJ_KEY, odkud);
+      } catch (e) {}
       startTimer(start);
-    } else {
-      var startMs = timerStart;
-      var elapsedMs = Stopky.elapsedMs(startMs, Date.now());
-      var elapsedMin = elapsedMs / 60000;
-      clearInterval(timerTick);
-      stopRain();
-      timerStart = null;
-      tickClock();
-      hideWarning();
-      warned = false;
-      try { localStorage.removeItem(Stopky.KEY); } catch (e) {}
-      btn.textContent = "Jdu na záchod";
-      btn.classList.remove("timing");
-      if (elapsedMs < DL.MIN_MS) {
-        note.textContent = "Moc krátké, do deníku nezapsáno.";
-        render();
-      } else {
-        var zaMin = Profil.zaMinutu(), menaZapisu = Profil.aktualni().mena;
-        pridejZapis(elapsedMin, "stopky", startMs, zaMin, menaZapisu);
-        note.textContent = zaMin === 0
-          ? "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno bez částky. Nastav si sazbu v profilu."
-          : "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
-      }
+      return;
     }
-  });
+    var startMs = timerStart;
+    var elapsedMs = Stopky.elapsedMs(startMs, Date.now());
+    var elapsedMin = elapsedMs / 60000;
+    var zdroj = timerZdroj;
+    clearInterval(timerTick);
+    stopRain();
+    timerStart = null;
+    timerZdroj = "denik";
+    tickClock();
+    hideWarning();
+    warned = false;
+    try {
+      localStorage.removeItem(Stopky.KEY);
+      localStorage.removeItem(Stopky.ZDROJ_KEY);
+    } catch (e) {}
+    FLUSHE.forEach(function (id) {
+      $(id).textContent = "Jdu na záchod";
+      $(id).classList.remove("timing");
+    });
+    var zaMin = Profil.zaMinutu(), menaZapisu = Profil.aktualni().mena;
+    if (zdroj === "kalk") {
+      // Trial measurement: show the result in the calculator, write nothing to the diary.
+      $("timerNote").textContent = NOTE_DENIK;
+      if (elapsedMs < DL.MIN_MS) {
+        $("timerNoteKalk").textContent = "Moc krátké, nic se nezměřilo.";
+      } else {
+        mereniData = Stopky.mereni({ start: startMs, min: elapsedMin, castka: zaMin * elapsedMin, mena: menaZapisu });
+        $("timerNoteKalk").textContent = "Změřeno " + n(elapsedMin, 1) + " min, výsledek je ve výdělku.";
+      }
+      render();
+      return;
+    }
+    $("timerNoteKalk").textContent = NOTE_KALK;
+    var note = $("timerNote");
+    if (elapsedMs < DL.MIN_MS) {
+      note.textContent = "Moc krátké, do deníku nezapsáno.";
+      render();
+    } else {
+      pridejZapis(elapsedMin, "stopky", startMs, zaMin, menaZapisu);
+      note.textContent = zaMin === 0
+        ? "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno bez částky. Nastav si sazbu v profilu."
+        : "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
+    }
+  }
+  $("flush").addEventListener("click", function () { stiskStopek("denik"); });
+  $("flushKalk").addEventListener("click", function () { stiskStopek("kalk"); });
 
   $("reset").addEventListener("click", function () {
     Object.keys(els).forEach(function (k) { els[k].value = DEFAULTS[k]; });
     amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
     count = DEFAULTS.count;
     setMode("md", true);
-    $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.";
+    mereniData = null;
+    if (timerStart === null) {
+      $("timerNote").textContent = NOTE_DENIK;
+      $("timerNoteKalk").textContent = NOTE_KALK;
+    }
     render();
   });
 
@@ -3641,7 +3755,10 @@ body.detail-open { overflow: hidden; }
     var saved = localStorage.getItem(Stopky.KEY);
     if (saved !== null) {
       var restored = Stopky.restoreStart(saved, Date.now());
-      if (restored !== null) startTimer(restored);
+      if (restored !== null) {
+        timerZdroj = Stopky.zdroj(localStorage.getItem(Stopky.ZDROJ_KEY));
+        startTimer(restored);
+      }
       else localStorage.removeItem(Stopky.KEY);
     }
   } catch (e) {}
