@@ -483,15 +483,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 /* Profile layer */
 .profil-telo { flex: 1; overflow-y: auto; padding: 1rem .75rem 2rem; }
 .profil-obsah { max-width: 520px; margin: 0 auto; }
-.profil-nahled { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.2rem; }
+/* Chosen avatar left of the nickname field */
+.profil-nahled { display: flex; align-items: center; gap: .7rem; }
+.profil-nahled .input-row { flex: 1; min-width: 0; }
 .profil-nahled-avatar {
-  width: 4rem; height: 4rem; border-radius: 50%;
+  width: 3rem; height: 3rem; border-radius: 50%;
   background: var(--porcelain); box-shadow: var(--shadow);
   display: flex; align-items: center; justify-content: center;
-  font-size: 2.2rem; line-height: 1; color: var(--ink); flex: none;
+  font-size: 1.7rem; line-height: 1; color: var(--ink); flex: none;
 }
-.profil-nahled-jmeno { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; font-size: 1.25rem; overflow-wrap: anywhere; }
-.profil-nahled-jmeno.prazdne { color: var(--muted); font-weight: 400; }
 .profil fieldset { border: 0; margin: 0 0 1.1rem; padding: 0; min-width: 0; }
 .profil legend { font-weight: 700; padding: 0; margin-bottom: .45rem; }
 .profil-avatary { display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -2013,13 +2013,12 @@ body.detail-open { overflow: hidden; }
   </div>
   <div class="profil-telo"><div class="profil-obsah">
     <p class="denik-varovani" id="profilVarovani" hidden>Uložený profil se nepodařilo načíst. Nic nepřepíšu, dokud tu něco nezměníš.</p>
-    <div class="profil-nahled">
-      <div class="profil-nahled-avatar" id="profilNahledAvatar" aria-hidden="true"></div>
-      <div class="profil-nahled-jmeno prazdne" id="profilNahledJmeno">Bez přezdívky</div>
-    </div>
     <div class="field">
       <label for="profilPrezdivka">Jak tě mohu oslovovat?</label>
-      <div class="input-row"><input type="text" id="profilPrezdivka" maxlength="24" autocomplete="nickname"></div>
+      <div class="profil-nahled">
+        <div class="profil-nahled-avatar" id="profilNahledAvatar" aria-hidden="true"></div>
+        <div class="input-row"><input type="text" id="profilPrezdivka" maxlength="24" autocomplete="nickname"></div>
+      </div>
     </div>
     <fieldset>
       <legend>Avatar</legend>
@@ -2639,7 +2638,6 @@ body.detail-open { overflow: hidden; }
   var btnAvatar = document.getElementById("profilBtnAvatar");
   var vrstva = document.getElementById("profil");
   var nahledAvatar = document.getElementById("profilNahledAvatar");
-  var nahledJmeno = document.getElementById("profilNahledJmeno");
   var fPrezdivka = document.getElementById("profilPrezdivka");
   var fCastka = document.getElementById("profilCastka");
   var fMena = document.getElementById("profilMena");
@@ -2690,9 +2688,7 @@ body.detail-open { overflow: hidden; }
   }
   function kresliNahled() {
     if (profil.avatar) nahledAvatar.textContent = profil.avatar;
-    else nahledAvatar.innerHTML = ikonaSvg(32);
-    nahledJmeno.textContent = profil.prezdivka || "Bez přezdívky";
-    nahledJmeno.className = "profil-nahled-jmeno" + (profil.prezdivka ? "" : " prazdne");
+    else nahledAvatar.innerHTML = ikonaSvg(26);
   }
   function kresliRezim() {
     var sal = profil.mode === "sal";
