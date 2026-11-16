@@ -560,6 +560,8 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 }
 .hra-btn:hover { background: var(--porcelain); }
 .denik-zapsat { margin: 1rem auto 0; }
+.denik-zapsat:disabled { opacity: .45; cursor: not-allowed; }
+.denik-zapsat:disabled:hover { background: var(--brass-soft); }
 .panel[hidden] { display: none; }
 .zpusob { border: 0; padding: 0; min-width: 0; }
 .zpusob legend { font-weight: 700; padding: 0; margin-bottom: .35rem; }
@@ -3065,6 +3067,10 @@ body.detail-open { overflow: hidden; }
     $("rDaySub").textContent = count + " " + visitsWord(count) + " · " + DL.fmtMin(dayMins) + " placeného trůnu";
     $("rMin").textContent = money(perMin);
     $("rVisit").textContent = money(perVisit);
+    // Writing to the diary makes sense only once the calculator yields earnings per visit.
+    var zapsat = $("denikZapsat"), lzeZapsat = perVisit > 0;
+    if (!lzeZapsat && document.activeElement === zapsat) $("mins").focus();
+    zapsat.disabled = !lzeZapsat;
     $("rMonth").textContent = money(perDay * dm);
     $("rYear").textContent = money(perDay * dy);
 
