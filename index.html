@@ -234,6 +234,8 @@ header p {
   padding: .6rem .75rem;
   outline: none;
 }
+/* Currency picker keeps its natural width, the amount takes the rest (calculator and profile). */
+.input-row select { flex: none; width: auto; }
 .input-row .unit {
   display: flex;
   align-items: center;
@@ -394,10 +396,16 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   padding: 0;
 }
 /* Clock */
+:root {
+  /* Profile icon size and its distance from the right edge; the clock sits left of it. */
+  --profil-vel: 2.75rem;
+  --profil-vpravo: max(.6rem, calc((100vw - 980px) / 2 + .5rem));
+}
 .clock {
   position: fixed;
-  top: calc(.75rem + env(safe-area-inset-top, 0px));
-  right: calc(max(44px, calc((100vw - 980px) / 2)) + .5rem);
+  /* Vertically centred against the profile icon. */
+  top: calc(.5rem + (var(--profil-vel) - 1.8rem) / 2 + env(safe-area-inset-top, 0px));
+  right: calc(var(--profil-vpravo) + var(--profil-vel) + .4rem);
   z-index: 6;
   background: var(--porcelain);
   box-shadow: var(--shadow);
@@ -410,10 +418,72 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   white-space: nowrap;
   pointer-events: none;
 }
+/* Profile icon, right of the clock */
+.profil-btn {
+  position: fixed;
+  top: calc(.5rem + env(safe-area-inset-top, 0px));
+  right: var(--profil-vpravo);
+  z-index: 6;
+  width: var(--profil-vel);
+  height: var(--profil-vel);
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.55rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.profil-btn::after { content: ""; position: absolute; inset: -.2rem; }
+.profil-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.profil-btn svg { display: block; width: 1.5rem; height: 1.5rem; }
 /* With the stopwatch shown in the clock, keep it on screen on the narrowest phones. */
 @media (max-width: 360px) {
-  .clock { font-size: .72rem; padding: .3rem .6rem; }
+  .clock { font-size: .68rem; padding: .3rem .5rem; right: calc(var(--profil-vpravo) + var(--profil-vel) + .3rem); top: calc(.5rem + (var(--profil-vel) - 1.55rem) / 2 + env(safe-area-inset-top, 0px)); }
 }
+/* Profile layer */
+.profil-telo { flex: 1; overflow-y: auto; padding: 1rem .75rem 2rem; }
+.profil-obsah { max-width: 520px; margin: 0 auto; }
+.profil-nahled { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.2rem; }
+.profil-nahled-avatar {
+  width: 4rem; height: 4rem; border-radius: 50%;
+  background: var(--porcelain); box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; line-height: 1; color: var(--ink); flex: none;
+}
+.profil-nahled-jmeno { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; font-size: 1.25rem; overflow-wrap: anywhere; }
+.profil-nahled-jmeno.prazdne { color: var(--muted); font-weight: 400; }
+.profil fieldset { border: 0; margin: 0 0 1.1rem; padding: 0; min-width: 0; }
+.profil legend { font-weight: 700; padding: 0; margin-bottom: .45rem; }
+.profil-avatary { display: flex; flex-wrap: wrap; gap: .4rem; }
+.profil-volba { position: relative; display: block; }
+.profil-volba input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.profil-volba span {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 0 .7rem; box-sizing: border-box;
+  border: 2px solid var(--line); border-radius: 999px;
+  background: var(--porcelain); color: var(--ink); font-size: 1.4rem; line-height: 1;
+}
+.profil-volba span.text { font-size: .95rem; font-weight: 700; }
+.profil-volba input:checked + span { border-color: var(--brass); box-shadow: var(--shadow); }
+.profil-volba input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
+.profil-rezim { display: flex; gap: .4rem; margin-bottom: 1rem; }
+.profil-rezim .profil-volba { flex: 1; }
+.profil-rezim .profil-volba span { font-size: .95rem; font-weight: 700; }
+.profil-pozn { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+.profil-hotovo {
+  min-height: 44px; padding: 0 1.4rem; border: 2px solid var(--line); border-radius: 999px;
+  background: var(--porcelain); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+}
+.profil-hotovo:hover { border-color: var(--brass); }
+.profil [hidden] { display: none; }
 /* Warning (20 min) */
 .warn-tint {
   position: fixed;
@@ -487,6 +557,15 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 .hra-btn:hover { background: var(--porcelain); }
 .denik-zapsat { margin: 1rem auto 0; }
 .panel[hidden] { display: none; }
+.zpusob { border: 0; padding: 0; min-width: 0; }
+.zpusob legend { font-weight: 700; padding: 0; margin-bottom: .35rem; }
+.zpusob .seg { margin-bottom: 0; }
+.zpusob-volba { position: relative; flex: 1; display: block; }
+.zpusob .zpusob-volba { margin: 0; }
+.zpusob-volba input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.zpusob-volba .seg-btn { display: block; text-align: center; }
+.zpusob-volba input:checked + .seg-btn { background: var(--porcelain); color: var(--ink); box-shadow: var(--shadow); }
+.zpusob-volba input:focus-visible + .seg-btn { outline: 2px solid var(--brass); outline-offset: 2px; }
 .pohled-tabs { margin: 0 0 1.25rem; box-shadow: inset 0 0 0 1px var(--line); }
 /* Same width as the "Tvoje údaje" column: 1fr of the 1fr + 1.1fr grid minus its 1.25rem gap. */
 @media (min-width: 820px) {
@@ -533,6 +612,17 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
   border-radius: 12px;
 }
 .denik-varovani[hidden] { display: none; }
+.denik-profil { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; }
+.denik-profil-upravit {
+  font: inherit;
+  color: var(--ink);
+  background: var(--tile);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: .15rem .8rem;
+  min-height: 2.2rem;
+  cursor: pointer;
+}
 .denik-rucne {
   padding: .05rem .5rem;
   border: 1px solid var(--line);
@@ -1432,6 +1522,7 @@ body.detail-open { overflow: hidden; }
 </head>
 <body>
 <div class="clock" id="clock" aria-live="off"></div>
+<button type="button" class="profil-btn" id="profilBtn" aria-label="Profil" title="Profil"><span id="profilBtnAvatar" aria-hidden="true"></span></button>
 <div class="rain rain-l" aria-hidden="true"></div>
 <div class="rain rain-r" aria-hidden="true"></div>
 <div class="wrap">
@@ -1441,14 +1532,21 @@ body.detail-open { overflow: hidden; }
   </header>
 
   <div class="seg pohled-tabs" id="pohledTabs" role="tablist" aria-label="Zobrazení">
-    <button type="button" role="tab" class="seg-btn" id="modeMd" aria-controls="pohledPanel" aria-selected="true" tabindex="0">MD sazba</button>
-    <button type="button" role="tab" class="seg-btn" id="modeSal" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Měsíční plat</button>
+    <button type="button" role="tab" class="seg-btn" id="tabKalk" aria-controls="pohledPanel" aria-selected="true" tabindex="0">Kalkulačka</button>
     <button type="button" role="tab" class="seg-btn" id="tabDenik" aria-controls="pohledPanel" aria-selected="false" tabindex="-1">Deník</button>
   </div>
 
-  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="modeMd">
+  <div class="grid" id="pohledPanel" role="tabpanel" aria-labelledby="tabKalk">
     <section class="panel" id="vstupPanel" aria-labelledby="in-h">
       <h2 id="in-h">Tvoje údaje</h2>
+
+      <fieldset class="field zpusob">
+        <legend>Způsob odměny</legend>
+        <div class="seg">
+          <label class="zpusob-volba"><input type="radio" name="zpusob" id="zpusobMd" value="md" checked><span class="seg-btn">MD sazba</span></label>
+          <label class="zpusob-volba"><input type="radio" name="zpusob" id="zpusobSal" value="sal"><span class="seg-btn">Měsíční plat</span></label>
+        </div>
+      </fieldset>
 
       <div class="field">
         <label for="md" id="mdLabel">MD sazba</label>
@@ -1497,13 +1595,16 @@ body.detail-open { overflow: hidden; }
         </div>
       </div>
 
-      <div class="field timer-block">
+      <div class="field">
         <label id="cnt-l">Návštěvy záchodu za den</label>
         <div class="counter" role="group" aria-labelledby="cnt-l">
-          <button class="step" id="minus" type="button" aria-label="Smazat poslední dnešní zápis" disabled>−</button>
-          <div class="count"><span id="count" aria-live="polite">3</span><small>návštěv dnes</small></div>
+          <button class="step" id="minus" type="button" aria-label="Ubrat návštěvu" disabled>−</button>
+          <div class="count"><span id="count" aria-live="polite">0</span><small>návštěv za den</small></div>
           <button class="step" id="plus" type="button" aria-label="Přidat návštěvu">+</button>
         </div>
+      </div>
+
+      <div class="field timer-block">
         <button class="flush" id="flush" type="button">Jdu na záchod</button>
         <div class="timer-note" id="timerNote">Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.</div>
       </div>
@@ -1535,6 +1636,7 @@ body.detail-open { overflow: hidden; }
     <section class="panel" id="denikPanel" aria-labelledby="denikH" hidden>
       <h2 id="denikH" tabindex="-1">Deník</h2>
       <p class="denik-varovani" id="denikVarovani" hidden>Uložený deník se nepodařilo načíst. Nic nepřepíšu, dokud nezapíšeš.</p>
+      <p class="denik-profil" id="denikProfil"><span id="denikProfilText"></span> <button type="button" class="denik-profil-upravit" id="denikProfilUpravit">Upravit</button></p>
       <p class="denik-prazdno" id="denikPrazdno" hidden>Zatím žádné zápisy. Spusť stopky nebo zapiš návštěvu z kalkulačky.</p>
       <div id="denikSeznam"></div>
       <button class="hra-btn denik-dalsi" id="denikDalsi" type="button" hidden>Zobrazit starší</button>
@@ -1839,6 +1941,62 @@ body.detail-open { overflow: hidden; }
     </div>
     <button type="button" id="poradaTlacitko">Svolat poradu</button>
   </div>
+</div>
+
+<div id="profil" class="vrstva profil" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profilTitul" hidden>
+  <div class="hra-hlava">
+    <h2 id="profilTitul">Profil</h2>
+    <button id="profilZavrit" type="button" aria-label="Zavřít profil" title="Zavřít profil">×</button>
+  </div>
+  <div class="profil-telo"><div class="profil-obsah">
+    <p class="denik-varovani" id="profilVarovani" hidden>Uložený profil se nepodařilo načíst. Nic nepřepíšu, dokud tu něco nezměníš.</p>
+    <div class="profil-nahled">
+      <div class="profil-nahled-avatar" id="profilNahledAvatar" aria-hidden="true"></div>
+      <div class="profil-nahled-jmeno prazdne" id="profilNahledJmeno">Bez přezdívky</div>
+    </div>
+    <div class="field">
+      <label for="profilPrezdivka">Přezdívka</label>
+      <div class="input-row"><input type="text" id="profilPrezdivka" maxlength="24" autocomplete="nickname"></div>
+    </div>
+    <fieldset>
+      <legend>Avatar</legend>
+      <div class="profil-avatary">
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value=""><span class="text">Žádný</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🧻" aria-label="Toaletní papír"><span aria-hidden="true">🧻</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🚽" aria-label="Záchod"><span aria-hidden="true">🚽</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="👑" aria-label="Koruna"><span aria-hidden="true">👑</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🦆" aria-label="Kachnička"><span aria-hidden="true">🦆</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="💩" aria-label="Hovínko"><span aria-hidden="true">💩</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🐻" aria-label="Medvěd"><span aria-hidden="true">🐻</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🦄" aria-label="Jednorožec"><span aria-hidden="true">🦄</span></label>
+        <label class="profil-volba"><input type="radio" name="profilAvatar" value="🚀" aria-label="Raketa"><span aria-hidden="true">🚀</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Pro deník</legend>
+      <div class="profil-rezim">
+        <label class="profil-volba"><input type="radio" name="profilMode" value="md"><span>MD sazba</span></label>
+        <label class="profil-volba"><input type="radio" name="profilMode" value="sal"><span>Měsíční plat</span></label>
+      </div>
+      <div class="field">
+        <label for="profilCastka" id="profilCastkaPopisek">MD sazba</label>
+        <div class="input-row">
+          <input type="number" id="profilCastka" inputmode="decimal" min="0" step="any">
+          <select id="profilMena" aria-label="Měna"><option value="CZK">Kč</option><option value="EUR">€</option><option value="USD">$</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="profilHodiny">Délka pracovního dne, hod</label>
+        <div class="input-row"><input type="number" id="profilHodiny" inputmode="decimal" min="0" max="24" step="any"></div>
+      </div>
+      <div class="field" id="profilDniPole">
+        <label for="profilDni">Pracovních dní / měsíc</label>
+        <div class="input-row"><input type="number" id="profilDni" inputmode="numeric" min="0" max="31" step="1"></div>
+      </div>
+      <p class="profil-pozn">Podle toho se počítají zápisy ze stopek. Starší zápisy se nemění.</p>
+    </fieldset>
+    <button type="button" class="profil-hotovo" id="profilHotovo">Hotovo</button>
+  </div></div>
 </div>
 
 <div id="instalace" role="region" aria-labelledby="instalaceTitle" hidden>
@@ -2276,6 +2434,234 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="profil-logika">
+(function () {
+  var KEY = "zachodova-profil-v1";
+  var AVATARY = ["🧻", "🚽", "👑", "🦆", "💩", "🐻", "🦄", "🚀"];
+  var MENY = ["CZK", "EUR", "USD"];
+  var MAX_PREZDIVKA = 24;
+
+  function vychozi() {
+    return { prezdivka: "", avatar: "", mode: "md", castka: 0, mena: "CZK", hodiny: 0, dni: 0 };
+  }
+
+  function cislo(x) {
+    if (typeof x === "string") {
+      if (!/\S/.test(x)) return NaN;
+      x = Number(x.replace(",", "."));
+    }
+    return typeof x === "number" && isFinite(x) ? x : NaN;
+  }
+
+  function jeObjekt(o) {
+    return o !== null && typeof o === "object" && !Array.isArray(o);
+  }
+
+  function normalizuj(o) {
+    var p = vychozi();
+    if (!jeObjekt(o)) return p;
+    if (typeof o.prezdivka === "string") p.prezdivka = o.prezdivka.slice(0, MAX_PREZDIVKA);
+    if (AVATARY.indexOf(o.avatar) !== -1) p.avatar = o.avatar;
+    if (o.mode === "sal") p.mode = "sal";
+    if (MENY.indexOf(o.mena) !== -1) p.mena = o.mena;
+    var c = cislo(o.castka);
+    if (c >= 0) p.castka = c;
+    var h = cislo(o.hodiny);
+    if (h >= 0 && h <= 24) p.hodiny = h;
+    var d = cislo(o.dni);
+    if (d >= 0 && d <= 31 && Math.floor(d) === d) p.dni = d;
+    return p;
+  }
+
+  function parse(raw) {
+    if (raw === null || raw === undefined) return { profil: vychozi(), chybi: true, poskozeno: false };
+    var o;
+    try { o = JSON.parse(raw); } catch (e) { o = undefined; }
+    if (!jeObjekt(o)) return { profil: vychozi(), chybi: false, poskozeno: true };
+    return { profil: normalizuj(o), chybi: false, poskozeno: false };
+  }
+
+  function zKalkulacky(raw) {
+    if (raw === null || raw === undefined) return vychozi();
+    var s;
+    try { s = JSON.parse(raw); } catch (e) { return vychozi(); }
+    if (!jeObjekt(s)) return vychozi();
+    var mode = s.mode === "sal" ? "sal" : "md";
+    var castka = jeObjekt(s.amounts) ? s.amounts[mode] : undefined;
+    if ((castka === undefined || castka === null) && mode === "md") castka = s.md;
+    return normalizuj({ mode: mode, castka: castka, mena: s.cur, hodiny: s.hours, dni: s.dm });
+  }
+
+  function serializuj(p) {
+    return JSON.stringify(normalizuj(p));
+  }
+
+  function zaMinutu(p) {
+    if (!p || !(p.hodiny > 0)) return 0;
+    if (p.mode === "sal") {
+      if (!(p.dni > 0)) return 0;
+      return p.castka / p.dni / (p.hodiny * 60);
+    }
+    return p.castka / (p.hodiny * 60);
+  }
+
+  window.ProfilLogika = {
+    KEY: KEY, AVATARY: AVATARY, MENY: MENY, MAX_PREZDIVKA: MAX_PREZDIVKA,
+    vychozi: vychozi, normalizuj: normalizuj, parse: parse, zKalkulacky: zKalkulacky,
+    serializuj: serializuj, zaMinutu: zaMinutu
+  };
+})();
+</script>
+<script id="profil-ui">
+(function () {
+  var PL = window.ProfilLogika;
+  var CALC_KEY = "zachodova-kalkulacka-v1";
+  var btn = document.getElementById("profilBtn");
+  var btnAvatar = document.getElementById("profilBtnAvatar");
+  var vrstva = document.getElementById("profil");
+  var nahledAvatar = document.getElementById("profilNahledAvatar");
+  var nahledJmeno = document.getElementById("profilNahledJmeno");
+  var fPrezdivka = document.getElementById("profilPrezdivka");
+  var fCastka = document.getElementById("profilCastka");
+  var fMena = document.getElementById("profilMena");
+  var fHodiny = document.getElementById("profilHodiny");
+  var fDni = document.getElementById("profilDni");
+  var fDniPole = document.getElementById("profilDniPole");
+  var popisek = document.getElementById("profilCastkaPopisek");
+  var avatarRadia = document.getElementsByName("profilAvatar");
+  var modeRadia = document.getElementsByName("profilMode");
+  function ikonaSvg(px) {
+    return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="3.2" fill="currentColor"/><path d="M2.5 16c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8z" fill="currentColor"/></svg>';
+  }
+  var listeners = [];
+  var poskozen = false;
+  var varovani = document.getElementById("profilVarovani");
+  var profil = PL.vychozi();
+
+  function readStore(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function ulozit() {
+    try { localStorage.setItem(PL.KEY, PL.serializuj(profil)); } catch (e) {}
+  }
+
+  function start() {
+    var r = PL.parse(readStore(PL.KEY));
+    if (r.chybi) {
+      profil = PL.zKalkulacky(readStore(CALC_KEY));
+      ulozit();
+    } else if (r.poskozeno) {
+      profil = PL.vychozi();
+      poskozen = true;
+    } else {
+      profil = r.profil;
+    }
+  }
+
+  function cisloText(n) {
+    return n > 0 ? String(n) : "";
+  }
+
+  function kresliIkonu() {
+    if (profil.avatar) btnAvatar.textContent = profil.avatar;
+    else btnAvatar.innerHTML = ikonaSvg(18);
+    var t = profil.prezdivka ? "Profil: " + profil.prezdivka : "Profil";
+    btn.setAttribute("aria-label", t);
+    btn.title = t;
+  }
+  function kresliNahled() {
+    if (profil.avatar) nahledAvatar.textContent = profil.avatar;
+    else nahledAvatar.innerHTML = ikonaSvg(32);
+    nahledJmeno.textContent = profil.prezdivka || "Bez přezdívky";
+    nahledJmeno.className = "profil-nahled-jmeno" + (profil.prezdivka ? "" : " prazdne");
+  }
+  function kresliRezim() {
+    var sal = profil.mode === "sal";
+    fDniPole.hidden = !sal;
+    popisek.textContent = sal ? "Měsíční plat" : "MD sazba";
+  }
+  function zapisFormular() {
+    var i;
+    fPrezdivka.value = profil.prezdivka;
+    for (i = 0; i < avatarRadia.length; i++) avatarRadia[i].checked = avatarRadia[i].value === profil.avatar;
+    for (i = 0; i < modeRadia.length; i++) modeRadia[i].checked = modeRadia[i].value === profil.mode;
+    fCastka.value = cisloText(profil.castka);
+    fMena.value = profil.mena;
+    fHodiny.value = cisloText(profil.hodiny);
+    fDni.value = cisloText(profil.dni);
+    kresliRezim();
+  }
+  function prectiFormular() {
+    var i, av = "", mode = "md";
+    for (i = 0; i < avatarRadia.length; i++) if (avatarRadia[i].checked) av = avatarRadia[i].value;
+    for (i = 0; i < modeRadia.length; i++) if (modeRadia[i].checked) mode = modeRadia[i].value;
+    return PL.normalizuj({
+      prezdivka: fPrezdivka.value, avatar: av, mode: mode,
+      castka: fCastka.value, mena: fMena.value, hodiny: fHodiny.value, dni: fDni.value
+    });
+  }
+  function oznam() {
+    for (var i = 0; i < listeners.length; i++) {
+      try { listeners[i](); } catch (e) {}
+    }
+  }
+  function priZmene() {
+    profil = prectiFormular();
+    ulozit();
+    poskozen = false;
+    kresliVarovani();
+    kresliIkonu();
+    kresliNahled();
+    kresliRezim();
+    oznam();
+  }
+
+  function kresliVarovani() {
+    varovani.hidden = !poskozen;
+  }
+
+  function otevri(opener) {
+    kresliVarovani();
+    if (window.Vrstvy.top() !== null) return;
+    zapisFormular();
+    kresliNahled();
+    window.Vrstvy.open(vrstva, { returnFocus: opener || btn, initialFocus: fPrezdivka });
+  }
+
+  vrstva.addEventListener("input", priZmene);
+  vrstva.addEventListener("change", function () {
+    priZmene();
+    zapisFormular();
+  });
+  btn.addEventListener("click", function () { otevri(btn); });
+  document.getElementById("profilZavrit").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
+  document.getElementById("profilHotovo").addEventListener("click", function () { window.Vrstvy.close(vrstva); });
+
+  window.addEventListener("storage", function (e) {
+    if (e.key !== null && e.key !== PL.KEY) return;
+    var r = PL.parse(readStore(PL.KEY));
+    if (r.poskozeno) return;
+    profil = r.profil;
+    poskozen = false;
+    kresliVarovani();
+    kresliIkonu();
+    kresliNahled();
+    if (!vrstva.hidden) zapisFormular();
+    oznam();
+  });
+
+  start();
+  kresliIkonu();
+  kresliNahled();
+
+  window.Profil = {
+    aktualni: function () { return PL.normalizuj(profil); },
+    zaMinutu: function () { return PL.zaMinutu(PL.normalizuj(profil)); },
+    otevri: otevri,
+    poZmene: function (fn) { if (typeof fn === "function") listeners.push(fn); }
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
@@ -2290,7 +2676,7 @@ body.detail-open { overflow: hidden; }
   var posledniSmazany = null;
   var timerStart = null, timerTick = null;
   var mode = "md";
-  var pohled = "md";
+  var pohled = "kalk";
   var amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
 
   function load() {
@@ -2300,7 +2686,8 @@ body.detail-open { overflow: hidden; }
       var s = JSON.parse(raw);
       Object.keys(els).forEach(function (k) { if (s[k] !== undefined) els[k].value = s[k]; });
       if (s.mode === "md" || s.mode === "sal") mode = s.mode;
-      if (s.pohled === "denik") pohled = "denik";
+      pohled = s.pohled === "denik" ? "denik" : "kalk";
+      if (typeof s.count === "number" && s.count % 1 === 0 && s.count >= 0 && s.count <= 99) count = s.count;
       if (s.amounts) {
         if (s.amounts.md !== undefined) amounts.md = s.amounts.md;
         if (s.amounts.sal !== undefined) amounts.sal = s.amounts.sal;
@@ -2361,10 +2748,6 @@ body.detail-open { overflow: hidden; }
   }
   function noveId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
-  function prepocitejPrumer() {
-    var p = DL.prumerStopek(zapisy);
-    if (p !== null) els.mins.value = Math.round(p * 10) / 10;
   }
 
   // Re-read the diary before a change, so entries written by another open copy of the page are kept.
@@ -2440,15 +2823,12 @@ body.detail-open { overflow: hidden; }
     if (e.key === "Escape" && !listaSkryta()) { e.preventDefault(); schovejListu(true); }
   });
 
-  function pridejZapis(min, zdroj, start) {
-    var cur = els.cur.value;
-    var z = DL.novyZapis(start, min, rateMin() * min, cur, zdroj, noveId());
+  function pridejZapis(min, zdroj, start, zaMin, mena) {
+    var z = DL.novyZapis(start, min, zaMin * min, mena, zdroj, noveId());
     if (!z) return null;
     obnovZUloziste();
     zapisy.push(z);
     ulozDenik();
-    if (zdroj === "stopky") prepocitejPrumer();
-    bump();
     render();
     return z;
   }
@@ -2462,8 +2842,6 @@ body.detail-open { overflow: hidden; }
     zapisy = r.zapisy;
     posledniSmazany = r.odebrany;
     ulozDenik();
-    prepocitejPrumer();
-    bump();
     render();
     ukazListu("Smazáno", true, navrat);
     if (zKlavesnice) vratitBtn.focus();
@@ -2480,8 +2858,6 @@ body.detail-open { overflow: hidden; }
     for (var i = 0; i < zapisy.length; i++) if (zapisy[i].id === z.id) jiz = true;
     if (!jiz) zapisy.push(z);
     ulozDenik();
-    prepocitejPrumer();
-    bump();
     render();
     if (mel) {
       var cil = null;
@@ -2492,7 +2868,7 @@ body.detail-open { overflow: hidden; }
         }
         if (!cil) cil = denikH;
       } else {
-        cil = $("minus").disabled ? $("plus") : $("minus");
+        cil = $("denikZapsat");
       }
       cil.focus();
     }
@@ -2501,18 +2877,11 @@ body.detail-open { overflow: hidden; }
   function zapisRucne() {
     var mins = num(els.mins);
     if (mins <= 0) {
-      ukazListu(pohled === "denik"
-        ? "Nejdřív vyplň průměr na návštěvu v záložce MD sazba nebo Měsíční plat."
-        : "Nejdřív vyplň průměr na návštěvu.", false);
+      ukazListu("Nejdřív vyplň průměr na návštěvu.", false);
       return;
     }
-    var z = pridejZapis(mins, "rucne", Date.now());
+    var z = pridejZapis(mins, "rucne", Date.now(), rateMin(), els.cur.value);
     if (z) ukazListu("Zapsáno do deníku: " + DL.fmtMin(z.min) + ", " + fmtCur(z.castka, z.mena), false);
-  }
-
-  function smazPosledniDnes(e) {
-    var dnes = DL.dnesni(zapisy, Date.now());
-    if (dnes.length) smazZapis(dnes[dnes.length - 1].id, function () { return $("plus"); }, !!e && e.detail === 0);
   }
 
   /* Deník view: list of entries and the diary settlement. */
@@ -2536,7 +2905,7 @@ body.detail-open { overflow: hidden; }
   function minTxt(min) { return DL.fmtMin(min).replace(/\u00a0/g, " "); }
   function pocetTxt(c) { return c + " " + visitsWord(c); }
   function soucetTxt(sou) {
-    return pocetTxt(sou.pocet) + " \u00b7 " + DL.fmtMin(sou.min) + " \u00b7 " + DL.formatCastky(sou.castky, fmtCur, els.cur.value);
+    return pocetTxt(sou.pocet) + " \u00b7 " + DL.fmtMin(sou.min) + " \u00b7 " + DL.formatCastky(sou.castky, fmtCur, Profil.aktualni().mena);
   }
 
   function renderDenik() {
@@ -2547,7 +2916,7 @@ body.detail-open { overflow: hidden; }
     for (i = 0; i < pr.skupiny.length; i++) {
       var g = pr.skupiny[i];
       h += '<div class="denik-den"><h3 class="denik-den-hlava"><span class="denik-den-nadpis">' + esc(g.nadpis) +
-        '</span><span class="denik-den-soucet">' + esc(pocetTxt(g.zapisy.length) + " \u00b7 " + DL.formatCastky(g.souhrn.castky, fmtCur, els.cur.value)) +
+        '</span><span class="denik-den-soucet">' + esc(pocetTxt(g.zapisy.length) + " \u00b7 " + DL.formatCastky(g.souhrn.castky, fmtCur, Profil.aktualni().mena)) +
         '</span></h3><ul class="denik-rady">';
       for (j = 0; j < g.zapisy.length; j++) {
         var z = g.zapisy[j], cas = casZapisu(z.start);
@@ -2571,13 +2940,16 @@ body.detail-open { overflow: hidden; }
     denikPocetSkupin = pr.skupiny.length;
     var prazdny = zapisy.length === 0;
     $("denikVarovani").hidden = !denikPoskozen;
+    var pr0 = Profil.aktualni();
+    $("denikProfilText").textContent = "Počítám podle profilu: " + (pr0.avatar ? pr0.avatar + " " : "") +
+      (pr0.prezdivka ? pr0.prezdivka + " · " : "") + fmtCur(pr0.castka, pr0.mena) + (pr0.mode === "sal" ? " / měsíc" : " / MD");
     $("denikPrazdno").hidden = !prazdny;
     dalsiBtn.hidden = !pr.dalsi;
     $("denikSmazatBlok").hidden = prazdny;
     if (prazdny) smazatPotvrdit.hidden = true;
 
     var v = DL.vyuctovani(zapisy, now);
-    var cur = els.cur.value;
+    var cur = Profil.aktualni().mena;
     var rady = [["Dnes", v.dnes], ["Tento týden", v.tyden], ["Tento měsíc", v.mesic], ["Celkem", v.celkem]];
     var vh = "";
     for (i = 0; i < rady.length; i++) {
@@ -2641,15 +3013,18 @@ body.detail-open { overflow: hidden; }
     denikH.focus();
   });
 
-  var PANELY = { md: ["vstupPanel", "vysledkyPanel"], denik: ["denikPanel", "vyuctovaniPanel"] };
+  $("denikProfilUpravit").addEventListener("click", function () { Profil.otevri(this); });
+  Profil.poZmene(function () { render(); tickClock(); });
+
+  var PANELY = { kalk: ["vstupPanel", "vysledkyPanel"], denik: ["denikPanel", "vyuctovaniPanel"] };
   function uzijPohled() {
     var denik = pohled === "denik";
     var i;
-    for (i = 0; i < PANELY.md.length; i++) $(PANELY.md[i]).hidden = denik;
+    for (i = 0; i < PANELY.kalk.length; i++) $(PANELY.kalk[i]).hidden = denik;
     for (i = 0; i < PANELY.denik.length; i++) $(PANELY.denik[i]).hidden = !denik;
     if (denik) {
-      var varovani = $("denikVarovani");
-      varovani.parentNode.insertBefore(timerBlock, varovani.nextSibling);
+      var profilRadek = $("denikProfil");
+      profilRadek.parentNode.insertBefore(timerBlock, profilRadek);
     } else {
       timerDomov.appendChild(timerBlock);
       smazatPotvrdit.hidden = true;
@@ -2660,8 +3035,8 @@ body.detail-open { overflow: hidden; }
     ukazZalozky();
   }
   function ukazZalozky() {
-    var aktivni = pohled === "denik" ? "tabDenik" : (mode === "sal" ? "modeSal" : "modeMd");
-    ["modeMd", "modeSal", "tabDenik"].forEach(function (id) {
+    var aktivni = pohled === "denik" ? "tabDenik" : "tabKalk";
+    ["tabKalk", "tabDenik"].forEach(function (id) {
       var on = id === aktivni;
       $(id).setAttribute("aria-selected", String(on));
       $(id).tabIndex = on ? 0 : -1;
@@ -2669,7 +3044,6 @@ body.detail-open { overflow: hidden; }
     $("pohledPanel").setAttribute("aria-labelledby", aktivni);
   }
   function prepniPohled(p) {
-    if (p !== "denik" && mode !== p) setMode(p);
     pohled = p;
     uzijPohled();
     render();
@@ -2678,10 +3052,7 @@ body.detail-open { overflow: hidden; }
   function render() {
     var now = Date.now();
     lastDay = DL.zacatekDne(now);
-    var dnes = DL.dnesni(zapisy, now);
-    var dnesSouhrn = DL.souhrn(dnes, -Infinity, Infinity);
-    count = dnes.length;
-    var md = num(els.md), hours = num(els.hours), mins = num(els.mins);
+    var hours = num(els.hours), mins = num(els.mins);
     var dm = num(els.dm), dy = num(els.dy);
     var perMin = rateMin();
     var perVisit = perMin * mins;
@@ -2690,9 +3061,11 @@ body.detail-open { overflow: hidden; }
 
     $("count").textContent = count;
     if (count === 0 && document.activeElement === $("minus")) $("plus").focus();
+    if (count >= 99 && document.activeElement === $("plus")) $("minus").focus();
     $("minus").disabled = count === 0;
-    $("rDay").textContent = DL.formatCastky(dnesSouhrn.castky, fmtCur, els.cur.value);
-    $("rDaySub").textContent = count + " " + visitsWord(count) + " · " + DL.fmtMin(dnesSouhrn.min) + " placeného trůnu";
+    $("plus").disabled = count >= 99;
+    $("rDay").textContent = money(perDay);
+    $("rDaySub").textContent = count + " " + visitsWord(count) + " · " + DL.fmtMin(dayMins) + " placeného trůnu";
     $("rMin").textContent = money(perMin);
     $("rVisit").textContent = money(perVisit);
     $("rMonth").textContent = money(perDay * dm);
@@ -2711,7 +3084,6 @@ body.detail-open { overflow: hidden; }
   window.addEventListener("storage", function (e) {
     if (e.key !== null && e.key !== DL.KEY) return;
     obnovZUloziste();
-    prepocitejPrumer();
     render();
   });
 
@@ -2734,9 +3106,19 @@ body.detail-open { overflow: hidden; }
     els[k].addEventListener("input", render);
     els[k].addEventListener("change", render);
   });
-  $("plus").addEventListener("click", zapisRucne);
+  $("plus").addEventListener("click", function () {
+    if (count >= 99) return;
+    count += 1;
+    bump();
+    render();
+  });
+  $("minus").addEventListener("click", function () {
+    if (count <= 0) return;
+    count -= 1;
+    bump();
+    render();
+  });
   $("denikZapsat").addEventListener("click", zapisRucne);
-  $("minus").addEventListener("click", smazPosledniDnes);
   vratitBtn.addEventListener("click", vratZapis);
 
   var rainTimer = null;
@@ -2780,7 +3162,7 @@ body.detail-open { overflow: hidden; }
     // While the stopwatch runs, the clock also shows its time and earnings.
     if (timerStart !== null) {
       var ms = Stopky.elapsedMs(timerStart, now);
-      t += " | " + Stopky.fmtTime(ms) + " | " + money(rateMin() * ms / 60000);
+      t += " | " + Stopky.fmtTime(ms) + " | " + fmtCur(Profil.zaMinutu() * ms / 60000, Profil.aktualni().mena);
     }
     if (clockEl.textContent !== t) clockEl.textContent = t;
   }
@@ -2855,8 +3237,8 @@ body.detail-open { overflow: hidden; }
     clearInterval(timerTick);
     var tick = function () {
       var elapsed = Stopky.elapsedMs(timerStart, Date.now());
-      var earned = rateMin() * (elapsed / 60000);
-      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + money(earned);
+      var earned = Profil.zaMinutu() * (elapsed / 60000);
+      note.textContent = "Sedíš " + Stopky.fmtTime(elapsed) + " a už máš " + fmtCur(earned, Profil.aktualni().mena);
       tickClock();
       checkWarning();
     };
@@ -2888,8 +3270,11 @@ body.detail-open { overflow: hidden; }
         note.textContent = "Moc krátké, do deníku nezapsáno.";
         render();
       } else {
-        pridejZapis(elapsedMin, "stopky", startMs);
-        note.textContent = "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
+        var zaMin = Profil.zaMinutu(), menaZapisu = Profil.aktualni().mena;
+        pridejZapis(elapsedMin, "stopky", startMs, zaMin, menaZapisu);
+        note.textContent = zaMin === 0
+          ? "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno bez částky. Nastav si sazbu v profilu."
+          : "Návštěva trvala " + n(elapsedMin, 1) + " min. Zapsáno do deníku.";
       }
     }
   });
@@ -2897,6 +3282,7 @@ body.detail-open { overflow: hidden; }
   $("reset").addEventListener("click", function () {
     Object.keys(els).forEach(function (k) { els[k].value = DEFAULTS[k]; });
     amounts = { md: DEFAULTS.md, sal: DEFAULTS.sal };
+    count = DEFAULTS.count;
     setMode("md", true);
     $("timerNote").textContent = "Spustí stopky, po návratu klepni znovu a návštěva se zapíše do deníku. Návštěvy kratší než 10 s se nezapisují.";
     render();
@@ -2911,17 +3297,19 @@ body.detail-open { overflow: hidden; }
     $("mdHint").textContent = m === "sal"
       ? "Hrubý měsíční plat. Na den ho rozpočítám podle pracovních dní v měsíci."
       : "Kolik fakturuješ za jeden pracovní den.";
-    ukazZalozky();
+    $("zpusobMd").checked = m !== "sal";
+    $("zpusobSal").checked = m === "sal";
   }
-  var POHLEDY = ["md", "sal", "denik"], POHLED_IDS = { md: "modeMd", sal: "modeSal", denik: "tabDenik" };
+  $("zpusobMd").addEventListener("change", function () { if (this.checked) { setMode("md"); render(); } });
+  $("zpusobSal").addEventListener("change", function () { if (this.checked) { setMode("sal"); render(); } });
+  var POHLEDY = ["kalk", "denik"], POHLED_IDS = { kalk: "tabKalk", denik: "tabDenik" };
   Object.keys(POHLED_IDS).forEach(function (k) {
     $(POHLED_IDS[k]).addEventListener("click", function () {
-      var aktualni = pohled === "denik" ? "denik" : mode;
-      if (aktualni !== k) prepniPohled(k);
+      if (pohled !== k) prepniPohled(k);
     });
   });
   $("pohledTabs").addEventListener("keydown", function (e) {
-    var i = POHLEDY.indexOf(pohled === "denik" ? "denik" : mode), n = POHLEDY.length, j;
+    var i = POHLEDY.indexOf(pohled), n = POHLEDY.length, j;
     if (e.key === "ArrowRight") j = (i + 1) % n;
     else if (e.key === "ArrowLeft") j = (i + n - 1) % n;
     else if (e.key === "Home") j = 0;
@@ -3212,7 +3600,6 @@ body.detail-open { overflow: hidden; }
   nactiDenik();
   load();
   setMode(mode, true);
-  if (pohled !== "denik") pohled = mode;
   uzijPohled();
   render();
 
@@ -3228,8 +3615,8 @@ body.detail-open { overflow: hidden; }
 
   window.zachod = {
     timerStart: function () { return timerStart; },
-    earned: function (ms) { return rateMin() * ms / 60000; },
-    money: money,
+    earned: function (ms) { return Profil.zaMinutu() * ms / 60000; },
+    money: function (v) { return fmtCur(v, Profil.aktualni().mena); },
     zapisy: function () { return zapisy; }
   };
 })();
