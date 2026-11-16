@@ -2273,6 +2273,84 @@ body.detail-open { overflow: hidden; }
   };
 })();
 </script>
+<script id="profil-logika">
+(function () {
+  var KEY = "zachodova-profil-v1";
+  var AVATARY = ["🧻", "🚽", "👑", "🦆", "💩", "🐻", "🦄", "🚀"];
+  var MENY = ["CZK", "EUR", "USD"];
+  var MAX_PREZDIVKA = 24;
+
+  function vychozi() {
+    return { prezdivka: "", avatar: "", mode: "md", castka: 0, mena: "CZK", hodiny: 0, dni: 0 };
+  }
+
+  function cislo(x) {
+    if (typeof x === "string") {
+      if (!/\S/.test(x)) return NaN;
+      x = Number(x.replace(",", "."));
+    }
+    return typeof x === "number" && isFinite(x) ? x : NaN;
+  }
+
+  function jeObjekt(o) {
+    return o !== null && typeof o === "object" && !Array.isArray(o);
+  }
+
+  function normalizuj(o) {
+    var p = vychozi();
+    if (!jeObjekt(o)) return p;
+    if (typeof o.prezdivka === "string") p.prezdivka = o.prezdivka.slice(0, MAX_PREZDIVKA);
+    if (AVATARY.indexOf(o.avatar) !== -1) p.avatar = o.avatar;
+    if (o.mode === "sal") p.mode = "sal";
+    if (MENY.indexOf(o.mena) !== -1) p.mena = o.mena;
+    var c = cislo(o.castka);
+    if (c >= 0) p.castka = c;
+    var h = cislo(o.hodiny);
+    if (h >= 0 && h <= 24) p.hodiny = h;
+    var d = cislo(o.dni);
+    if (d >= 0 && d <= 31 && Math.floor(d) === d) p.dni = d;
+    return p;
+  }
+
+  function parse(raw) {
+    if (raw === null || raw === undefined) return { profil: vychozi(), chybi: true, poskozeno: false };
+    var o;
+    try { o = JSON.parse(raw); } catch (e) { o = undefined; }
+    if (!jeObjekt(o)) return { profil: vychozi(), chybi: false, poskozeno: true };
+    return { profil: normalizuj(o), chybi: false, poskozeno: false };
+  }
+
+  function zKalkulacky(raw) {
+    if (raw === null || raw === undefined) return vychozi();
+    var s;
+    try { s = JSON.parse(raw); } catch (e) { return vychozi(); }
+    if (!jeObjekt(s)) return vychozi();
+    var mode = s.mode === "sal" ? "sal" : "md";
+    var castka = jeObjekt(s.amounts) ? s.amounts[mode] : undefined;
+    if ((castka === undefined || castka === null) && mode === "md") castka = s.md;
+    return normalizuj({ mode: mode, castka: castka, mena: s.cur, hodiny: s.hours, dni: s.dm });
+  }
+
+  function serializuj(p) {
+    return JSON.stringify(normalizuj(p));
+  }
+
+  function zaMinutu(p) {
+    if (!p || !(p.hodiny > 0)) return 0;
+    if (p.mode === "sal") {
+      if (!(p.dni > 0)) return 0;
+      return p.castka / p.dni / (p.hodiny * 60);
+    }
+    return p.castka / (p.hodiny * 60);
+  }
+
+  window.ProfilLogika = {
+    KEY: KEY, AVATARY: AVATARY, MENY: MENY, MAX_PREZDIVKA: MAX_PREZDIVKA,
+    vychozi: vychozi, normalizuj: normalizuj, parse: parse, zKalkulacky: zKalkulacky,
+    serializuj: serializuj, zaMinutu: zaMinutu
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
