@@ -39,3 +39,13 @@ test("adresa: skutečná doména, jinak výchozí", () => {
 test("název souboru podle data", () => {
   assert.equal(L.nazevSouboru(new Date(2026, 10, 7)), "zachodova-kalkulacka-2026-11-07.png");
 });
+test("obsah obrázku pro měření stopkami", () => {
+  assert.deepEqual(J(L.obsahMereni({ cas: "4:12", castka: "84,00 Kč", zaMinutu: "20,00 Kč" }, "seraber.vercel.app")), {
+    nadpis: "Záchodová kalkulačka",
+    podnadpis: "Během své návštěvy na záchodě jsem vydělal/a",
+    castka: "84,00 Kč",
+    radky: [["Čas na záchodě", "4:12"], ["Za minutu", "20,00 Kč"]],
+    hlaska: "",
+    paticka: "seraber.vercel.app"
+  });
+});

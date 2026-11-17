@@ -677,7 +677,8 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 .mereni { margin-top: 1rem; padding: .9rem 1rem; border: 2px dashed var(--line); border-radius: 14px; text-align: center; }
 .mereni-text { font-weight: 700; }
 .mereni-text:focus { outline: none; }
-.mereni .hra-btn { margin: .7rem auto 0; }
+.mereni .vysledek-akce { margin-top: .7rem; }
+.mereni .vysledek-akce .hra-btn { margin: 0; }
 .mereni .hra-btn:disabled { opacity: .6; cursor: default; }
 .mereni .hra-btn:disabled:hover { background: var(--brass-soft); }
 .denik-profil-upravit {
@@ -1716,7 +1717,10 @@ body.detail-open { overflow: hidden; }
       </div>
       <div class="mereni" id="mereni" hidden>
         <div class="mereni-text" id="mereniText" tabindex="-1"></div>
-        <button class="hra-btn" id="mereniZapsat" type="button">Zapsat měření do deníku</button>
+        <div class="vysledek-akce">
+          <button class="hra-btn" id="mereniZapsat" type="button">Zapsat měření do deníku</button>
+          <button class="sdilet-btn" id="mereniSdilet" type="button" aria-label="Sdílet měření jako obrázek" title="Sdílet měření jako obrázek"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" fill="currentColor"/><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="19" r="3" fill="currentColor"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </div>
       </div>
       <div class="facts">
         <p>Tvoje denní sazba je <strong id="fRate"></strong>.</p>
@@ -4057,7 +4061,18 @@ window.VtipyData = [
   function nazevSouboru(d) {
     return "zachodova-kalkulacka-" + d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + ".png";
   }
-  window.SdileniLogika = { obsah: obsah, adresa: adresa, nazevSouboru: nazevSouboru };
+  // Image for one stopwatch measurement (values already formatted).
+  function obsahMereni(m, adresa) {
+    return {
+      nadpis: "Záchodová kalkulačka",
+      podnadpis: "Během své návštěvy na záchodě jsem vydělal/a",
+      castka: m.castka,
+      radky: [["Čas na záchodě", m.cas], ["Za minutu", m.zaMinutu]],
+      hlaska: "",
+      paticka: adresa
+    };
+  }
+  window.SdileniLogika = { obsah: obsah, obsahMereni: obsahMereni, adresa: adresa, nazevSouboru: nazevSouboru };
 })();
 </script>
 <script id="sdileni-ui">
@@ -4179,10 +4194,19 @@ window.VtipyData = [
   }
   btn.addEventListener("click", function () {
     var adresa = L.adresa(location.host);
-    var o = L.obsah({
+    sdilej(L.obsah({
       dnes: hodnota("rDay"), navsteva: hodnota("rVisit"), mesic: hodnota("rMonth"),
       rok: hodnota("rYear"), procent: hodnota("fPct"), pocet: parseInt(hodnota("count"), 10) || 0
-    }, adresa);
+    }, adresa), adresa);
+  });
+  document.getElementById("mereniSdilet").addEventListener("click", function () {
+    var m = window.zachod && window.zachod.mereni();
+    if (!m) return;
+    var adresa = L.adresa(location.host);
+    sdilej(L.obsahMereni(m, adresa), adresa);
+  });
+  // Draws the image and shares it (phone) or downloads it (elsewhere), all inside the click.
+  function sdilej(o, adresa) {
     var blob = blobZ(nakresli(o));
     var nazev = L.nazevSouboru(new Date());
     var soubor = null;
@@ -4193,7 +4217,7 @@ window.VtipyData = [
     } else {
       stahni(blob, nazev);
     }
-  });
+  }
 })();
 </script>
 <script>
@@ -5265,7 +5289,16 @@ window.VtipyData = [
     timerStart: function () { return timerStart; },
     earned: function (ms) { return Profil.zaMinutu() * ms / 60000; },
     money: function (v) { return fmtCur(v, Profil.aktualni().mena); },
-    zapisy: function () { return zapisy; }
+    zapisy: function () { return zapisy; },
+    // Last trial measurement, formatted for the share image (null when there is none).
+    mereni: function () {
+      if (!mereniData) return null;
+      return {
+        cas: Stopky.fmtTime(mereniData.min * 60000),
+        castka: fmtCur(mereniData.castka, mereniData.mena),
+        zaMinutu: fmtCur(mereniData.castka / mereniData.min, mereniData.mena)
+      };
+    }
   };
 })();
 </script>
