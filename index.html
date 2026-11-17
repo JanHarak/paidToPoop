@@ -4037,12 +4037,14 @@ window.VtipyData = [
   // Texts on the shared image; values come already formatted from the calculator.
   function obsah(h, adresa) {
     var pct = typeof h.procent === "string" ? h.procent.trim() : "";
+    // With no visits counted the image shows what one visit earns.
+    var vic = h.pocet > 1;
     return {
       nadpis: "Záchodová kalkulačka",
-      podnadpis: "Dnes vydělám na záchodě",
-      castka: h.dnes,
+      podnadpis: vic ? "Během svých návštěv jsem vydělal/a" : "Během své návštěvy na záchodě jsem vydělal/a",
+      castka: h.pocet >= 1 ? h.dnes : h.navsteva,
       radky: [["Za návštěvu", h.navsteva], ["Za měsíc", h.mesic], ["Za rok", h.rok]],
-      hlaska: pct && !/^0(\s| )?%$/.test(pct) ? "Na záchodě strávím " + pct + " pracovní doby." : "",
+      hlaska: pct && !/^0(\s| )?%$/.test(pct) ? "Na záchodě jsem strávil/a " + pct + " pracovní doby." : "",
       paticka: adresa
     };
   }
@@ -4120,7 +4122,7 @@ window.VtipyData = [
     c.fillText(o.nadpis, stred, y);
     y += 80;
     c.fillStyle = BARVY.muted;
-    c.font = "400 44px " + TEXT;
+    vejdi(c, o.podnadpis, "400", TEXT, 44, 28, sirka);
     c.fillText(o.podnadpis, stred, y);
     y += 50;
     zaobleny(c, 120, y, W - 240, 230, 36);
@@ -4144,7 +4146,7 @@ window.VtipyData = [
       c.fillStyle = BARVY.ink;
       c.font = "700 46px " + TEXT;
       c.fillText(rd[1], W - 150, y);
-      y += 100;
+      y += 92;
     });
     c.textAlign = "center";
     if (o.hlaska) {
@@ -4155,7 +4157,7 @@ window.VtipyData = [
     }
     c.fillStyle = BARVY.brass;
     c.font = "700 40px " + TEXT;
-    c.fillText(o.paticka, stred, H - 120);
+    c.fillText(o.paticka, stred, H - 100);
     return cv;
   }
   // Synchronous PNG blob from the canvas, so navigator.share still runs inside the click.
@@ -4179,7 +4181,7 @@ window.VtipyData = [
     var adresa = L.adresa(location.host);
     var o = L.obsah({
       dnes: hodnota("rDay"), navsteva: hodnota("rVisit"), mesic: hodnota("rMonth"),
-      rok: hodnota("rYear"), procent: hodnota("fPct")
+      rok: hodnota("rYear"), procent: hodnota("fPct"), pocet: parseInt(hodnota("count"), 10) || 0
     }, adresa);
     var blob = blobZ(nakresli(o));
     var nazev = L.nazevSouboru(new Date());
