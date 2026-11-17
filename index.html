@@ -588,6 +588,22 @@ body.warn .timer-note { color: #d93a2b; font-weight: 700; }
 }
 .hra-btn:hover { background: var(--porcelain); }
 .denik-zapsat { margin: 1rem auto 0; }
+/* "Zapsat do deníku" with the round share button on its right */
+.vysledek-akce { display: flex; justify-content: center; align-items: center; gap: .6rem; margin-top: 1rem; }
+.vysledek-akce .denik-zapsat { margin: 0; }
+.sdilet-btn {
+  width: 44px; height: 44px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  border: 2px solid var(--brass);
+  border-radius: 50%;
+  background: var(--brass-soft);
+  color: var(--ink);
+  cursor: pointer;
+}
+.sdilet-btn:hover { background: var(--porcelain); }
+.sdilet-btn:disabled { opacity: .45; cursor: not-allowed; }
+.sdilet-btn:disabled:hover { background: var(--brass-soft); }
 .denik-zapsat:disabled { opacity: .45; cursor: not-allowed; }
 .denik-zapsat:disabled:hover { background: var(--brass-soft); }
 /* Short confirmation on the button itself after a manual diary entry. */
@@ -1694,7 +1710,10 @@ body.detail-open { overflow: hidden; }
         <li><span class="k">Za měsíc</span><span class="v" id="rMonth"></span></li>
         <li><span class="k">Za rok</span><span class="v" id="rYear"></span></li>
       </ul>
-      <button class="hra-btn denik-zapsat" id="denikZapsat" type="button">Zapsat do deníku</button>
+      <div class="vysledek-akce">
+        <button class="hra-btn denik-zapsat" id="denikZapsat" type="button">Zapsat do deníku</button>
+        <button class="sdilet-btn" id="sdiletVydelek" type="button" aria-label="Sdílet výdělek jako obrázek" title="Sdílet výdělek jako obrázek"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" fill="currentColor"/><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="19" r="3" fill="currentColor"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
       <div class="mereni" id="mereni" hidden>
         <div class="mereni-text" id="mereniText" tabindex="-1"></div>
         <button class="hra-btn" id="mereniZapsat" type="button">Zapsat měření do deníku</button>
@@ -4012,6 +4031,169 @@ window.VtipyData = [
   };
 })();
 </script>
+<script id="sdileni-logika">
+(function () {
+  var VYCHOZI = "seraber.vercel.app";
+  // Texts on the shared image; values come already formatted from the calculator.
+  function obsah(h, adresa) {
+    var pct = typeof h.procent === "string" ? h.procent.trim() : "";
+    return {
+      nadpis: "Záchodová kalkulačka",
+      podnadpis: "Dnes vydělám na záchodě",
+      castka: h.dnes,
+      radky: [["Za návštěvu", h.navsteva], ["Za měsíc", h.mesic], ["Za rok", h.rok]],
+      hlaska: pct && !/^0(\s| )?%$/.test(pct) ? "Na záchodě strávím " + pct + " pracovní doby." : "",
+      paticka: adresa
+    };
+  }
+  // The app address for the footer: the real host, or the main site when running locally.
+  function adresa(host) {
+    if (typeof host !== "string" || !host || /^(localhost|127\.|\[::1\])/.test(host) || host.indexOf(".") < 0) return VYCHOZI;
+    return host;
+  }
+  function pad2(v) { return v < 10 ? "0" + v : String(v); }
+  function nazevSouboru(d) {
+    return "zachodova-kalkulacka-" + d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + ".png";
+  }
+  window.SdileniLogika = { obsah: obsah, adresa: adresa, nazevSouboru: nazevSouboru };
+})();
+</script>
+<script id="sdileni-ui">
+(function () {
+  var L = window.SdileniLogika;
+  var btn = document.getElementById("sdiletVydelek");
+  var W = 1080, H = 1350;
+  var BARVY = { pozadi: "#e6f1f2", karta: "#ffffff", ink: "#0e3b43", muted: "#4d6f75", brass: "#a8761c", brassSoft: "#f4e6c8", line: "#bcd3d6" };
+  var NADPIS = '"Bricolage Grotesque", system-ui, sans-serif', TEXT = '"Atkinson Hyperlegible", system-ui, sans-serif';
+  // Load the web fonts up front, so drawing on click is synchronous (needed to keep the share gesture).
+  if (document.fonts && document.fonts.load) {
+    ["800 64px " + NADPIS, "700 44px " + TEXT, "400 40px " + TEXT].forEach(function (f) {
+      document.fonts.load(f).catch(function () {});
+    });
+  }
+  function hodnota(id) { return document.getElementById(id).textContent; }
+  function zaobleny(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  // Largest font size (down to min) at which the text fits maxW.
+  function vejdi(c, text, vaha, rodina, max, min, maxW) {
+    var v = max;
+    c.font = vaha + " " + v + "px " + rodina;
+    while (v > min && c.measureText(text).width > maxW) {
+      v -= 4;
+      c.font = vaha + " " + v + "px " + rodina;
+    }
+    return v;
+  }
+  function zalom(c, text, maxW) {
+    var slova = text.split(" "), radky = [], radek = "";
+    slova.forEach(function (s) {
+      var zkus = radek ? radek + " " + s : s;
+      if (radek && c.measureText(zkus).width > maxW) { radky.push(radek); radek = s; } else radek = zkus;
+    });
+    if (radek) radky.push(radek);
+    return radky;
+  }
+  function nakresli(o) {
+    var cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    var c = cv.getContext("2d");
+    c.fillStyle = BARVY.pozadi;
+    c.fillRect(0, 0, W, H);
+    zaobleny(c, 60, 60, W - 120, H - 120, 48);
+    c.fillStyle = BARVY.karta;
+    c.fill();
+    c.textAlign = "center";
+    c.textBaseline = "alphabetic";
+    var stred = W / 2, sirka = W - 240, y = 230;
+    c.font = "120px system-ui, sans-serif";
+    c.fillText("🚽", stred, y);
+    y += 120;
+    c.fillStyle = BARVY.ink;
+    vejdi(c, o.nadpis, "800", NADPIS, 76, 40, sirka);
+    c.fillText(o.nadpis, stred, y);
+    y += 80;
+    c.fillStyle = BARVY.muted;
+    c.font = "400 44px " + TEXT;
+    c.fillText(o.podnadpis, stred, y);
+    y += 50;
+    zaobleny(c, 120, y, W - 240, 230, 36);
+    c.fillStyle = BARVY.brassSoft;
+    c.fill();
+    c.fillStyle = BARVY.ink;
+    var v = vejdi(c, o.castka, "800", NADPIS, 150, 60, W - 320);
+    c.fillText(o.castka, stred, y + 115 + v * 0.35);
+    y += 320;
+    c.font = "400 44px " + TEXT;
+    o.radky.forEach(function (rd, i) {
+      if (i) {
+        c.fillStyle = BARVY.line;
+        c.fillRect(140, y - 62, W - 280, 2);
+      }
+      c.textAlign = "left";
+      c.fillStyle = BARVY.muted;
+      c.font = "400 44px " + TEXT;
+      c.fillText(rd[0], 150, y);
+      c.textAlign = "right";
+      c.fillStyle = BARVY.ink;
+      c.font = "700 46px " + TEXT;
+      c.fillText(rd[1], W - 150, y);
+      y += 100;
+    });
+    c.textAlign = "center";
+    if (o.hlaska) {
+      y += 20;
+      c.fillStyle = BARVY.ink;
+      c.font = "700 42px " + TEXT;
+      zalom(c, o.hlaska, sirka).forEach(function (ln) { c.fillText(ln, stred, y); y += 56; });
+    }
+    c.fillStyle = BARVY.brass;
+    c.font = "700 40px " + TEXT;
+    c.fillText(o.paticka, stred, H - 120);
+    return cv;
+  }
+  // Synchronous PNG blob from the canvas, so navigator.share still runs inside the click.
+  function blobZ(cv) {
+    var data = cv.toDataURL("image/png").split(",")[1];
+    var bin = atob(data), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: "image/png" });
+  }
+  function stahni(blob, nazev) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = nazev;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+  btn.addEventListener("click", function () {
+    var adresa = L.adresa(location.host);
+    var o = L.obsah({
+      dnes: hodnota("rDay"), navsteva: hodnota("rVisit"), mesic: hodnota("rMonth"),
+      rok: hodnota("rYear"), procent: hodnota("fPct")
+    }, adresa);
+    var blob = blobZ(nakresli(o));
+    var nazev = L.nazevSouboru(new Date());
+    var soubor = null;
+    try { soubor = new File([blob], nazev, { type: "image/png" }); } catch (e) {}
+    if (soubor && navigator.canShare && navigator.canShare({ files: [soubor] })) {
+      navigator.share({ files: [soubor], title: "Záchodová kalkulačka", text: "Kolik vydělám na záchodě? https://" + adresa })
+        .catch(function () {});   // closing the share sheet is not an error
+    } else {
+      stahni(blob, nazev);
+    }
+  });
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
@@ -4448,6 +4630,8 @@ window.VtipyData = [
     var zapsat = $("denikZapsat"), lzeZapsat = perVisit > 0;
     if (!lzeZapsat && document.activeElement === zapsat) $("mins").focus();
     zapsat.disabled = !lzeZapsat;
+    if (!lzeZapsat && document.activeElement === $("sdiletVydelek")) $("mins").focus();
+    $("sdiletVydelek").disabled = !lzeZapsat;
     $("rMonth").textContent = money(perDay * dm);
     $("rYear").textContent = money(perDay * dy);
 
