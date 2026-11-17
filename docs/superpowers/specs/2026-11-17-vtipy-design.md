@@ -10,7 +10,7 @@
 3. Kombinace 1 a 2. Kolísající kvalita.
 
 ## Moje volby
-- Sbírka 125 krátkých slušných vtipů napsaných pro aplikaci (práce, porady, peníze, programátoři, záchod, Pepíček, zvířata) v bloku `vtipy-data`.
+- Sbírka přes 1000 krátkých slušných vtipů napsaných pro aplikaci v bloku `vtipy-data`, žánry: IT, korporát, tátovské vtipy a hříčky, blondýny, ženy a muži, policisté, politici a úřady (bez skutečných jmen), doktoři, Pepíček, zvířata, hospoda, sport, záchod. Uživatel chtěl 1000 vtipů v různých žánrech. Vtipy prošly redakční kontrolou (vyřazené bez pointy, neslušné, duplicitní).
 - JokeAPI `?lang=cs&safe-mode` se zavolá při prvním otevření záložky, jeho vtipy se přidají ke sbírce. Bez sítě stačí sbírka.
 - Výběr: náhodně z dosud neviděných, po projití všech znovu od začátku, ale nikdy hned stejný vtip. Viděné vtipy v `zachodova-vtipy-v1`.
 - Dialogy na víc řádků (`\n`, `white-space: pre-line`).

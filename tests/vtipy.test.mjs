@@ -63,12 +63,12 @@ test("sloucit přidá jen nové vtipy", () => {
   assert.deepEqual(J(L.sloucit(["a", "b"], ["b", "c"])), ["a", "b", "c"]);
 });
 
-test("sbírka: aspoň 100 různých neprázdných vtipů bez dlouhé pomlčky", () => {
-  assert.ok(Array.isArray(D) && D.length >= 100, "počet " + D.length);
+test("sbírka: aspoň 1000 různých neprázdných vtipů bez dlouhé pomlčky", () => {
+  assert.ok(Array.isArray(D) && D.length >= 1000, "počet " + D.length);
   assert.equal(new Set(D).size, D.length, "duplicity");
   D.forEach((v) => {
     assert.equal(typeof v, "string");
     assert.ok(v.trim().length > 10, v);
-    assert.ok(!v.includes("—"), v);
+    assert.ok(!v.includes(String.fromCharCode(0x2014)), v);
   });
 });
