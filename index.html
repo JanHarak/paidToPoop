@@ -913,7 +913,24 @@ html.zamceno, html.zamceno body { overscroll-behavior: none; }
 /* Feed */
 .feed { margin-top: 1.25rem; }
 .seg.tabs { width: 100%; gap: .35rem; padding: 5px; margin-bottom: 1rem; }
+/* Four tabs (Svět, Peníze, Vtipy, Hry) must fit on the narrowest phones. */
+@media (max-width: 400px) {
+  .seg.tabs { gap: .15rem; }
+  .seg.tabs .seg-btn { min-width: 0; padding-left: .35rem; padding-right: .35rem; font-size: .92rem; }
+}
 .hra-panel { padding: .2rem .2rem .4rem; }
+.vtip-panel { padding: .2rem .2rem .4rem; text-align: center; }
+.vtip-panel[hidden] { display: none; }
+.vtip-text {
+  margin: .4rem auto 0;
+  max-width: 40ch;
+  min-height: 4.5em;
+  white-space: pre-line;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  text-align: left;
+}
+.vtip-dalsi { margin: 1rem auto 0; }
 .hra-panel[hidden] { display: none; }
 .hra-panel-title {
   margin: 0 0 .3rem;
@@ -1726,9 +1743,14 @@ body.detail-open { overflow: hidden; }
     <div class="seg tabs" role="tablist" aria-label="Téma zpráv">
       <button class="seg-btn" id="tabSvet" role="tab" type="button" aria-selected="true" tabindex="0" aria-controls="newsList">Svět</button>
       <button class="seg-btn" id="tabPenize" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="newsList">Peníze</button>
+      <button class="seg-btn" id="tabVtipy" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="vtipPanel">Vtipy</button>
       <button class="seg-btn" id="tabHra" role="tab" type="button" aria-selected="false" tabindex="-1" aria-controls="hraPanel">Hry</button>
     </div>
     <div class="news-list" id="newsList" role="tabpanel" tabindex="0" aria-labelledby="tabSvet"></div>
+    <div class="vtip-panel" id="vtipPanel" role="tabpanel" aria-labelledby="tabVtipy" hidden>
+      <p class="vtip-text" id="vtipText" aria-live="polite"></p>
+      <button class="hra-btn vtip-dalsi" id="vtipDalsi" type="button">Další vtip</button>
+    </div>
     <div class="hra-panel" id="hraPanel" role="tabpanel" aria-labelledby="tabHra" hidden>
       <div class="hry-menu" id="hryMenu">
         <div class="hry-seznam" id="hrySeznam">
@@ -2845,6 +2867,221 @@ body.detail-open { overflow: hidden; }
   if (window.Profil) window.Profil.poZmene(vykresli);
 })();
 </script>
+<script id="vtipy-data">
+// Own collection of short Czech jokes (written for this app).
+window.VtipyData = [
+  "Šéf: „Věříte na život po smrti?“\nZaměstnanec: „Ano.“\nŠéf: „Výborně. Včera, když jste byl na pohřbu babičky, se tu po vás ptala.“",
+  "– Pane šéfe, můžu dostat přidáno?\n– A proč?\n– Protože jsem na záchodě strávil celý měsíc a za tu cenu se to už nevyplácí.",
+  "Optimista říká: sklenice je napůl plná. Pesimista: je napůl prázdná. Účetní: sklenice je dvakrát větší, než je potřeba.",
+  "Porada je setkání, kde se minuty ztrácejí a hodiny počítají.",
+  "– Kolik lidí u vás pracuje?\n– Zhruba polovina.",
+  "Šéf: „Proč chodíte pozdě?“\nZaměstnanec: „Kvůli tomu nápisu u silnice.“\n„Jakému?“\n„Škola, zpomalte.“",
+  "– Proč nosíš do práce dva telefony?\n– Jeden na hraní a druhý na to, abych měl co odložit, když jde kolem šéf.",
+  "Nejlepší místo na poradu je záchod. Je tam jen jedna židle a nikdo nezůstane déle, než musí.",
+  "Kancelářská moudrost: Nikdy neodkládej na zítra to, co můžeš svolat na poradu pozítří.",
+  "– Proč je ta porada naplánovaná na pátek odpoledne?\n– Aby nikdo nechtěl nic doplnit.",
+  "Zaměstnanec si stěžuje: „Šéfe, ta židle mi vrže.“\nŠéf: „To není židle, to je vaše výkonnost.“",
+  "Programátor jde do obchodu. Žena mu řekne: „Kup chleba, a když budou mít vejce, vezmi deset.“\nVrátí se s deseti chleby. „Měli vejce.“",
+  "– Kolik programátorů je potřeba na výměnu žárovky?\n– Žádný. To je hardwarový problém.",
+  "Programátor stojí ve sprše už hodinu. Na šamponu stojí: Naneste, opláchněte, opakujte.",
+  "Proč programátoři nemají rádi přírodu? Je v ní moc bugů.",
+  "– Jak se jmenuje programátor, který nemá rád dokumentaci?\n– Programátor.",
+  "Tester vejde do baru. Objedná si jedno pivo. Nula piv. Minus jedno pivo. Milion piv. Ještěrku. Pak přijde první zákazník a zeptá se, kde jsou záchody. Bar vyhoří.",
+  "„U mě to funguje,“ řekl programátor. A tak jeho počítač poslali zákazníkovi.",
+  "Heslo musí obsahovat velké písmeno, číslo a symbol. Tak jsem zadal „Velkepismeno1!“.",
+  "Chuck Norris nepotřebuje záchod. Záchod potřebuje Chucka Norrise.",
+  "– Mami, ve škole mi říkají, že jsem roztržitý.\n– A kdo jsi ty, chlapečku?",
+  "Pepíček přijde ze školy: „Tati, dneska jsem jako jediný odpověděl na otázku paní učitelky.“\n„A na jakou?“\n„Kdo rozbil okno.“",
+  "Učitelka: „Pepíčku, když budu mít v jedné ruce pět jablek a v druhé šest, co budu mít?“\n„Velké ruce, paní učitelko.“",
+  "Paní učitelka: „Pepíčku, kde leží Amerika?“\n„Nevím, paní učitelko, já ji nepokládal.“",
+  "– Pepíčku, jak to, že máš ve slohu o psovi stejný text jako tvůj brácha?\n– Paní učitelko, máme stejného psa.",
+  "„Tati, můžu dostat deset korun pro jednoho chudého starého pána?“\n„To je od tebe hezké. A kde je?“\n„Prodává zmrzlinu.“",
+  "Učitelka: „Pepíčku, vyjmenuj pět zvířat, která žijí v Africe.“\n„Lev a čtyři žirafy.“",
+  "– Pepíčku, proč jdeš pozdě?\n– Protože zvonilo dřív, než jsem přišel.",
+  "– Pane doktore, bolí mě, když se dotknu tady, tady i tady.\n– Máte zlomený prst.",
+  "– Pane doktore, každé ráno v sedm chodím na záchod.\n– To je přece skvělé.\n– Jenže já vstávám v osm.",
+  "Pacient: „Pane doktore, všichni mě ignorují.“\nDoktor: „Další, prosím.“",
+  "– Pane doktore, pořád zapomínám.\n– A jak dlouho?\n– Co jak dlouho?",
+  "– Pane doktore, můj manžel si myslí, že je lednička.\n– To přece nevadí.\n– Ale on spí s otevřenou pusou a to světýlko mě budí.",
+  "Přijde chlap do lékárny: „Máte něco proti kašli?“\n„Nemáme, kašel nám nevadí.“",
+  "Víte, proč mají záchody v kancelářích tak dobrý signál? Protože se tam vyřizuje nejvíc práce.",
+  "Říká se, že čas jsou peníze. Proto na záchodě sedím tak dlouho. Vydělávám.",
+  "Na dveřích firemního záchodu: „Prosím, nepište po zdech.“ Pod tím: „A kam teda?“",
+  "Na firemním záchodě visí cedulka: „Pracujeme pro vás.“ A někdo připsal: „Já taky.“",
+  "Nejproduktivnější schůzka dne je ta, na kterou chodím sám a zamykám za sebou.",
+  "– Kde jsi byl celou hodinu?\n– Na záchodě.\n– Celou hodinu?\n– Byla tam fronta. Na wifi.",
+  "Rozdíl mezi prací a záchodem? Na záchodě aspoň víš, co ti z toho vzejde.",
+  "– Proč chodíš na záchod s notebookem?\n– Šéf říkal, že mám mít výsledky.",
+  "Toaletní papír a porada mají jedno společné: čím déle se táhnou, tím méně z nich zbývá.",
+  "Kdyby se platilo podle výkonu, chodil bych na záchod ještě častěji.",
+  "Manželka: „Miláčku, víš, co je dneska za den?“\nManžel zpanikaří a koupí květiny, bonboniéru a lístky do kina.\nManželka: „Úterý, ale děkuju.“",
+  "– Co děláš, když tvoje žena křičí?\n– Nechám ji domluvit. Třeba ve čtvrtek.",
+  "Manžel volá domů: „Miláčku, na dálnici jede nějaký blázen v protisměru, dávej pozor!“\n„Jeden? Jich jsou tu stovky!“",
+  "– Proč jsi tak smutný?\n– Žena mi řekla, že se mnou nepromluví měsíc.\n– Tak to by ses měl radovat.\n– Dneska je poslední den.",
+  "Tchyně se ptá zetě: „Co bys dělal, kdybych spadla do řeky?“\n„A ve kterých novinách by o tom psali?“",
+  "– Jak dlouho jste spolu?\n– Deset let.\n– A pořád se hádáte?\n– Už ne. Teď už jen opakujeme.",
+  "Babička: „Za mých časů jsme za korunu koupili chleba, mléko, vajíčka a ještě něco zbylo.“\nVnuk: „Dneska jsou všude kamery, babi.“",
+  "Mám skvělou paměť. Jen si nepamatuju na co.",
+  "Říkal jsem si, že od pondělí začnu běhat. Teď už jen čekám, které pondělí to bude.",
+  "Moje dieta funguje skvěle. Za dva týdny jsem ztratil čtrnáct dní.",
+  "Lékař mi doporučil plavání. Plavky už mám, teď ještě motivaci.",
+  "Moje váha mi dnes ráno řekla: „Prosím, po jednom.“",
+  "Budík je vynález, který ti každé ráno připomene, že máš práci.",
+  "Pondělí je jediný den v týdnu, který by šel klidně zrušit a nikomu by nechyběl.",
+  "Sedím v práci a přemýšlím, jestli je tohle práce, nebo jen čekání na výplatu.",
+  "Výplata je jako pohádka. Čekáš na ni celý měsíc a skončí za tři dny.",
+  "– Kolik vyděláš měsíčně?\n– Asi tak do patnáctého.",
+  "Banka mi poslala dopis, že mám na účtu méně, než je potřeba. Tak jsem jim poslal dopis, že mám v peněžence méně, než je potřeba.",
+  "Ekonom je člověk, který vám zítra vysvětlí, proč se nestalo to, co předpověděl včera.",
+  "Říkají, že peníze nepřinášejí štěstí. Já bych to ale rád vyzkoušel sám.",
+  "– Jak se z malého podnikatele stane milionář?\n– Začne jako miliardář.",
+  "Dva kamarádi u piva: „Zdražilo se pivo.“\n„To nevadí, já stejně piju na dluh.“",
+  "– Na co je ti kalkulačka na záchodě?\n– Spočítám si, kolik jsem tu vydělal.",
+  "Moje firma platí podle toho, kolik práce odvedu. Proto jsem minulý měsíc dostal poštovné.",
+  "– Jak dlouho u vás pracuješ?\n– Od chvíle, kdy mi vyhrožovali výpovědí.",
+  "Šéf: „Kdo vás přijal do práce?“\nZaměstnanec: „Vy.“\nŠéf: „Tak to se musím víc soustředit.“",
+  "Pohovor:\n– Jaká je vaše největší slabost?\n– Upřímnost.\n– To mi nepřijde jako slabost.\n– Mně je jedno, co si myslíte.",
+  "Pohovor:\n– Kde se vidíte za pět let?\n– Na vašem místě, ale s lepší židlí.",
+  "Pohovor:\n– Máte nějaké zkušenosti?\n– Ano. S pohovory.",
+  "– Proč jsi odešel z minulé práce?\n– Kvůli nemoci.\n– Jaké?\n– Šéf ze mě byl nemocný.",
+  "Šéf: „Vy jste zase spal v práci!“\n„Nebojte, šéfe, v noci jsem byl zato vzhůru.“",
+  "Kolega se ptá: „Proč máš na stole kaktus?“\n„Aby měl někdo v kanceláři ostny místo mě.“",
+  "– Co děláš, když nemáš co dělat?\n– Tvářím se, že nestíhám.",
+  "Kancelářská židle se kolečky je jediný sportovní nástroj, který používám denně.",
+  "Nejrychlejší věc na světě není světlo. Je to zaměstnanec v pátek ve tři odpoledne.",
+  "Kolega: „Dneska jsem udělal všechno, co jsem si naplánoval.“\n„A co sis naplánoval?“\n„Nic.“",
+  "Na e-mail „Jen připomínám…“ se odpovídá jen jedním způsobem. Pozdě.",
+  "„Pojďme to probrat offline,“ znamená: už to nikdy neřešme.",
+  "„Rychlý dotaz“ v kanceláři trvá průměrně čtyřicet minut.",
+  "Šéf napsal: „Máš minutku?“ Od té doby uběhly dvě hodiny a tři kafe.",
+  "Proč je kafe v kanceláři tak oblíbené? Protože je to jediná věc, která tam pracuje bez porady.",
+  "Kávovar se pokazil a celá firma zjistila, kdo tam vlastně pracuje.",
+  "– Kolik kafe denně vypiješ?\n– Do oběda tři, pak přestanu počítat.",
+  "Kolega se vrátí z dovolené: „Co je nového?“\n„Nic, ale všichni se tváří, že je toho hrozně moc.“",
+  "Dovolená je období, kdy si odpočineš od práce, abys pak měl sílu na práci, ze které potřebuješ dovolenou.",
+  "Home office: jediná práce, kde je šéf kočka a kolega lednička.",
+  "Na home office mám jednu výhodu. Záchod je blíž a nikdo nepočítá minuty.",
+  "– Jak se ti daří na home office?\n– Skvěle. Lednička mi věří víc než šéf.",
+  "Videohovor: „Slyšíte mě?“ „Vidíte mě?“ „Zkusím se odpojit a připojit.“ A tak uběhla porada.",
+  "– Máte vypnutý mikrofon.\nNejčastější věta roku.",
+  "Pes je nejlepší přítel člověka. Kočka je jeho šéf.",
+  "– Proč má kočka devět životů?\n– Aby stihla všechny ignorovat.",
+  "Přijde slimák do obchodu a prodavač ho vyhodí. Za týden se slimák vrátí: „Proč jste to udělal?“",
+  "Želva přejede šneka. Šnek se vzpamatuje a policistovi povídá: „Nevím, jak se to stalo. Bylo to strašně rychlé.“",
+  "– Proč ryby žijí ve slané vodě?\n– Protože v pepřové by kýchaly.",
+  "– Proč ryby nemluví?\n– Protože by jim teklo do pusy.",
+  "Jde medvěd lesem a potká zajíce: „Zajíci, máš rád porady?“\n„Nemám.“\n„Tak to tě sním na první.“",
+  "Ptá se slon myši: „Proč jsi tak malá?“\n„Byla jsem dlouho nemocná.“",
+  "Přijde zajíc do knihovny: „Máte knihu o tom, jak přežít v lese?“\n„Máme, ale je půjčená. Liškou.“",
+  "Pavouk se chlubí: „Mám vlastní webovou stránku.“",
+  "– Jak se jmenuje medvěd bez zubů?\n– Gumový medvídek.",
+  "Proč kostlivec nešel na firemní večírek? Neměl na to žaludek.",
+  "Co řekne nula osmičce? Pěkný pásek.",
+  "Proč matematická učebnice smutní? Má moc problémů.",
+  "Víte, proč má žirafa tak dlouhý krk? Protože má smradlavé nohy.",
+  "Co řekne jedna zeď druhé? Sejdeme se na rohu.",
+  "Víte, proč jsou na záchodě dveře? Aby měl každý aspoň jedno místo, kde má soukromí od kolegů.",
+  "Zeptal jsem se Siri, proč jsem pořád sám. Otevřela mi kameru.",
+  "Nastavil jsem si heslo „nesprávné“. Když ho zapomenu, počítač mi napoví: Vaše heslo je nesprávné.",
+  "– Proč má tvůj telefon prasklý displej?\n– Spadl mi na záchodě. Naštěstí do ruky.",
+  "Wifi bez hesla je jako záchod bez zámku. Funguje, ale nikdo se tam necítí bezpečně.",
+  "Telefon mi ukázal, že jsem minulý týden strávil u obrazovky čtyřicet hodin. Tak jsem si to zapsal do výkazu práce.",
+  "Baterie v telefonu umí jednu věc dokonale: vybít se přesně ve chvíli, kdy sedíš na záchodě a čteš něco napínavého.",
+  "– Co je to sauna?\n– Místo, kde se potíš zadarmo. Na rozdíl od práce.",
+  "Přijde chlap k holiči: „Kolik bude stát ostříhání?“\n„Dvě stě.“\n„A oholení?“\n„Sto.“\n„Tak mi oholte hlavu.“",
+  "– Proč nosíš dvoje brýle?\n– Jedny na čtení a druhé na hledání těch prvních.",
+  "Policista zastaví řidiče: „Víte, jak rychle jste jel?“\n„Nevím, ale vím, že jsem přijel pozdě.“",
+  "Řidič se ptá navigace: „Kudy na záchod?“\nNavigace: „Za dvě stě metrů odbočte doleva. Pak už to vydržte.“",
+  "Proč má vlak zpoždění? Protože se mu taky nechce do práce.",
+  "– Proč jezdíš do práce na kole?\n– Protože autobus nečeká a šéf ano.",
+  "Říká se, že ranní ptáče dál doskáče. Mně stačí doskákat ke kávovaru."
+];
+</script>
+<script id="vtipy-logika">
+(function () {
+  // Next joke: random among the ones not seen yet; after all were seen start again,
+  // but never repeat the joke shown last.
+  function dalsi(sbirka, videne, rnd) {
+    if (!sbirka.length) return null;
+    var vSbirce = videne.filter(function (v) { return sbirka.indexOf(v) >= 0; });
+    var zbyva = sbirka.filter(function (v) { return vSbirce.indexOf(v) < 0; });
+    if (!zbyva.length) {
+      var posledni = vSbirce[vSbirce.length - 1];
+      zbyva = sbirka.length > 1 ? sbirka.filter(function (v) { return v !== posledni; }) : sbirka.slice();
+      vSbirce = [];
+    }
+    var vtip = zbyva[Math.min(zbyva.length - 1, Math.floor(rnd() * zbyva.length))];
+    return { vtip: vtip, videne: vSbirce.concat([vtip]) };
+  }
+  function parseVidene(raw) {
+    try {
+      var a = JSON.parse(raw);
+      return Array.isArray(a) ? a.filter(function (v) { return typeof v === "string"; }) : [];
+    } catch (e) { return []; }
+  }
+  // Czech, safe jokes from JokeAPI as plain text ("setup\ndelivery" for two-part jokes).
+  function zJokeApi(o) {
+    if (!o || o.error) return [];
+    var seznam = Array.isArray(o.jokes) ? o.jokes : [o];
+    var out = [];
+    seznam.forEach(function (j) {
+      if (!j || j.lang !== "cs" || j.safe !== true) return;
+      if (j.type === "single" && typeof j.joke === "string") out.push(j.joke);
+      else if (j.type === "twopart" && typeof j.setup === "string" && typeof j.delivery === "string") out.push(j.setup + "\n" + j.delivery);
+    });
+    return out;
+  }
+  function sloucit(a, b) {
+    var out = a.slice();
+    b.forEach(function (v) { if (out.indexOf(v) < 0) out.push(v); });
+    return out;
+  }
+  window.VtipyLogika = {
+    KEY: "zachodova-vtipy-v1",
+    API_URL: "https://v2.jokeapi.dev/joke/Any?lang=cs&safe-mode&amount=10",
+    dalsi: dalsi,
+    parseVidene: parseVidene,
+    zJokeApi: zJokeApi,
+    sloucit: sloucit
+  };
+})();
+</script>
+<script id="vtipy-ui">
+(function () {
+  var L = window.VtipyLogika;
+  var sbirka = window.VtipyData.slice();
+  var textEl = document.getElementById("vtipText"), dalsiBtn = document.getElementById("vtipDalsi");
+  var videne = [], nacteno = false;
+  try { videne = L.parseVidene(localStorage.getItem(L.KEY)); } catch (e) {}
+  function ukaz() {
+    var r = L.dalsi(sbirka, videne, Math.random);
+    if (!r) return;
+    videne = r.videne;
+    textEl.textContent = r.vtip;
+    try { localStorage.setItem(L.KEY, JSON.stringify(videne)); } catch (e) {}
+  }
+  // A few more Czech jokes from JokeAPI join the collection; without network the collection is enough.
+  function nactiApi() {
+    if (!window.fetch) return;
+    fetch(L.API_URL).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (o) {
+      sbirka = L.sloucit(sbirka, L.zJokeApi(o));
+    }).catch(function () {});
+  }
+  dalsiBtn.addEventListener("click", ukaz);
+  window.Vtipy = {
+    // Called when the tab is shown; the first time it picks a joke and asks the API for more.
+    zobraz: function () {
+      if (nacteno) return;
+      nacteno = true;
+      ukaz();
+      nactiApi();
+    }
+  };
+})();
+</script>
 <script>
 (function () {
   var KEY = "zachodova-kalkulacka-v1";
@@ -3674,7 +3911,7 @@ body.detail-open { overflow: hidden; }
   }
 
   function renderFeed() {
-    if (activeTab === "hra") return; // a late fetch must not draw over the game tab
+    if (activeTab === "hra" || activeTab === "vtipy") return; // a late fetch must not draw over another tab
     var st = feedState[feedTab];
     var now = Date.now();
     feedList.textContent = "";
@@ -3724,19 +3961,21 @@ body.detail-open { overflow: hidden; }
 
   // activeTab is one of TAB_ORDER; feedTab stays on the last news tab (svet/penize).
   var activeTab = "svet";
-  var TAB_IDS = { svet: "tabSvet", penize: "tabPenize", hra: "tabHra" };
-  var hraPanel = $("hraPanel");
+  var TAB_IDS = { svet: "tabSvet", penize: "tabPenize", vtipy: "tabVtipy", hra: "tabHra" };
+  var hraPanel = $("hraPanel"), vtipPanel = $("vtipPanel");
   function showTab(tab) {
     activeTab = tab;
     Object.keys(TAB_IDS).forEach(function (k) {
       $(TAB_IDS[k]).setAttribute("aria-selected", String(tab === k));
       $(TAB_IDS[k]).tabIndex = tab === k ? 0 : -1;
     });
-    var isHra = tab === "hra";
+    var isHra = tab === "hra", isVtipy = tab === "vtipy";
     if (!isHra && window.Hra) window.Hra.pause(); // the game in the tab is no longer visible
-    feedList.hidden = isHra;
+    feedList.hidden = isHra || isVtipy;
     hraPanel.hidden = !isHra;
-    if (isHra) {
+    vtipPanel.hidden = !isVtipy;
+    if (isVtipy && window.Vtipy) window.Vtipy.zobraz();
+    if (isHra || isVtipy) {
       feedMore.hidden = true;
       feedEnd.hidden = true;
       return;
@@ -3858,8 +4097,9 @@ body.detail-open { overflow: hidden; }
   });
   $("tabSvet").addEventListener("click", function () { showTab("svet"); });
   $("tabPenize").addEventListener("click", function () { showTab("penize"); });
+  $("tabVtipy").addEventListener("click", function () { showTab("vtipy"); });
   $("tabHra").addEventListener("click", function () { showTab("hra"); });
-  var TAB_ORDER = ["svet", "penize", "hra"];
+  var TAB_ORDER = ["svet", "penize", "vtipy", "hra"];
   document.querySelector(".tabs").addEventListener("keydown", function (e) {
     var visible = TAB_ORDER.filter(function (k) { return !$(TAB_IDS[k]).hidden; });
     var i = visible.indexOf(activeTab), n = visible.length, j;
