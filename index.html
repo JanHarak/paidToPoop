@@ -509,6 +509,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
 .profil-rezim { display: flex; gap: .4rem; margin-bottom: 1rem; }
 .profil-rezim .profil-volba { flex: 1; }
 .profil-rezim .profil-volba span { font-size: .95rem; font-weight: 700; }
+.profil-zaskrt { display: flex; align-items: flex-start; gap: .6rem; margin: .2rem 0 .4rem; font-size: .95rem; cursor: pointer; }
+.profil-zaskrt input { width: 1.3rem; height: 1.3rem; margin: .05rem 0 0; flex: none; accent-color: var(--brass); }
+.profil-zaskrt:has(input:disabled) { opacity: .5; cursor: not-allowed; }
 .profil-pozn { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
 .profil-hotovo {
   min-height: 44px; padding: 0 1.4rem; border: 2px solid var(--line); border-radius: 999px;
@@ -536,6 +539,16 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--brass); ou
   background: rgba(0, 0, 0, .55);
 }
 .warn-modal[hidden] { display: none; }
+/* Start-up question about the stopwatch (profile option) */
+.uvitani { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1.25rem; background: rgba(0, 0, 0, .55); }
+.uvitani[hidden] { display: none; }
+.uvitani-box { max-width: 380px; width: 100%; background: var(--porcelain); color: var(--ink); border-radius: 16px; padding: 1.4rem 1.25rem 1.25rem; text-align: center; box-shadow: 0 20px 60px -20px rgba(0, 0, 0, .6); animation: warn-pop .25s ease; }
+.uvitani-box h2 { margin: 0 0 .5rem; font-size: 1.3rem; }
+.uvitani-box p { margin: 0 0 1.1rem; font-size: 1.05rem; color: var(--muted); }
+.uvitani-akce { display: flex; flex-direction: column; gap: .5rem; }
+.uvitani-akce .flush { margin-top: 0; }
+.uvitani-ne { min-height: 44px; border: 0; background: transparent; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .uvitani-box { animation: none; } }
 .warn-box {
   max-width: 380px;
   width: 100%;
@@ -2101,6 +2114,8 @@ body.detail-open { overflow: hidden; }
         <div class="input-row"><input type="number" id="profilDni" inputmode="numeric" min="0" max="31" step="1"></div>
       </div>
       <p class="profil-pozn">Podle toho se počítají zápisy ze stopek. Starší zápisy se nemění.</p>
+      <label class="profil-zaskrt"><input type="checkbox" id="profilPtatSe"> <span>Po otevření aplikace se zeptat, jestli spustit stopky</span></label>
+      <p class="profil-pozn" id="profilPtatSeHint" hidden>Funguje jen s vyplněnou sazbou a délkou pracovního dne.</p>
     </fieldset>
     <button type="button" class="profil-hotovo" id="profilHotovo">Hotovo</button>
   </div></div>
@@ -2120,6 +2135,16 @@ body.detail-open { overflow: hidden; }
   <button class="denik-vratit" id="denikVratit" type="button" hidden>Vrátit</button>
 </div>
 
+<div class="uvitani" id="uvitani" role="dialog" aria-modal="true" aria-labelledby="uvitaniTitul" aria-describedby="uvitaniText" hidden>
+  <div class="uvitani-box">
+    <h2 id="uvitaniTitul">Jdeš na záchod?</h2>
+    <p id="uvitaniText">Spustím stopky a čas se ti zapíše do deníku.</p>
+    <div class="uvitani-akce">
+      <button type="button" class="flush" id="uvitaniAno">Spustit stopky</button>
+      <button type="button" class="uvitani-ne" id="uvitaniNe">Teď ne</button>
+    </div>
+  </div>
+</div>
 <div id="warnLayer">
   <div class="warn-tint" id="warnTint" aria-hidden="true" hidden></div>
   <div class="warn-modal" id="warnModal" role="alertdialog" aria-modal="true" aria-labelledby="warnTitle" aria-describedby="warnText" hidden>
@@ -2564,7 +2589,7 @@ body.detail-open { overflow: hidden; }
   var MAX_PREZDIVKA = 24;
 
   function vychozi() {
-    return { prezdivka: "", avatar: "", mode: "md", castka: 0, mena: "CZK", hodiny: 0, dni: 0 };
+    return { prezdivka: "", avatar: "", mode: "md", castka: 0, mena: "CZK", hodiny: 0, dni: 0, ptatSe: false };
   }
 
   function cislo(x) {
@@ -2592,6 +2617,7 @@ body.detail-open { overflow: hidden; }
     if (h >= 0 && h <= 24) p.hodiny = h;
     var d = cislo(o.dni);
     if (d >= 0 && d <= 31 && Math.floor(d) === d) p.dni = d;
+    p.ptatSe = o.ptatSe === true;
     return p;
   }
 
@@ -2627,10 +2653,15 @@ body.detail-open { overflow: hidden; }
     return p.castka / (p.hodiny * 60);
   }
 
+  // Ask about the stopwatch on app start: the option is on, a rate is set and nothing is running.
+  function ptatSePoSpusteni(p, bezi) {
+    return !bezi && !!p && p.ptatSe === true && zaMinutu(normalizuj(p)) > 0;
+  }
   window.ProfilLogika = {
     KEY: KEY, AVATARY: AVATARY, MENY: MENY, MAX_PREZDIVKA: MAX_PREZDIVKA,
     vychozi: vychozi, normalizuj: normalizuj, parse: parse, zKalkulacky: zKalkulacky,
-    serializuj: serializuj, zaMinutu: zaMinutu
+    serializuj: serializuj, zaMinutu: zaMinutu,
+    ptatSePoSpusteni: ptatSePoSpusteni
   };
 })();
 </script>
@@ -2689,6 +2720,7 @@ body.detail-open { overflow: hidden; }
   var fHodiny = document.getElementById("profilHodiny");
   var fDni = document.getElementById("profilDni");
   var fDniPole = document.getElementById("profilDniPole");
+  var fPtatSe = document.getElementById("profilPtatSe"), fPtatSeHint = document.getElementById("profilPtatSeHint");
   var popisek = document.getElementById("profilCastkaPopisek");
   var avatarRadia = document.getElementsByName("profilAvatar");
   var modeRadia = document.getElementsByName("profilMode");
@@ -2739,6 +2771,10 @@ body.detail-open { overflow: hidden; }
     var sal = profil.mode === "sal";
     fDniPole.hidden = !sal;
     popisek.textContent = sal ? "Měsíční plat" : "MD sazba";
+    // The start-up question needs a rate; the stored choice is kept while the box is disabled.
+    var bezSazby = !(PL.zaMinutu(profil) > 0);
+    fPtatSe.disabled = bezSazby;
+    fPtatSeHint.hidden = !bezSazby;
   }
   function zapisFormular() {
     var i;
@@ -2749,6 +2785,7 @@ body.detail-open { overflow: hidden; }
     fMena.value = profil.mena;
     fHodiny.value = cisloText(profil.hodiny);
     fDni.value = cisloText(profil.dni);
+    fPtatSe.checked = profil.ptatSe;
     kresliRezim();
   }
   function prectiFormular() {
@@ -2757,7 +2794,8 @@ body.detail-open { overflow: hidden; }
     for (i = 0; i < modeRadia.length; i++) if (modeRadia[i].checked) mode = modeRadia[i].value;
     return PL.normalizuj({
       prezdivka: fPrezdivka.value, avatar: av, mode: mode,
-      castka: fCastka.value, mena: fMena.value, hodiny: fHodiny.value, dni: fDni.value
+      castka: fCastka.value, mena: fMena.value, hodiny: fHodiny.value, dni: fDni.value,
+      ptatSe: fPtatSe.checked
     });
   }
   function oznam() {
@@ -5283,6 +5321,34 @@ window.VtipyData = [
       else localStorage.removeItem(Stopky.KEY);
     }
   } catch (e) {}
+
+  // Start-up question (profile option): offer to start the diary stopwatch right away.
+  var uvitani = $("uvitani"), uvitaniAno = $("uvitaniAno"), uvitaniNe = $("uvitaniNe"), uvitaniFokus = null;
+  function zavriUvitani() {
+    if (uvitani.hidden) return;
+    uvitani.hidden = true;
+    var zpet = uvitaniFokus;
+    uvitaniFokus = null;
+    if (zpet && zpet.focus && document.body.contains(zpet)) zpet.focus();
+  }
+  uvitaniAno.addEventListener("click", function () {
+    zavriUvitani();
+    if (timerStart === null) stiskStopek("denik");
+  });
+  uvitaniNe.addEventListener("click", zavriUvitani);
+  uvitani.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); zavriUvitani(); }
+    else if (e.key === "Tab") {
+      // Keep focus on the two buttons while the question is open.
+      e.preventDefault();
+      (document.activeElement === uvitaniAno ? uvitaniNe : uvitaniAno).focus();
+    }
+  });
+  if (ProfilLogika.ptatSePoSpusteni(Profil.aktualni(), timerStart !== null) && !(window.Vrstvy && window.Vrstvy.top())) {
+    uvitaniFokus = document.activeElement;
+    uvitani.hidden = false;
+    uvitaniAno.focus();
+  }
 
 
   window.zachod = {
